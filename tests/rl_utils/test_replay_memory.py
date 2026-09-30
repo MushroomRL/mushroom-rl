@@ -1144,7 +1144,7 @@ def test_contiguous_follows_every_environment_across_joined_blocks():
     assert np.array_equal(glued.state[:, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
     assert np.array_equal(glued.reward, np.array([0., 1., 2., 3., 100., 101., 102., 103.]))
     assert np.array_equal(glued.last_or_boundary, np.array([False, False, False, True, False, False, False, True]))
-    assert glued._layout.open_tails == (3, 7)
+    assert glued._layout.open_tails.tolist() == [3, 7]
 
 
 def test_replay_memory_add_of_joined_blocks_keeps_every_window():

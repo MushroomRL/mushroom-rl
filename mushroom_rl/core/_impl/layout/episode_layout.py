@@ -28,7 +28,7 @@ class EpisodeLayout(MushroomObject):
             n_envs (int, None): the number of parallel environments of each row, or ``None``.
 
         """
-        self._backend = backend
+        self._array_backend = ArrayBackend.get_array_backend(backend)
         self._shape = shape
         self._device = device
         self._n_envs = n_envs
@@ -37,14 +37,15 @@ class EpisodeLayout(MushroomObject):
         self._open_tails = None
         self._n_joins = 0
 
+        serialization = self._array_backend.get_backend_serialization()
         self._add_save_attr(
-            _backend='primitive',
+            _array_backend='primitive',
             _shape='primitive',
             _device='none',
             _n_envs='primitive',
             _first='primitive',
-            _open_heads='primitive',
-            _open_tails='primitive',
+            _open_heads=serialization,
+            _open_tails=serialization,
             _n_joins='primitive'
         )
 
@@ -124,13 +125,14 @@ class EpisodeLayout(MushroomObject):
         if isinstance(index, slice) and index.step in (None, 1):
             layout = self._standalone_slice(index, last)
         else:
-            array_backend = ArrayBackend.get_array_backend(self._backend)
+            array_backend = self._array_backend
             starts = self.row_starts(last)[index]
             boundary = array_backend.zeros(len(starts), dtype=self.dtype, device=self._device)
             boundary[:] = int(self.Boundary.CONTINUING)
             boundary[starts] = int(self.Boundary.FRESH)
             layout = self._coded_from_array(boundary)
-        layout._open_heads, layout._open_tails = tuple(), tuple()
+        layout._open_heads = self._array_backend.zeros(0, dtype=int, device=self._device)
+        layout._open_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
 
         return layout
 
@@ -146,13 +148,15 @@ class EpisodeLayout(MushroomObject):
             The layout of the selected rows, continuing no episode and leaving none open.
 
         """
-        array_backend = ArrayBackend.get_array_backend(self._backend)
+        array_backend = self._array_backend
         boundary_code = array_backend.zeros(len(rows), dtype=self.dtype, device=self._device)
         boundary_code[:] = int(self.Boundary.CONTINUING)
         boundary_code[self.row_starts(last)[rows]] = int(self.Boundary.FRESH)
         linked = (rows[1:] == rows[:-1] + 1) & self._follow_previous(rows[1:])
         boundary_code[1:][linked] = int(self.Boundary.NONE)
-        return self._coded_from_array(boundary_code, open_heads=tuple(), open_tails=tuple())
+        return self._coded_from_array(boundary_code,
+                                      open_heads=self._array_backend.zeros(0, dtype=int, device=self._device),
+                                      open_tails=self._array_backend.zeros(0, dtype=int, device=self._device))
 
     def walk_back(self, last, anchors, n_hops):
         """
@@ -197,8 +201,8 @@ class EpisodeLayout(MushroomObject):
         if self._open_heads is not None:
             return self._open_heads
         if len(self) > 0 and self._code(0) & self.Boundary.CONTINUING:
-            return 0,
-        return tuple()
+            return self._array_backend.arange(0, 1, device=self._device)
+        return self._array_backend.zeros(0, dtype=int, device=self._device)
 
     def pending_tails(self, last):
         """
@@ -214,8 +218,8 @@ class EpisodeLayout(MushroomObject):
         if self._open_tails is not None:
             return self._open_tails
         if len(self) > 0 and not bool(last[-1]):
-            return len(self) - 1,
-        return tuple()
+            return self._array_backend.arange(len(self) - 1, len(self), device=self._device)
+        return self._array_backend.zeros(0, dtype=int, device=self._device)
 
     @staticmethod
     def walk_stream_back(last, anchors, n_hops):
@@ -307,17 +311,23 @@ class EpisodeLayout(MushroomObject):
         The data type of the boundary codes.
 
         """
-        return ArrayBackend.get_array_backend(self._backend).to_backend_dtype('int8')
+        return self._array_backend.to_backend_dtype('int8')
 
     def _coded_from_array(self, boundary, open_heads=None, open_tails=None):
         raise NotImplementedError
 
     def _resized(self, n_rows):
-        return (n_rows,) + tuple(self._shape[1:]) if self._backend != 'list' else ()
+        return (n_rows,) + tuple(self._shape[1:]) if self._array_backend.get_backend_name() != 'list' else ()
 
     def _copy_state(self, layout):
         layout._first, layout._n_joins = self._first, self._n_joins
         layout._open_heads, layout._open_tails = self._open_heads, self._open_tails
+        return layout
+
+    def _converted_state(self, layout, backend, device):
+        layout = self._copy_state(layout)
+        layout._open_heads = self._converted_rows(self._open_heads, backend, device)
+        layout._open_tails = self._converted_rows(self._open_tails, backend, device)
         return layout
 
     def _pair(self, other, last):
@@ -330,9 +340,9 @@ class EpisodeLayout(MushroomObject):
         if len(heads) > 0 and len(heads) != len(tails):
             raise ValueError(f"Cannot append a dataset continuing {len(heads)} episodes to a dataset ending with "
                              f"{len(tails)} open episodes.")
-        stitched = len(heads) == 1 and heads[0] == 0 and tails[0] == n - 1
+        stitched = len(heads) == 1 and bool(heads[0] == 0) and bool(tails[0] == n - 1)
         glued = not stitched and (len(heads) > 0 or len(tails) > 0)
-        other_tails = None if other._open_tails is None else tuple(t + n for t in other._open_tails)
+        other_tails = None if other._open_tails is None else other._open_tails + n
         return stitched, glued, self._open_heads, other_tails
 
     def _mark_join(self, boundary, n, stitched, glued):
@@ -340,6 +350,12 @@ class EpisodeLayout(MushroomObject):
             boundary.column()[n] = int(self.Boundary.NONE)
         if glued:
             boundary.column()[n] = int(boundary.column()[n]) | int(self.Boundary.BLOCK_START)
+
+    @staticmethod
+    def _converted_rows(rows, backend, device):
+        if rows is None:
+            return None
+        return ArrayBackend.convert(rows, to='numpy' if backend == 'list' else backend, device=device)
 
     @staticmethod
     def _straight_walk(anchors, exists, direction, modulo):

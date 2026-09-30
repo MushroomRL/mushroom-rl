@@ -85,12 +85,13 @@ class StreamLayout(EpisodeLayout):
         """
         if isinstance(index, slice) and index.step in (None, 1):
             start, stop, _ = index.indices(self._n_rows)
-            layout = StreamLayout(self._backend, self._shape, self._device, self._n_envs)
+            layout = StreamLayout(self._array_backend.get_backend_name(), self._shape, self._device, self._n_envs)
             layout._n_rows = max(stop - start, 0)
             layout._head = self._head if start == 0 else int(self.Boundary.NONE)
             return layout
-        return CodedLayout.from_container(self._rows().get_view(index, copy=True), self._backend, self._shape,
-                                          self._device, self._n_envs)
+        return CodedLayout.from_container(self._rows().get_view(index, copy=True),
+                                          self._array_backend.get_backend_name(), self._shape, self._device,
+                                          self._n_envs)
 
     def segment_ends(self, last):
         """
@@ -182,10 +183,12 @@ class StreamLayout(EpisodeLayout):
 
         """
         rows = self._rows() if self._n_rows > 0 else None
-        container = Container.create(self._backend, [self._shape], [self.dtype], self._device, self._n_envs)
+        container = Container.create(self._array_backend.get_backend_name(), [self._shape], [self.dtype], self._device,
+                                     self._n_envs)
         if rows is not None:
             container.append_batch(rows)
-        layout = CodedLayout.from_container(container, self._backend, self._shape, self._device, self._n_envs)
+        layout = CodedLayout.from_container(container, self._array_backend.get_backend_name(), self._shape,
+                                            self._device, self._n_envs)
         return self._copy_state(layout)
 
     def to_backend(self, backend, device=None):
@@ -203,7 +206,7 @@ class StreamLayout(EpisodeLayout):
         layout = StreamLayout(backend, device=device)
         layout._shape = layout._resized(len(self))
         layout._n_rows, layout._head = self._n_rows, self._head
-        return self._copy_state(layout)
+        return self._converted_state(layout, backend, device)
 
     @classmethod
     def from_rows(cls, n_rows, backend, device=None, continuing=False):
@@ -237,12 +240,14 @@ class StreamLayout(EpisodeLayout):
     def _joined(self, other, stitched, glued, last):
         n = len(self)
         if self._follows(other, stitched, glued, last):
-            result = StreamLayout(self._backend, self._resized(n + len(other)), self._device, self._n_envs)
+            result = StreamLayout(self._array_backend.get_backend_name(), self._resized(n + len(other)), self._device,
+                                  self._n_envs)
             result._n_rows = n + len(other)
             result._head = self._head if n > 0 else other._head
             return result
-        return CodedLayout.from_container(self._rows() + other._rows(), self._backend, self._resized(n + len(other)),
-                                          self._device, self._n_envs)._marked(n, stitched, glued)
+        return CodedLayout.from_container(self._rows() + other._rows(), self._array_backend.get_backend_name(),
+                                          self._resized(n + len(other)), self._device,
+                                          self._n_envs)._marked(n, stitched, glued)
 
     def _clear_rows(self):
         self._n_rows = 0
@@ -259,18 +264,18 @@ class StreamLayout(EpisodeLayout):
         return backend.ones(len(rows), dtype=bool, device=backend.get_device(rows))
 
     def _coded_from_array(self, boundary, open_heads=None, open_tails=None):
-        return CodedLayout.from_array(boundary, self._backend, self._device, open_heads=open_heads,
-                                      open_tails=open_tails)
+        return CodedLayout.from_array(boundary, self._array_backend.get_backend_name(), self._device,
+                                      open_heads=open_heads, open_tails=open_tails)
 
     def _code(self, row):
         return self._head if row == 0 else int(self.Boundary.NONE)
 
     def _rows(self):
-        array_backend = ArrayBackend.get_array_backend(self._backend)
+        array_backend = self._array_backend
         codes = array_backend.zeros(self._n_rows, dtype=self.dtype, device=self._device)
         if self._n_rows > 0:
             codes[0] = self._head
-        return Container.from_array([codes], device=self._device, backend=self._backend)
+        return Container.from_array([codes], device=self._device, backend=self._array_backend.get_backend_name())
 
     def _follows(self, other, stitched, glued, last):
         # whether the rows of ``other`` can be appended without storing a boundary code: ``other`` stores none either,

@@ -443,13 +443,13 @@ class TestUtils:
         """
         res = type(this) is type(that) and len(this) == len(that)
         res &= this.first == that.first and this.n_joins == that.n_joins
-        res &= this.open_heads == that.open_heads and this.open_tails == that.open_tails
-        res &= this.pending_heads() == that.pending_heads()
+        res &= cls._eq_value(this.open_heads, that.open_heads) and cls._eq_value(this.open_tails, that.open_tails)
+        res &= cls._eq_value(this.pending_heads(), that.pending_heads())
         if hasattr(this, 'array'):
             res &= cls._eq_value(this.array(), that.array())
         if hasattr(this, 'write_head'):
             res &= this.max_size == that.max_size and this.write_head == that.write_head and this.full == that.full
-            res &= this._ring_tails == that._ring_tails
+            res &= cls._eq_value(this._ring_tails, that._ring_tails)
             res &= cls._eq_value(this.links, that.links)
         return res
 

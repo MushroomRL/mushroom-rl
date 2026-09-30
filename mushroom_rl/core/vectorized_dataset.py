@@ -313,8 +313,8 @@ class VectorizedDataset(Dataset):
         boundary[1:][continuing & same_env] = int(EpisodeLayout.Boundary.NONE)
         env_end = flags.concatenate([~same_env, flags.ones(1, dtype=bool, device=device)])
         open_end = env_end & ~(flags.as_array(lasts, device=device) > 0)
-        open_heads = tuple(int(i) for i in flags.where(boundary & int(EpisodeLayout.Boundary.CONTINUING) > 0)[0])
-        open_tails = tuple(int(i) for i in flags.where(open_end)[0])
+        open_heads = flags.where(boundary & int(EpisodeLayout.Boundary.CONTINUING) > 0)[0]
+        open_tails = flags.where(open_end)[0]
 
         policy_state = None
         policy_next_state = None

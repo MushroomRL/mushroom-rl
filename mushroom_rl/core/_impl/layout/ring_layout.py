@@ -25,13 +25,13 @@ class RingLayout(StreamLayout):
         self._max_size = max_size
         self._write_head = 0
         self._full = False
-        self._ring_tails = tuple()
+        self._ring_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
 
         self._add_save_attr(
             _max_size='primitive',
             _write_head='primitive',
             _full='primitive',
-            _ring_tails='primitive'
+            _ring_tails=self._array_backend.get_backend_serialization()
         )
 
     def append_rows(self, other):
@@ -45,22 +45,24 @@ class RingLayout(StreamLayout):
         Pair the continuing episodes of a dataset about to be written with the open episodes of the last write.
 
         Args:
-            heads (tuple): the rows of the dataset continuing the open episodes, in order.
+            heads (Array): the rows of the dataset continuing the open episodes, in order.
 
         Returns:
-            The buffer positions of the open episodes to close, and the ``(tail, head)`` pairs of the continued ones.
+            The buffer positions of the open episodes to close, and the ``(tails, heads)`` pair of arrays of the
+            continued ones: the buffer position of every continued open episode and the row continuing it, in order.
 
         Raises:
             ValueError: if the dataset continues a number of episodes different from the number left open.
 
         """
-        to_close = list()
-        pairs = list()
+        no_rows = self._array_backend.zeros(0, dtype=int, device=self._device)
+        to_close = no_rows
+        pairs = no_rows, no_rows
         if self.size > 0:
             if len(heads) == 0:
-                to_close = list(self._ring_tails)
+                to_close = self._ring_tails
             elif len(heads) == len(self._ring_tails):
-                pairs = list(zip(self._ring_tails, heads))
+                pairs = self._ring_tails, heads
             else:
                 raise ValueError(f"Cannot write a dataset continuing {len(heads)} episodes to a buffer with "
                                  f"{len(self._ring_tails)} open episodes.")
@@ -77,7 +79,7 @@ class RingLayout(StreamLayout):
             A :class:`LinkedRingLayout` holding the same buffer state.
 
         """
-        layout = LinkedRingLayout(self._backend, self._max_size, self._device)
+        layout = LinkedRingLayout(self._array_backend.get_backend_name(), self._max_size, self._device)
         layout._n_rows, layout._head = self._n_rows, self._head
         layout._write_head, layout._full, layout._ring_tails = self._write_head, self._full, self._ring_tails
         layout._prev_links, layout._next_links = layout._contiguous_links(last)
@@ -95,7 +97,7 @@ class RingLayout(StreamLayout):
             episodes occupy consecutive positions.
 
         """
-        return positions[:0]
+        return self._array_backend.zeros(0, dtype=int, device=self._device)
 
     def advance(self, n):
         """
@@ -117,25 +119,25 @@ class RingLayout(StreamLayout):
             positions (Array): the buffer position of every written row;
             continues (Array): for every written row but the first, whether it continues the episode of the previous
                 one;
-            pairs (list): the ``(tail, head)`` pairs of the continued open episodes;
+            pairs (tuple): the ``(tails, heads)`` arrays of the continued open episodes, as returned by :meth:`pair`;
             start (int): the write head before the write.
 
         Returns:
             The positions of the open episode ends linked to their continuation.
 
         """
-        return list()
+        return self._array_backend.zeros(0, dtype=int, device=self._device)
 
     def set_tails(self, tails, positions):
         """
         Record the open episodes of the rows just written.
 
         Args:
-            tails (tuple): the rows of the written dataset whose episode is open;
+            tails (Array): the rows of the written dataset whose episode is open;
             positions (Array): the buffer position of every written row.
 
         """
-        self._ring_tails = tuple(int(positions[tail]) for tail in tails)
+        self._ring_tails = positions[tails]
 
     def walk_back(self, last, anchors, n_hops):
         """
@@ -236,7 +238,7 @@ class RingLayout(StreamLayout):
 
     def standalone_view(self, index, last):
         if isinstance(index, slice) and index.step in (None, 1):
-            backend = ArrayBackend.get_array_backend(self._backend)
+            backend = self._array_backend
             rows = backend.arange(0, len(self), device=self._device)[index]
             return self.episodes_view(rows, last)
         return super().standalone_view(index, last)
@@ -253,7 +255,7 @@ class RingLayout(StreamLayout):
             The buffer positions of the stored rows in that order, and the boundary code of each of them.
 
         """
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         rows = backend.arange(0, self.size, device=self._device)
         order = (rows + self._write_head) % self._max_size if self._full else rows
         starts = self.row_starts(last)[order]
@@ -266,8 +268,9 @@ class RingLayout(StreamLayout):
     def to_backend(self, backend, device=None):
         layout = type(self)(backend, self._max_size, device)
         layout._n_rows, layout._head = self._n_rows, self._head
-        layout._write_head, layout._full, layout._ring_tails = self._write_head, self._full, self._ring_tails
-        return self._copy_state(layout)
+        layout._write_head, layout._full = self._write_head, self._full
+        layout._ring_tails = self._converted_rows(self._ring_tails, backend, device)
+        return self._converted_state(layout, backend, device)
 
     @property
     def max_size(self):
@@ -323,7 +326,7 @@ class RingLayout(StreamLayout):
         super()._clear_rows()
         self._write_head = 0
         self._full = False
-        self._ring_tails = tuple()
+        self._ring_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
 
     def _follow_previous(self, rows):
         return self._age(rows) > 0

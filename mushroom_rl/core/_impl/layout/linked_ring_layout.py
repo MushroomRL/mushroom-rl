@@ -24,7 +24,7 @@ class LinkedRingLayout(RingLayout):
         self._prev_links = None
         self._next_links = None
 
-        serialization = ArrayBackend.get_array_backend(backend).get_backend_serialization()
+        serialization = self._array_backend.get_backend_serialization()
         self._add_save_attr(
             _prev_links=serialization,
             _next_links=serialization
@@ -67,14 +67,14 @@ class LinkedRingLayout(RingLayout):
             positions (Array): the buffer position of every written row;
             continues (Array): for every written row but the first, whether it continues the episode of the previous
                 one;
-            pairs (list): the ``(tail, head)`` pairs of the continued open episodes;
+            pairs (tuple): the ``(tails, heads)`` arrays of the continued open episodes, as returned by :meth:`pair`;
             start (int): the write head before the write.
 
         Returns:
             The positions of the open episode ends linked to their continuation.
 
         """
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         device = self._device
         n = len(positions)
         steps = backend.zeros(n, dtype=int, device=device)
@@ -84,15 +84,14 @@ class LinkedRingLayout(RingLayout):
         steps[:-1] = continues * 1
         self._next_links[positions] = steps
 
-        relinked = list()
-        for tail, head in pairs:
-            head_position = int(positions[head])
-            if (tail - start) % self._max_size < n:
-                self._prev_links[head_position] = self._max_size
-            else:
-                self._prev_links[head_position] = (head_position - tail) % self._max_size
-                self._next_links[tail] = (head_position - tail) % self._max_size
-                relinked.append(tail)
+        tails, heads = pairs
+        head_positions = positions[heads]
+        distance = (head_positions - tails) % self._max_size
+        overwritten = (tails - start) % self._max_size < n
+        self._prev_links[head_positions] = backend.where(overwritten, self._max_size, distance)
+        kept = backend.where(~overwritten)[0]
+        relinked = tails[kept]
+        self._next_links[relinked] = distance[kept]
         return relinked
 
     def walk_back(self, last, anchors, n_hops):
@@ -164,7 +163,7 @@ class LinkedRingLayout(RingLayout):
         return self._prev_links[:len(last)] == 0
 
     def time_order(self, last):
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         rows = backend.arange(0, self.size, device=self._device)
         age = self._age(rows)
         root = self._previous(last, rows, age)
@@ -195,7 +194,7 @@ class LinkedRingLayout(RingLayout):
         return self._prev_links, self._next_links
 
     def _contiguous_links(self, last):
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         device = self._device
         prev_links = backend.zeros(self._max_size, dtype=int, device=device)
         next_links = backend.zeros(self._max_size, dtype=int, device=device)
@@ -209,7 +208,7 @@ class LinkedRingLayout(RingLayout):
 
     def _clear_rows(self):
         super()._clear_rows()
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         self._prev_links = backend.zeros(self._max_size, dtype=int, device=self._device)
         self._next_links = backend.zeros(self._max_size, dtype=int, device=self._device)
 
@@ -217,7 +216,7 @@ class LinkedRingLayout(RingLayout):
         return (self._prev_links[rows] == 1) & (self._age(rows) > 0)
 
     def _previous(self, last, rows, age):
-        backend = ArrayBackend.get_array_backend(self._backend)
+        backend = self._array_backend
         distance = self._prev_links[rows]
         follows = (distance > 0) & (distance <= age)
         return backend.where(follows, (rows - distance) % self._max_size, rows)

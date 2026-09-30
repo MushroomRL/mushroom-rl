@@ -9,7 +9,7 @@ from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.policy import EpsGreedy, StatefulPolicy
+from mushroom_rl.policy import EpsGreedy, Policy, StatefulPolicy
 
 from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
 from mushroom_rl.core._impl.history_state import HistoryState
@@ -681,3 +681,50 @@ def test_integer_index_reads_only_the_stored_steps():
         dataset[3]
     with pytest.raises(IndexError):
         dataset[-4]
+
+
+class CountingVecEnv(VectorizedEnvironment):
+    def __init__(self):
+        super().__init__(MDPInfo(Box(-1000, 1000, shape=(1,)), Box(-1000, 1000, shape=(1,)), 0.9, 100), 3)
+        self._s = np.zeros((3, 1))
+        self._t = np.zeros(3)
+
+    def reset_all(self, env_mask, state=None):
+        self._s[env_mask] = 100. * (1 + np.arange(3)[env_mask, None])
+        self._t[env_mask] = 0
+        return self._s.copy(), [{}] * 3
+
+    def step_all(self, env_mask, action):
+        self._s[env_mask] += 1
+        self._t[env_mask] += 1
+        return self._s.copy(), np.ones(3), (self._t >= 3 + np.arange(3)) & env_mask, [{}] * 3
+
+
+class ZeroPolicy(Policy):
+    def draw_action(self, state):
+        return np.zeros((len(state), 1))
+
+
+class StatelessFitCollectingAgent(Agent):
+    def __init__(self, mdp_info):
+        super().__init__(mdp_info, ZeroPolicy(), backend='numpy')
+        self.fits = list()
+
+    def fit(self, dataset):
+        self.fits.append(dataset)
+
+
+def test_joining_flattened_datasets_converted_to_the_list_backend():
+    env = CountingVecEnv()
+    agent = StatelessFitCollectingAgent(env.info)
+    Core(agent, env).learn(n_steps=27, n_steps_per_fit=9, quiet=True)
+
+    joined = agent.fits[1].to_backend('list') + agent.fits[2].to_backend('list')
+    glued = joined.contiguous()
+
+    assert joined._layout.open_tails.tolist() == [14, 17]
+    assert [float(state[0]) for state in glued.state] == [100., 101., 102., 203., 200., 201., 202., 203., 200., 303.,
+                                                          304., 300., 301., 302., 303., 100., 101., 102.]
+    assert [bool(last) for last in glued.last] == [False, False, True, True, False, False, False, True, False, False,
+                                                   True, False, False, False, False, False, False, True]
+    assert glued._layout.pending_tails(glued._last_array()).tolist() == [8, 14]

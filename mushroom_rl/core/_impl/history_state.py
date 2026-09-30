@@ -166,7 +166,7 @@ class HistoryState(MushroomObject):
             The entries of the emptied dataset.
 
         """
-        return self._wrap(self._positions[:0], dict())
+        return self._wrap(self._array_backend.zeros(0, dtype=int, device=self._device), dict())
 
     def to_backend(self, backend, device=None):
         """

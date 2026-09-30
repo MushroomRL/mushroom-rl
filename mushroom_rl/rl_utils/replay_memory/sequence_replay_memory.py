@@ -1,3 +1,4 @@
+from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
 
 
@@ -128,4 +129,5 @@ class SequenceReplayMemory(ReplayMemory):
         """
         positions, valid = self._dataset.walk_back(anchor, self._truncation_length - 1)
         steps = positions[0][valid[0] & ~cut[positions[0]]]
-        return self._dataset.array_backend.as_array([int(step) for step in steps][::-1], device=self._agent_info.device)
+        return self._dataset.array_backend.as_array(ArrayBackend.convert(steps, to='list')[::-1],
+                                                    device=self._agent_info.device)

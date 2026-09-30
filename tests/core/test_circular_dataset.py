@@ -86,7 +86,7 @@ def test_append_replay_batch_of_an_empty_dataset_writes_nothing():
 
     positions, relinked, orphans = buffer.append_replay_batch(make_block([], []))
 
-    assert len(positions) == 0 and relinked == [] and len(orphans) == 0
+    assert len(positions) == 0 and len(relinked) == 0 and len(orphans) == 0
     assert buffer.write_head == 2 and np.array_equal(buffer.last, np.array([False, False]))
 
     buffer.append_replay_batch(make_block([2], [True], continuing=True))

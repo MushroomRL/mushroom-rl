@@ -179,7 +179,7 @@ class ReplayMemory(MushroomObject):
         Args:
             start (int): the write head before the batch was written;
             n_written (int): the number of rows of the batch;
-            relinked (list): the buffer positions of the open episode ends the batch continued;
+            relinked (Array): the buffer positions of the open episode ends the batch continued;
             orphans: the buffer positions of the stored steps whose previous step was overwritten.
 
         Returns:

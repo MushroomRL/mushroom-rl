@@ -424,7 +424,7 @@ class Dataset(MushroomObject):
 
         """
         positions, is_episode_start = self._segment_starts(self._last_array())
-        x_0 = [self.state[int(i)] for i in positions[is_episode_start]]
+        x_0 = [self.state[i] for i in ArrayBackend.convert(positions[is_episode_start], to='list')]
         return self._dataset_info.env_array_backend.from_list(x_0, device=self._dataset_info.env_device)
 
     def compute_J(self, gamma=1., skip_incomplete=True):

@@ -62,7 +62,7 @@ class CircularDataset(Dataset):
         device = self._dataset_info.env_device
         if len(dataset) == 0:
             nothing = backend.zeros(0, dtype=int, device=device)
-            return nothing, list(), nothing
+            return nothing, nothing, nothing
 
         dataset, order = dataset._glued()
         dataset = dataset.to_backend(self._dataset_info.env_backend, device=device)
@@ -101,7 +101,9 @@ class CircularDataset(Dataset):
         """
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
-        heads = (0,) if len(self._layout.ring_tails) > 0 else tuple()
+        no_rows = backend.zeros(0, dtype=int, device=device)
+        first_row = backend.arange(0, 1, device=device)
+        heads = first_row if len(self._layout.ring_tails) > 0 else no_rows
         start, positions, pairs, _ = self._prepare_write(1, heads, False)
 
         if self._layout.full:
@@ -113,7 +115,7 @@ class CircularDataset(Dataset):
             self._layout.append()
         self._layout.advance(1)
 
-        tails = tuple() if bool(step[self._Field.LAST]) else (0,)
+        tails = no_rows if bool(step[self._Field.LAST]) else first_row
         self._finish_write(start, positions, backend.zeros(0, dtype=bool, device=device), pairs, tails)
 
     def append_batch(self, other):
@@ -411,9 +413,11 @@ class CircularDataset(Dataset):
         if len(to_close) > 0:
             self.last[to_close] = True
 
-        adjacent = all((int(positions[head]) - tail) % max_size == 1 for tail, head in pairs)
-        if self._layout.links is None and (not adjacent or inner_break):
-            self._layout = self._layout.promote(self._last_array())
+        if self._layout.links is None:
+            paired_tails, paired_heads = pairs
+            adjacent = len(paired_tails) == 0 or bool(((positions[paired_heads] - paired_tails) % max_size == 1).all())
+            if not adjacent or inner_break:
+                self._layout = self._layout.promote(self._last_array())
 
         orphans = self._layout.orphans(positions)
 
@@ -459,12 +463,13 @@ class CircularDataset(Dataset):
         backend = self._dataset_info.env_array_backend
         device = self._dataset_info.env_device
         order, boundary_code = self._layout.time_order(self._last_array())
-        tails = tuple()
+        no_rows = backend.zeros(0, dtype=int, device=device)
+        tails = no_rows
         if len(self._layout.ring_tails) > 0:
             row_of = backend.zeros(self._layout.max_size, dtype=int, device=device)
             row_of[order] = backend.arange(0, len(order), device=device)
-            tails = tuple(int(row_of[tail]) for tail in self._layout.ring_tails)
-        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend, device, open_heads=tuple(),
+            tails = row_of[self._layout.ring_tails]
+        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend, device, open_heads=no_rows,
                                         open_tails=tails)
         return self._view_rows(order, False, layout)
 
