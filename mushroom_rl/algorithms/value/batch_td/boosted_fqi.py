@@ -12,7 +12,7 @@ class BoostedFQI(FQI):
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False):
+                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
         self._prediction = 0.
         self._next_q = 0.
         self._idx = 0
@@ -28,7 +28,8 @@ class BoostedFQI(FQI):
             _target='pickle'
         )
 
-        super().__init__(mdp_info, policy, approximator, n_iterations, approximator_params, fit_params, quiet)
+        super().__init__(mdp_info, policy, approximator, n_iterations, approximator_params, fit_params, quiet,
+                         history_length)
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)

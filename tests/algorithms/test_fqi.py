@@ -12,6 +12,23 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
+class FlattenExtraTrees:
+    def __init__(self, input_shape, output_shape, **params):
+        self._models = [ExtraTreesRegressor(**params) for _ in range(output_shape[0])]
+        self.fit_state = None
+
+    def fit(self, x, a, q):
+        self.fit_state = x
+        x = x.reshape(len(x), -1)
+        for i, m in enumerate(self._models):
+            mask = a[:, 0] == i
+            m.fit(x[mask], q[mask])
+
+    def predict(self, x):
+        x = x.reshape(len(x), -1)
+        return np.stack([m.predict(x) for m in self._models], axis=-1)
+
+
 def learn(alg, alg_params):
     mdp = CarOnHill()
     np.random.seed(1)
@@ -115,3 +132,46 @@ def test_double_fqi_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_double_fqi_history():
+    np.random.seed(1)
+
+    mdp = CarOnHill()
+    pi = EpsGreedy(epsilon=Parameter(1.))
+    n_actions = mdp.info.action_space.n
+    approximator_params = dict(input_shape=(2,) + mdp.info.observation_space.shape, output_shape=(n_actions,),
+                               n_actions=n_actions, n_estimators=10, min_samples_split=5, min_samples_leaf=2)
+    agent = DoubleFQI(mdp.info, pi, FlattenExtraTrees, approximator_params=approximator_params, n_iterations=3,
+                      quiet=True, history_length=2)
+
+    core = Core(agent, mdp)
+    dataset = core.evaluate(n_episodes=4, quiet=True)
+    agent.fit(dataset)
+
+    state = dataset.state
+    last = dataset.last
+    previous_state = np.zeros_like(state)
+    previous_state[1:] = state[:-1]
+    previous_state[1:][last[:-1]] = 0.
+    windows = np.stack([previous_state, state], axis=1)
+
+    half = len(dataset) // 2
+    assert not last[half - 1]
+    for i in range(2):
+        assert np.array_equal(agent.approximator[i].model.fit_state, windows[i * half:(i + 1) * half])
+
+    q_0 = agent.approximator.predict(windows[:2], idx=0)
+    q_1 = agent.approximator.predict(windows[:2], idx=1)
+    assert np.allclose(q_0, np.array([[-7.990885416666666e-05, -0.00026949652777777774],
+                                      [-0.0012900318287037036, 0.0]]))
+    assert np.allclose(q_1, np.array([[-0.007060182291666666, -0.0020644687500000003],
+                                      [-0.009422225347222223, -0.0008288585069444445]]))
+
+    q_single = agent.approximator.predict(windows[1])
+    assert q_single.shape == (n_actions,)
+    assert np.allclose(q_single, (q_0[1] + q_1[1]) / 2)
+
+    pi.set_epsilon(Parameter(0.))
+    dataset = core.evaluate(n_episodes=2, quiet=True)
+    assert np.all((dataset.action >= 0) & (dataset.action < n_actions))

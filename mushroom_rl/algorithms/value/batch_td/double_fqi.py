@@ -12,32 +12,22 @@ class DoubleFQI(FQI):
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False):
+                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
         approximator_params['n_models'] = 2
 
         super().__init__(mdp_info, policy, approximator, n_iterations,
-                         approximator_params, fit_params, quiet)
+                         approximator_params, fit_params, quiet, history_length)
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
+        parsed = self._history_manager.parse_history(dataset)[:5]
+
+        half = len(dataset) // 2
+        state, action, reward, next_state, absorbing = [[x[i * half:(i + 1) * half] for i in range(2)] for x in parsed]
+
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
-            state = list()
-            action = list()
-            reward = list()
-            next_state = list()
-            absorbing = list()
-
-            half = len(dataset) // 2
-            for i in range(2):
-                s, a, r, ss, ab, _, _ = self._history_manager.parse_history(dataset[i * half:(i + 1) * half])
-                state.append(s)
-                action.append(a)
-                reward.append(r)
-                next_state.append(ss)
-                absorbing.append(ab)
-
             if self._target is None:
-                self._target = reward
+                self._target = list(reward)
             else:
                 for i in range(2):
                     q_i = self.approximator.predict(next_state[i], idx=i)

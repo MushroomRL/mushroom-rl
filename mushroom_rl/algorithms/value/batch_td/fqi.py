@@ -13,13 +13,14 @@ class FQI(BatchTD):
 
     """
     def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False):
+                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
         """
         Constructor.
 
         Args:
             n_iterations ([int, Parameter]): number of iterations to perform for training;
-            quiet (bool, False): whether to show the progress bar or not.
+            quiet (bool, False): whether to show the progress bar or not;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         self._n_iterations = Parameter.make(n_iterations)
@@ -32,7 +33,7 @@ class FQI(BatchTD):
             _target='pickle'
         )
 
-        super().__init__(mdp_info, policy, approximator, approximator_params, fit_params)
+        super().__init__(mdp_info, policy, approximator, approximator_params, fit_params, history_length)
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)

@@ -8,7 +8,7 @@ class BatchTD(Agent):
 
     """
 
-    def __init__(self, mdp_info, policy, approximator, approximator_params=None, fit_params=None):
+    def __init__(self, mdp_info, policy, approximator, approximator_params=None, fit_params=None, history_length=1):
         """
         Constructor.
 
@@ -19,6 +19,7 @@ class BatchTD(Agent):
                 build;
             fit_params (dict, None): parameters of the fitting algorithm of the
                 approximator;
+            history_length (int, 1): number of consecutive observations stacked as policy input.
 
         """
         approximator_params = dict() if approximator_params is None else\
@@ -28,7 +29,7 @@ class BatchTD(Agent):
         self.approximator = QApproximator(approximator, **approximator_params)
         policy.set_q(self.approximator)
 
-        super().__init__(mdp_info, policy)
+        super().__init__(mdp_info, policy, history_length=history_length)
 
         self._add_save_attr(
             approximator='mushroom',
