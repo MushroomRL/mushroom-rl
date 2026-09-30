@@ -3,9 +3,9 @@ This script trains the Unitree Go2 to walk with RudinPPO: the full reward set, t
 sampling, an asymmetric actor-critic, an eight-step observation history, and a curriculum that tightens the
 task as training goes on.
 
-The curriculum deliberately lives here rather than in the environment. `Go2Isaac` only accepts new values --
-for the velocity command ranges, the tolerance of the tracking rewards and the ceiling on the actuation
-delay -- and the decision of when to change them is the training script's.
+The curriculum deliberately lives here rather than in the environment. `Go2Isaac` and its command generator
+only accept new values -- for the velocity command ranges, the tolerance of the tracking rewards and the
+ceiling on the actuation delay -- and the decision of when to change them is the training script's.
 
 The asymmetry is the other half of the training setup: the robot can measure neither its own linear velocity,
 nor the height it holds its trunk at, nor how late its actions arrive and how far its joint encoders are out
@@ -39,6 +39,7 @@ IsaacLauncher.launch(headless=True)
 logging.getLogger("isaacsim.asset.transformer.rules.utils").setLevel(logging.WARNING)
 
 from mushroom_rl.environments.isaacsim_envs import Go2Isaac
+from mushroom_rl.environments.isaacsim_envs.quadruped_commands import UniformVelocityCommands
 
 
 class PolicyNetwork(ActorNetwork):
@@ -106,7 +107,7 @@ class Curriculum:
 
     def apply(self):
         low, high = self._command_ranges[self.stage]
-        self._mdp.command_ranges = dict(lin_vel_x=(low, high), lin_vel_y=(low, high))
+        self._mdp.command_generator.command_ranges = dict(lin_vel_x=(low, high), lin_vel_y=(low, high))
         self._mdp.max_delay_steps = self._delay_steps[self.stage]
 
         start, end = self._tracking_stds
@@ -272,13 +273,14 @@ if __name__ == '__main__':
                           feet_slide=-0.04, feet_slide_low=-0.2, feet_z_velocity=-0.03, long_contact=-0.7,
                           stand_still_short_contact=-0.5)
 
-    mdp_params = dict(reward_weights=reward_weights, clamp_reward=False,
-                      max_command_ranges=dict(lin_vel_x=(-2.5, 2.5), lin_vel_y=(-2.5, 2.5),
-                                              ang_vel_z=(-1.5, 1.5)),
-                      command_ranges=dict(ang_vel_z=(-1.5, 1.5)),
-                      command_resampling_time_range=(5., 10.), heading_control_stiffness=1.,
-                      rel_heading_envs=0.5, rel_standing_envs=0.1, command_dead_zone=0.,
-                      frac_rotating_envs=0.15, frac_low_speed_envs=0.35, low_speed_threshold=0.5)
+    command_generator = UniformVelocityCommands(
+        max_command_ranges=dict(lin_vel_x=(-2.5, 2.5), lin_vel_y=(-2.5, 2.5), ang_vel_z=(-1.5, 1.5)),
+        command_ranges=dict(ang_vel_z=(-1.5, 1.5)), command_resampling_time_range=(5., 10.),
+        heading_control_stiffness=1., rel_heading_envs=0.5, rel_standing_envs=0.1, command_dead_zone=0.,
+        frac_rotating_envs=0.15, frac_low_speed_envs=0.35, low_speed_threshold=0.5
+    )
+
+    mdp_params = dict(reward_weights=reward_weights, clamp_reward=False, command_generator=command_generator)
 
     curriculum_params = dict(command_steps=[24000, 48000],
                              command_ranges=[(-1., 1.), (-2., 2.), (-2.5, 2.5)],
