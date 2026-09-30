@@ -74,11 +74,11 @@ def _get_episode_idx(last, backend=None):
     if len(last) > 0:
         last[-1] = True
 
-    n_episodes = last.sum()
     last_idx = backend.nonzero(last).squeeze()
+    n_episodes = len(last_idx)
     first_steps = backend.from_list([last_idx[0] + 1], device=device)
     episode_steps = backend.concatenate([first_steps, last_idx[1:] - last_idx[:-1]])
-    max_episode_steps = episode_steps.max()
+    max_episode_steps = int(episode_steps.max())
 
     start_idx = backend.concatenate([backend.zeros(1, dtype=int, device=device), last_idx[:-1] + 1])
     range_n_episodes = backend.arange(0, n_episodes, dtype=int, device=device)

@@ -81,7 +81,7 @@ class VectorizedCore(Core):
 
         next_state, rewards, absorbing, step_info = self.env.step_all(mask, action)
 
-        self._episode_steps[mask] += 1
+        self._episode_steps += mask
 
         if render:
             frame = self.env.render_all(mask, record=record)
