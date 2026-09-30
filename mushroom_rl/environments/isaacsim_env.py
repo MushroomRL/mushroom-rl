@@ -246,10 +246,19 @@ class IsaacSim(VectorizedEnvironment):
 
     def setup(self, env_indices, obs):
         """
-        A function that allows to execute setup code after an environment reset.
+        Executes the setup code after an environment reset. By default, writes the given observation into the
+        simulation, every entry of the observation specification taking the value the observation holds for it.
+        An environment whose observation is not the one the specification reads has to override this method.
+
+        Args:
+            env_indices (torch.tensor): The indices of the environments being reset.
+            obs (torch.tensor, None): The observation every environment is reset to, of shape
+                (num_envs, observation length), of which only the rows at ``env_indices`` are read, or None to
+                keep the default state.
 
         """
-        raise NotImplementedError
+        if obs is not None:
+            self._observation_helper.write_obs(obs[env_indices], env_indices)
 
     def stop(self):
         """

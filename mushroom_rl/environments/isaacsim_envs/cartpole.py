@@ -50,18 +50,23 @@ class CartPoleIsaac(IsaacSim):
         return dropped
 
     def setup(self, env_indices, obs):
-        num_environments = len(env_indices)
+        if obs is None:
+            num_environments = len(env_indices)
 
-        cart_joint_pos = 0.25 * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
-        pole_joint_pos = 0.05 * math.pi * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
+            cart_joint_pos = 0.25 * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
+            pole_joint_pos = 0.05 * math.pi * (2.0 * torch.rand(num_environments, 1,
+                                                                device=TorchUtils.get_device()) - 1)
 
-        cart_joint_vel = 0.25 * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
-        pole_joint_vel = 0.05 * math.pi * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
+            cart_joint_vel = 0.25 * (2.0 * torch.rand(num_environments, 1, device=TorchUtils.get_device()) - 1)
+            pole_joint_vel = 0.05 * math.pi * (2.0 * torch.rand(num_environments, 1,
+                                                                device=TorchUtils.get_device()) - 1)
 
-        self._observation_helper.write_data("cartJointPos", cart_joint_pos, env_indices)
-        self._observation_helper.write_data("poleJointPos", pole_joint_pos, env_indices)
-        self._observation_helper.write_data("cartJointVel", cart_joint_vel, env_indices)
-        self._observation_helper.write_data("poleJointVel", pole_joint_vel, env_indices)
+            self._observation_helper.write_data("cartJointPos", cart_joint_pos, env_indices)
+            self._observation_helper.write_data("poleJointPos", pole_joint_pos, env_indices)
+            self._observation_helper.write_data("cartJointVel", cart_joint_vel, env_indices)
+            self._observation_helper.write_data("poleJointVel", pole_joint_vel, env_indices)
+        else:
+            super().setup(env_indices, obs)
 
     def _create_info_dictionary(self, obs):
         info = {"cartPosition": self._observation_helper.read_data("cartPos"),

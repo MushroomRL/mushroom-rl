@@ -94,6 +94,48 @@ def test_cartpole():
     assert np.allclose(obs, obs_test)
 
 
+def test_cartpole_initial_states():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = CartPoleIsaac(2)
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+    state = torch.tensor([[0.1, -0.2, 0.05, 0.3],
+                          [-0.1, 0.2, -0.05, -0.3]], device='cuda:0')
+
+    obs, _ = mdp.reset_all(mask, state)
+
+    assert torch.allclose(obs, state)
+
+    partial_mask = torch.tensor([False, True], device='cuda:0')
+    partial_state = torch.tensor([[torch.nan, torch.nan, torch.nan, torch.nan],
+                                  [0.2, 0.1, -0.1, 0.05]], device='cuda:0')
+
+    obs, _ = mdp.reset_all(partial_mask, partial_state)
+
+    assert torch.allclose(obs[0], state[0])
+    assert torch.allclose(obs[1], partial_state[1])
+
+    obs, _ = mdp.reset_all(mask)
+
+    assert not torch.allclose(obs, state)
+    mdp.stop()
+
+
+def test_quadruped_initial_states():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    mdp = A1Isaac(2, 1000)
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+    state = torch.zeros(2, len(mdp.info.observation_space.low), device='cuda:0')
+
+    with pytest.raises(ValueError):
+        mdp.reset_all(mask, state)
+
+    mdp.stop()
+
+
 def test_a1():
     np.random.seed(1)
     torch.manual_seed(1)

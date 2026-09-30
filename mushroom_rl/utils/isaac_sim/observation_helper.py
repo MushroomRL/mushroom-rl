@@ -290,6 +290,20 @@ class ObservationHelper:
         view, obs_type, element_idx = self._find_accessor(name)
         self._set_property(view, obs_type, value, element_idx=element_idx, env_indices=env_indices)
 
+    def write_obs(self, obs, env_indices=None):
+        """
+        Writes every entry of the observation specification into isaac sim, taking its value from the given
+        observation. Entries registered with ``add_obs`` are not written.
+
+        Args:
+            obs (torch.tensor): The observation of the environments to write to, one row per environment.
+            env_indices (torch.tensor, None): The environments to write to, all of them if None.
+
+        """
+        for name, (view, obs_type, element_idx) in self._observers.items():
+            value = obs[:, self.obs_idx_map[name]]
+            self._set_property(view, obs_type, value, element_idx=element_idx, env_indices=env_indices)
+
     def set_joint_data(self, value, type, element_idx=None, env_indices=None):
         """
         Sets the joint properties for the specified joints and environments.
