@@ -27,6 +27,12 @@ class QApproximator(Approximator):
     def n_actions(self):
         return self._n_actions
 
+    def _batch_pad(self, state):
+        padded = state.ndim <= len(self._input_shape)
+        while state.ndim <= len(self._input_shape):
+            state = self._backend.expand_dims(state, 0)
+        return state, padded
+
 
 class QApproximatorSimple(QApproximator):
     """
@@ -35,7 +41,7 @@ class QApproximatorSimple(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
+    def __init__(self, approximator, n_actions, input_shape, output_shape=(1,), n_models=1,
                  **params):
         """
         Constructor.
@@ -43,14 +49,13 @@ class QApproximatorSimple(QApproximator):
         Args:
             approximator (class): the model class to approximate the Q-function;
             n_actions (int): number of actions;
-            input_shape (tuple, None): shape of the input of the model;
+            input_shape (tuple): shape of the input of the model;
             output_shape (tuple, (1,)): shape of the output of the model;
             **params: other parameters passed to the approximator.
 
         """
         assert len(output_shape) == 1 and n_actions >= 2
-        if input_shape is not None:
-            params['input_shape'] = input_shape
+        params['input_shape'] = input_shape
         params['output_shape'] = output_shape
         model = approximator(**params)
         backend = getattr(model, '_backend', None)
@@ -82,7 +87,8 @@ class QApproximatorSimple(QApproximator):
 
         Args:
             *z: either ``(state,)`` to get all Q-values, or ``(state, action)``
-                to get the Q-value of the selected action;
+                to get the Q-value of the selected action. A state with at most ``len(input_shape)``
+                dimensions is treated as a single sample;
             **predict_params: other parameters passed to the model's predict method.
 
         Returns:
@@ -90,8 +96,10 @@ class QApproximatorSimple(QApproximator):
 
         """
         assert len(z) == 1 or len(z) == 2
-        state = z[0]
+        state, padded = self._batch_pad(z[0])
         q = self._models[0].predict(state, **predict_params)
+        if padded and q.ndim == 2:
+            q = self._backend.squeeze(q, 0)
         if len(z) == 2:
             action = z[1].ravel()
             if q.ndim == 1:
@@ -170,7 +178,7 @@ class QApproximatorAction(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
+    def __init__(self, approximator, n_actions, input_shape, output_shape=(1,), n_models=1,
                  **params):
         """
         Constructor.
@@ -178,14 +186,14 @@ class QApproximatorAction(QApproximator):
         Args:
             approximator (class): the model class to approximate the Q-function of each action;
             n_actions (int): number of actions, determines the number of models created;
-            input_shape (tuple, None): shape of the input of each model;
+            input_shape (tuple): shape of the input of each model;
             output_shape (tuple, (1,)): shape of the output of each model;
             **params: other parameters passed to each model.
 
         """
         assert n_actions >= 2
         is_sklearn = approximator.__module__.startswith('sklearn')
-        if input_shape is not None and not is_sklearn:
+        if not is_sklearn:
             params['input_shape'] = input_shape
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
@@ -219,7 +227,8 @@ class QApproximatorAction(QApproximator):
 
         Args:
             *z: either ``(state,)`` to get all Q-values, or ``(state, action)``
-                to get the Q-value of the selected action;
+                to get the Q-value of the selected action. A state with at most ``len(input_shape)``
+                dimensions is treated as a single sample;
             **predict_params: other parameters passed to each model's predict method.
 
         Returns:
@@ -227,7 +236,7 @@ class QApproximatorAction(QApproximator):
 
         """
         assert len(z) == 1 or len(z) == 2
-        state = self._backend.atleast_2d(z[0])
+        state = self._batch_pad(z[0])[0]
         if len(z) == 2:
             action = self._backend.atleast_2d(z[1])
             q = self._backend.zeros(state.shape[0])
@@ -320,7 +329,7 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape=None, output_shape=(1,), n_models=1,
+    def __init__(self, approximator, n_actions, input_shape, output_shape=(1,), n_models=1,
                  prediction='mean', **params):
         """
         Constructor.
@@ -328,7 +337,7 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
         Args:
             approximator (class): the model class for each ensemble member;
             n_actions (int): number of actions;
-            input_shape (tuple, None): shape of the input of each model;
+            input_shape (tuple): shape of the input of each model;
             output_shape (tuple, (1,)): shape of the output of each model;
             n_models (int): number of models in the ensemble;
             prediction (str, 'mean'): aggregation mode across models.
@@ -337,11 +346,9 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
 
         """
         assert n_actions >= 2 and n_models > 1
-        if input_shape is not None:
-            params['input_shape'] = input_shape
         Ensemble.__init__(self, QApproximator, n_models, prediction=prediction,
                           approximator=approximator, n_actions=n_actions,
-                          output_shape=output_shape, **params)
+                          input_shape=input_shape, output_shape=output_shape, **params)
         backend = getattr(self._models[0], '_backend', None)
         if backend is not None:
             self._backend = backend

@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+from sklearn.ensemble import ExtraTreesRegressor
 
 import torch
 import torch.optim as optim
@@ -6,8 +8,21 @@ import torch.nn.functional as F
 
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator, NumpyTorchApproximator, CMAC
-from mushroom_rl.approximators.parametric.networks import QNetwork
+from mushroom_rl.approximators.parametric.networks import QNetwork, FeedForwardNetwork
 from mushroom_rl.features.tiles import Tiles
+
+
+class FlattenLeastSquares:
+    def __init__(self, input_shape):
+        self._w = None
+
+    def fit(self, x, y):
+        x = x.reshape(len(x), -1)
+        self._w = np.linalg.lstsq(np.c_[x, np.ones(len(x))], y, rcond=None)[0]
+
+    def predict(self, x):
+        x = x.reshape(len(x), -1)
+        return np.c_[x, np.ones(len(x))] @ self._w
 
 
 def test_q_cmac():
@@ -164,3 +179,64 @@ def test_q_numpy_torch_ensemble():
 
     y = approximator.predict(x_s, x_a)
     assert np.allclose(y, np.array([0.42026764, -0.33301038]))
+
+
+def test_q_action_single_window():
+    np.random.seed(1)
+
+    n_actions = 2
+    s = np.random.rand(100, 2, 3)
+    a = np.random.randint(n_actions, size=(100, 1))
+    q = np.random.rand(100)
+
+    approximator = QApproximator(FlattenLeastSquares, n_actions=n_actions, input_shape=(2, 3))
+    approximator.fit(s, a, q)
+
+    x_s = np.random.rand(2, 2, 3)
+    x_a = np.random.randint(n_actions, size=(2, 1))
+
+    y = approximator.predict(x_s)
+    assert np.allclose(y, np.array([[0.5169289841629996, 0.5145706940449885],
+                                    [0.5386022102958685, 0.6170716374524995]]))
+    assert np.allclose(approximator.predict(x_s, x_a), np.array([0.5145706940449885, 0.5386022102958685]))
+
+    y_single = approximator.predict(x_s[0])
+    assert y_single.shape == (n_actions,)
+    assert np.allclose(y_single, y[0])
+
+    y_single = approximator.predict(x_s[0], x_a[0])
+    assert y_single.shape == ()
+    assert np.allclose(y_single, y[0, x_a[0, 0]])
+
+
+def test_q_simple_single_window():
+    np.random.seed(1)
+    torch.manual_seed(1)
+
+    n_actions = 3
+    approximator = QApproximator(NumpyTorchApproximator, n_actions=n_actions, input_shape=(2, 3),
+                                 output_shape=(n_actions,), network=FeedForwardNetwork, n_features=4)
+
+    x_s = np.random.rand(2, 2, 3)
+    x_a = np.random.randint(n_actions, size=(2, 1))
+
+    y = approximator.predict(x_s)
+    assert np.allclose(y, np.array([[-0.19303003, 0.73260486, 0.7373589],
+                                    [0.1122224, 0.7962094, 0.7328558]]))
+    assert np.allclose(approximator.predict(x_s, x_a), np.array([-0.19303003, 0.7328558]))
+
+    y_single = approximator.predict(x_s[0])
+    assert y_single.shape == (n_actions,)
+    assert np.allclose(y_single, y[0])
+
+    y_single = approximator.predict(x_s[0], x_a[0])
+    assert y_single.shape == (1,)
+    assert np.allclose(y_single, y[0, x_a[0, 0]])
+
+
+def test_q_approximator_requires_input_shape():
+    with pytest.raises(TypeError):
+        QApproximator(ExtraTreesRegressor, n_actions=2)
+
+    with pytest.raises(TypeError):
+        QApproximator(ExtraTreesRegressor, n_actions=2, n_models=2)
