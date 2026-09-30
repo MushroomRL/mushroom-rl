@@ -48,6 +48,15 @@ def run_env(mdp, num_joints):
     return obs.cpu().numpy()
 
 
+def test_launcher_log_level():
+    assert IsaacLauncher._log_args('info') == ["--/log/outputStreamLevel=Info", "--/app/enableStdoutOutput=true"]
+    assert IsaacLauncher._log_args('warning') == ["--/log/outputStreamLevel=Warning",
+                                                  "--/app/enableStdoutOutput=false"]
+
+    with pytest.raises(ValueError):
+        IsaacLauncher._log_args('debug')
+
+
 def test_randomization_params():
     params = QuadrupedRandomizationParams()
 
