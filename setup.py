@@ -27,10 +27,10 @@ extras = {
     'minigrid': ['minigrid'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=3.11'],
-    'mujoco_warp': ['mujoco-warp'],
+    'mujoco': ['mujoco>=3.11,<3.15'],
+    'mujoco_warp': ['mujoco-warp<3.15'],
     'isaacsim': ['isaacsim[all,extscache]>=6.0'],
-    'dm_control': ['dm_control>=1.0.44'],
+    'dm_control': ['dm_control>=1.0.44,<1.0.48'],
     'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
 }
