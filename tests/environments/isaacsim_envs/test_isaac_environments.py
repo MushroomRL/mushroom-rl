@@ -10,7 +10,6 @@ from mushroom_rl.utils.isaac_sim import IsaacLauncher
 
 # Isaac Sim has to be running before its environments can be imported
 IsaacLauncher.launch(headless=True)
-TorchUtils.set_default_device("cuda:0")
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 from mushroom_rl.environments.isaacsim_envs import A1Isaac, Go2Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
@@ -18,6 +17,14 @@ from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import Quadrupe
 from mushroom_rl.environments.isaacsim_envs.quadruped_commands import CommandGenerator, VelocityCommandGenerator, \
     UniformVelocityCommands, EllipticVelocityCommands
 from mushroom_rl.utils.isaac_sim.torch_maths import quat_apply, wrap_to_pi
+
+
+@pytest.fixture(autouse=True, scope="module")
+def cuda_default_device():
+    previous_device = TorchUtils.get_device()
+    TorchUtils.set_default_device("cuda:0")
+    yield
+    TorchUtils.set_default_device(previous_device)
 
 
 def run_env(mdp, num_joints):
