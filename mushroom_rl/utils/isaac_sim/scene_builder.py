@@ -10,6 +10,7 @@ from isaacsim.core.cloner import GridCloner
 from isaacsim.core.experimental.materials import RigidBodyMaterial
 from isaacsim.core.experimental.objects import DistantLight, GroundPlane
 from isaacsim.core.experimental.prims import Articulation, RigidPrim
+from isaacsim.core.simulation_manager import SimulationManager
 from pxr import PhysxSchema
 
 from mushroom_rl.utils import TorchUtils
@@ -110,6 +111,14 @@ class SceneBuilder:
 
         return robots, views, env_pos
 
+    def initialize(self):
+        """
+        Creates the physics view of the robots. Has to be called once the simulation is running.
+
+        """
+        self._physics_view = SimulationManager.get_physics_simulation_view().create_articulation_view(
+            self._robots.paths)
+
     def set_robot_friction(self, static_friction, dynamic_friction, env_indices):
         """
         Gives the collision shapes of the given environments' robots a new friction, so that a property as
@@ -143,6 +152,15 @@ class SceneBuilder:
             self._physics_view.set_material_properties(self._material_buffer, wp.from_torch(env_indices))
 
     @property
+    def physics_view(self):
+        """
+        Returns:
+            The physics view of the robots, available once ``initialize`` has been called.
+
+        """
+        return self._physics_view
+
+    @property
     def zero_env_robot_path(self):
         return self._zero_env_robot_path
 
@@ -157,7 +175,6 @@ class SceneBuilder:
 
         """
         if self._material_buffer is None:
-            self._physics_view = self._robots._physics_articulation_view
             self._material_buffer = self._physics_view.get_material_properties()
             self._material_properties = wp.to_torch(self._material_buffer)
             self._nominal_material_properties = self._material_properties.clone()
