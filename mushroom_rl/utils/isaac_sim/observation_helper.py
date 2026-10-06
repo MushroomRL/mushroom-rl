@@ -28,15 +28,15 @@ class ObservationType(Enum):
     JOINT_GAIN = ('joint', 2, 'dof_gains')  # combination of stiffness and damping
     JOINT_GAIN_STIFFNESS = ('joint', 1, 'dof_gains', 0, 'stiffnesses')
     JOINT_GAIN_DAMPING = ('joint', 1, 'dof_gains', 1, 'dampings')
-    JOINT_DEFAULT_POS = ('joint', 1, 'default_state', 4, 'dof_positions')
     JOINT_MAX_EFFORT = ('joint', 1, 'dof_max_efforts')
     JOINT_MAX_VELOCITY = ('joint', 1, 'dof_max_velocities')
-    JOINT_MAX_POS = ('joint', 2, 'dof_limits')  # combination of the lower and the upper limit
     JOINT_ARMATURES = ('joint', 1, 'dof_armatures')
     JOINT_FRICTION = ('joint', 3, 'dof_friction_properties')  # static, dynamic and viscous friction
     JOINT_FRICTION_STATIC = ('joint', 1, 'dof_friction_properties', 0, 'static_frictions')
     JOINT_FRICTION_DYNAMIC = ('joint', 1, 'dof_friction_properties', 1, 'dynamic_frictions')
     JOINT_FRICTION_VISCOUS = ('joint', 1, 'dof_friction_properties', 2, 'viscous_frictions')
+    JOINT_MAX_POS = ('joint', 2, 'dof_limits')  # combination of the lower and the upper limit
+    JOINT_DEFAULT_POS = ('joint', 1, 'default_state', 4, 'dof_positions')
     JOINT_MEASURED_EFFORT = ('joint', 1, 'dof_projected_joint_forces')
     SUB_BODY_INERTIA = ('sub_body', 9, 'link_inertias')
     SUB_BODY_MASS = ('sub_body', 1, 'link_masses')
@@ -94,6 +94,31 @@ class ObservationType(Enum):
         """
         return self.category == 'sub_body'
 
+    def is_joint_parameter(self):
+        """
+        Checks whether the observation type is a parameter of the joints, as opposed to their state.
+
+        Returns:
+            bool: True if the observation type is a joint parameter, False otherwise.
+        """
+        # the members from JOINT_GAIN to JOINT_MAX_POS, which are declared next to each other
+        return ObservationType.JOINT_GAIN.value <= self.value <= ObservationType.JOINT_MAX_POS.value
+
+    @property
+    def physics_accessor(self):
+        """
+        Returns:
+            The name of the property serving the observation type on the physics view of an articulation,
+            without the ``get_`` or ``set_`` prefix.
+
+        """
+        if self == ObservationType.JOINT_MAX_EFFORT:
+            return 'dof_max_forces'
+        elif self in (ObservationType.JOINT_GAIN_STIFFNESS, ObservationType.JOINT_GAIN_DAMPING):
+            return f'dof_{self.keyword}'
+
+        return self.accessor
+
 
 class ObservationHelper:
     """
@@ -135,6 +160,8 @@ class ObservationHelper:
 
         self._observers = {}
         self._additionals = {}
+        self._physics_view = None
+        self._joint_property_buffers = {}
 
         self._obs_low = None
         self._obs_high = None
@@ -142,12 +169,16 @@ class ObservationHelper:
         self.obs_idx_map = self._compute_obs_idx_map()
         self.obs_types_idx_map = self._compute_type_idx_map()
 
-    def initialize(self):
+    def initialize(self, physics_view):
         """
         Resolves the specifications into the accessors serving them. Isaac Sim only names the joints and the bodies
         of a prim once the simulation is running, so this cannot happen at construction.
 
+        Args:
+            physics_view (ArticulationView): The physics view of the robots.
+
         """
+        self._physics_view = physics_view
         self._observers = self._create_observer_tuple(self._observation_spec)
         self._additionals = self._create_observer_tuple(self._additional_data_spec)
 
@@ -437,6 +468,10 @@ class ObservationHelper:
         if obs_type == ObservationType.JOINT_MEASURED_EFFORT:
             raise NotImplementedError("Set function for measured effort doesn't exist in isaacsim.core.")
 
+        if obs_type.is_joint_parameter() and view is self._robots:
+            self._set_physics_joint_property(obs_type, value, element_idx, env_indices)
+            return
+
         indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
         selection = self._accessor_kwargs(obs_type, indices, element_idx)
         setter = getattr(view, f'set_{obs_type.accessor}')
@@ -459,6 +494,45 @@ class ObservationHelper:
             setter(wp.from_torch(value), **selection)
         else:
             setter(**{obs_type.keyword: wp.from_torch(value)}, **selection)
+
+    def _set_physics_joint_property(self, obs_type, value, element_idx, env_indices):
+        """
+        Sets a joint property of the robots through their physics view immediately, broadcasting the values over
+        the selected environments and joints.
+
+        Args:
+            obs_type (ObservationType): The type of joint property to update, one for which ``is_joint_parameter``
+                holds.
+            value (torch.Tensor): The new values to be assigned.
+            element_idx (warp.array, None): The joint indices to be updated, in the form Isaac Sim returns them
+                from ``get_dof_indices``.
+            env_indices (torch.Tensor, None): The environment indices to apply the update.
+
+        """
+        # Isaac's own setters read the whole property back from PhysX before every write, which costs over a
+        # millisecond per property on thousands of environments; the values written are kept here instead.
+        if obs_type == ObservationType.JOINT_GAIN:
+            parts = [(part, value[..., part.component])
+                     for part in (ObservationType.JOINT_GAIN_STIFFNESS, ObservationType.JOINT_GAIN_DAMPING)]
+        else:
+            parts = [(obs_type, value)]
+
+        for part, property_value in parts:
+            name = part.physics_accessor
+            if name not in self._joint_property_buffers:
+                self._joint_property_buffers[name] = getattr(self._physics_view, f'get_{name}')()
+            buffer = self._joint_property_buffers[name]
+            data = wp.to_torch(buffer)
+
+            envs = torch.arange(data.shape[0]) if env_indices is None else env_indices.cpu()
+            dofs = torch.arange(data.shape[1]) if element_idx is None else wp.to_torch(element_idx).cpu()
+            # the friction and the limits hold several components per joint, of which a component type writes one
+            if data.dim() == 3 and part.component is not None:
+                index, shape = (envs[:, None], dofs, part.component), (len(envs), len(dofs))
+            else:
+                index, shape = (envs[:, None], dofs), (len(envs), len(dofs), *data.shape[2:])
+            data[index] = torch.broadcast_to(property_value.to(device=data.device, dtype=data.dtype), shape)
+            getattr(self._physics_view, f'set_{name}')(buffer, wp.from_torch(envs.to(torch.int32)))
 
     def _read_observations(self):
         """

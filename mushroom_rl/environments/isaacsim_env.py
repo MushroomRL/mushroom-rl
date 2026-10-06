@@ -343,9 +343,10 @@ class IsaacSim(VectorizedEnvironment):
 
         self._capture_default_state()
 
+        self._scene_builder.initialize()
         self._actuation_helper.initialize()
         self._collision_helper.initialize()
-        self._observation_helper.initialize()
+        self._observation_helper.initialize(self._scene_builder.physics_view)
 
     def _capture_default_state(self):
         """
