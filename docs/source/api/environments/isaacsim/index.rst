@@ -7,11 +7,11 @@ These environments are ``VectorizedEnvironment`` subclasses, and differently fro
 :meth:`~mushroom_rl.core.Environment.make` does not know them and they must be imported from their module
 directly. Isaac Sim is not one of the extras declared in ``setup.py`` either, and has to be installed separately.
 
-This interface targets **Isaac Sim 6.0** and its supported ``isaacsim.core.experimental.*`` API, which returns Warp
+This interface targets **Isaac Sim 6.1** and its supported ``isaacsim.core.experimental.*`` API, which returns Warp
 arrays and is only available once the simulation app is running. The app is started by
 :class:`~mushroom_rl.utils.isaac_sim.launcher.IsaacLauncher`, documented with the other
 :doc:`Isaac Sim utils <../../utils/isaac_sim>`, which must be called before the modules below can be imported. As
-simulation backend, we rely on the Isaac Sim 6.0 default, PhysX; the launcher can select Newton instead.
+simulation backend, we rely on the Isaac Sim 6.1 default, PhysX; the launcher can select Newton instead.
 
 ``IsaacSim`` is the base class of every environment, and
 :class:`~mushroom_rl.environments.isaacsim_envs.quadruped.QuadrupedIsaac` a further one shared by the legged

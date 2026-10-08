@@ -1,4 +1,4 @@
-import cv2
+import av
 import numpy as np
 import pytest
 from pathlib import Path
@@ -261,18 +261,8 @@ def test_vectorized_core_record(tmpdir):
     assert logger.recorded_videos == videos
     assert videos[0].stat().st_size > 0
 
-    capture = cv2.VideoCapture(str(videos[0]))
-    values = list()
-
-    while True:
-        read, frame = capture.read()
-
-        if not read:
-            break
-
-        values.append(frame.mean())
-
-    capture.release()
+    with av.open(str(videos[0])) as container:
+        values = [frame.to_ndarray(format='bgr24').mean() for frame in container.decode(video=0)]
 
     assert len(values) == 9
     assert all(value > 0 for value in values)
