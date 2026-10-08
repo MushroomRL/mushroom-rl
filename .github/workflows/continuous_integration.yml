@@ -38,6 +38,7 @@ jobs:
     - name: Log CPU model
       run: lscpu | grep "Model name"
     - name: Test with pytest
+      timeout-minutes: 10
       run: |
         pytest --cov=mushroom_rl --cov-report=xml
     - uses: qltysh/qlty-action/coverage@v2

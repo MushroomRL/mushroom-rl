@@ -5,7 +5,7 @@ import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
 from pathlib import Path
-from pytest import importorskip, raises, warns
+from pytest import fixture, importorskip, raises, warns
 from mushroom_rl.algorithms.value import QLearning
 from mushroom_rl.core import Logger
 from mushroom_rl.core.dataset import Dataset
@@ -34,6 +34,21 @@ def read_frame_values(path):
     capture.release()
 
     return values
+
+
+@fixture(autouse=True)
+def wandb_teardown():
+    yield
+
+    # wandb.finish() leaves a background thread alive: forking a multi-threaded process in later tests
+    # (e.g. MultiprocessEnvironment) can deadlock the child
+    try:
+        import wandb
+    except ImportError:
+        wandb = None
+
+    if wandb is not None:
+        wandb.teardown()
 
 
 def test_logger(tmpdir):
