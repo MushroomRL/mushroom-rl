@@ -280,7 +280,7 @@ if __name__ == '__main__':
         frac_rotating_envs=0.15, frac_low_speed_envs=0.35, low_speed_threshold=0.5
     )
 
-    mdp_params = dict(reward_weights=reward_weights, clamp_reward=False, command_generator=command_generator)
+    mdp_params = dict(reward_weights=reward_weights, command_generator=command_generator)
 
     curriculum_params = dict(command_steps=[24000, 48000],
                              command_ranges=[(-1., 1.), (-2., 2.), (-2.5, 2.5)],

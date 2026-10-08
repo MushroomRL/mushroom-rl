@@ -28,7 +28,7 @@ class QuadrupedIsaac(IsaacSim):
                  default_joint_max_vel=None,
                  nominal_p_gain=20., nominal_d_gain=0.5, nominal_scaling_factor=0.25, reward_weights=None,
                  randomization_params=None, observed_randomization=(), command_generator=None,
-                 reward_params=None, clamp_reward=True, tracking_stds=None, gpu_params=None):
+                 reward_params=None, tracking_stds=None, gpu_params=None):
         """
         Constructor.
 
@@ -60,7 +60,6 @@ class QuadrupedIsaac(IsaacSim):
                 like the info dictionary ``reward`` returns. Only the given keys are overridden.
             reward_params (dict, None): Overrides for the thresholds and targets the optional reward terms are
                 shaped by. Only the given keys are overridden; an unknown one raises.
-            clamp_reward (bool): Whether the total reward is clamped to be non-negative, as in Rudin et al.
             randomization_params (QuadrupedRandomizationParams, None): The randomization ranges, forwarded to
                 :class:`QuadrupedRandomizer`.
             observed_randomization (tuple): The names of the randomized parameters the agent is told about
@@ -124,8 +123,6 @@ class QuadrupedIsaac(IsaacSim):
             if unknown:
                 raise ValueError(f"unknown reward parameters: {sorted(unknown)}")
             self._reward_params.update(reward_params)
-
-        self._clamp_reward = clamp_reward
 
         self._randomization_params = \
             QuadrupedRandomizationParams() if randomization_params is None else randomization_params
@@ -259,9 +256,6 @@ class QuadrupedIsaac(IsaacSim):
             + r_joint_acc + r_feet_air_time + r_collision + r_action_rate + r_joint_pos_limits
         reward = reward + self._extra_reward_terms(next_obs)
         reward = reward + self._optional_reward_terms_value(next_obs)
-
-        if self._clamp_reward:
-            reward = torch.clamp(reward, min=0.)
 
         r_termination = absorbing * w["termination"] * self.dt
         self._extra_info_rewards["termination"] = r_termination
