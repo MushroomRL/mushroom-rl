@@ -21,6 +21,7 @@ from tqdm import trange
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.algorithms.actor_critic import RudinPPO
 from mushroom_rl.policy import GaussianTorchPolicy
+from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
 from mushroom_rl.utils.isaac_sim import IsaacLauncher
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.experiments import get_log_dir
@@ -79,6 +80,7 @@ def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, 
                          output_shape=(1,))
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
+    agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
 
     # Algorithm
     core = Core(agent, mdp, logger=logger)

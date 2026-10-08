@@ -441,13 +441,13 @@ def test_termination_penalty():
     mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
     absorbing = torch.tensor([True, False], device='cuda:0')
 
-    mdp = Go2Isaac(2, 1000, clamp_reward=True, reward_weights=dict(termination=-1000.))
+    mdp = Go2Isaac(2, 1000, reward_weights=dict(termination=-1000.))
     obs, _ = mdp.reset_all(mask)
     next_obs, _, _, _ = mdp.step_all(mask, torch.zeros(2, 12, device='cuda:0'))
     reward = mdp.reward(obs, torch.zeros(2, 12, device='cuda:0'), next_obs, absorbing)
 
     assert torch.allclose(mdp._extra_info_rewards['termination'], torch.tensor([-20., 0.], device='cuda:0'))
-    assert torch.allclose(reward, torch.tensor([-20., 0.], device='cuda:0'))
+    assert torch.allclose(reward, torch.tensor([-20.7310867, -0.7314733], device='cuda:0'))
     mdp.stop()
 
 
