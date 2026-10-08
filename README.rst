@@ -87,9 +87,9 @@ Install it in a dedicated environment, never alongside the other extras:
 
 * ``Isaac Sim`` supports **Python 3.12 only** (its metadata declares ``Requires-Python: ==3.12.*``),
   whereas ``MushroomRL`` also supports Python 3.11.
-* ``isaacsim-core`` pins ``mujoco==3.8.0``, which cannot be satisfied together with the
-  ``mujoco>=3.11`` requirement of the ``[mujoco]`` and ``[all]`` extras. Requesting both in the same
-  environment leaves ``pip`` with no valid resolution.
+* ``isaacsim-core`` pins exact versions of packages shared with the other extras (``mujoco==3.11.0``,
+  ``mujoco-warp==3.11.0``, ``torch==2.11.0``, ``scipy==1.17.0``), so they cannot move past those versions in
+  the same environment.
 
 Running the ``Isaac Sim`` environments additionally requires an NVIDIA RTX GPU. They are therefore not
 covered by continuous integration, and their tests are skipped unless ``isaacsim`` can be imported.

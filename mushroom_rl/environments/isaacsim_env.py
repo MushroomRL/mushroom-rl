@@ -207,7 +207,7 @@ class IsaacSim(VectorizedEnvironment):
 
         """
         written = self._enable_fabric_updates(True)
-        self._fabric.force_update(SimulationManager.get_simulation_time(), SimulationManager.get_physics_dt())
+        self._fabric.force_update(SimulationManager.get_simulation_time(), self._physics_scene.get_dt())
         self._enable_fabric_updates(written)
 
         data = self._viewer.render()
@@ -311,7 +311,6 @@ class IsaacSim(VectorizedEnvironment):
         stage_utils.set_stage_units(meters_per_unit=1.0)
 
         # setting a cuda device also enables fabric, GPU dynamics and the GPU broadphase
-        SimulationManager.set_backend('torch')
         SimulationManager.setup_simulation(device=TorchUtils.get_device())
 
         # Fabric is brought up by the call above

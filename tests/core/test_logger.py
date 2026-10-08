@@ -1,4 +1,4 @@
-import cv2
+import av
 import json
 import logging
 import numpy as np
@@ -20,20 +20,8 @@ def release_logger_name(log_id):
 
 
 def read_frame_values(path):
-    capture = cv2.VideoCapture(str(path))
-    values = list()
-
-    while True:
-        read, frame = capture.read()
-
-        if not read:
-            break
-
-        values.append(frame.mean())
-
-    capture.release()
-
-    return values
+    with av.open(str(path)) as container:
+        return [frame.to_ndarray(format='bgr24').mean() for frame in container.decode(video=0)]
 
 
 @fixture(autouse=True)
