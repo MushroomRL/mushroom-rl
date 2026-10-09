@@ -12,7 +12,6 @@ For Mushroom 2.0:
               a real look once all 9 variants are in, not just written off as the paper's expected effect
     * New Mujoco viewer needs testing on macOS.
     * After release: Put back latest as default ReadTheDocs config and as default badge in the main readme.rts
-    * Port Isaac to 6.0
     * Unpin MuJoCo (mujoco<3.15, mujoco-warp<3.15, dm_control<1.0.48 in setup.py): MuJoCo 3.15 commit 6224e95f
       computes wrong cylinder-box penetration depth, so the PegInsertion peg rotates out of the grasp
 

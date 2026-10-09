@@ -53,6 +53,7 @@ long_description = 'MushroomRL is a Python Reinforcement Learning (RL) library' 
 
 mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
 pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
+isaacsim_data_package = 'mushroom_rl.environments.isaacsim_envs.robots_usds'
 
 setup(
     version=__version__,
@@ -64,6 +65,7 @@ setup(
     extras_require=extras,
     package_data={
         mujoco_data_package: glob_data_files(mujoco_data_package),
-        pybullet_data_package: glob_data_files(pybullet_data_package)
+        pybullet_data_package: glob_data_files(pybullet_data_package),
+        isaacsim_data_package: glob_data_files(isaacsim_data_package)
     }
 )
