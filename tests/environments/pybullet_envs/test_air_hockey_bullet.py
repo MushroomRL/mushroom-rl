@@ -1,6 +1,6 @@
 import pytest
 
-pytest.importorskip("mushroom_rl.environments")
+pytest.importorskip("pybullet")
 
 from mushroom_rl.environments import (
     AirHockeyDefendBullet, AirHockeyHitBullet,

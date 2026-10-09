@@ -57,7 +57,7 @@ You can install everything by running:
 
     pip install mushroom-rl[all]
 
-This will install every dependency of MushroomRL, except Box2D and PyBullet.
+This will install every dependency of MushroomRL, except Box2D, PyBullet and Isaac Sim.
 For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 .. code:: shell
@@ -73,6 +73,26 @@ Below is the code that you need to run to install the live monitors dependencies
 .. code:: shell
 
     pip install mushroom-rl[monitors]
+
+Isaac Sim
+---------
+Support for ``NVIDIA Isaac Sim`` environments is provided by a separate extra, which is deliberately
+not part of ``[all]``:
+
+.. code:: shell
+
+    pip install mushroom-rl[isaacsim]
+
+Install it in a dedicated environment, never alongside the other extras:
+
+* ``Isaac Sim`` supports **Python 3.12 only** (its metadata declares ``Requires-Python: ==3.12.*``),
+  whereas ``MushroomRL`` also supports Python 3.11.
+* ``isaacsim-core`` pins exact versions of packages shared with the other extras (``mujoco==3.11.0``,
+  ``mujoco-warp==3.11.0``, ``torch==2.11.0``, ``scipy==1.17.0``), so they cannot move past those versions in
+  the same environment.
+
+Running the ``Isaac Sim`` environments additionally requires an NVIDIA RTX GPU. They are therefore not
+covered by continuous integration, and their tests are skipped unless ``isaacsim`` can be imported.
 
 Editable Installation
 ---------------------
