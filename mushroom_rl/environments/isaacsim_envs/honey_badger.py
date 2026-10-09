@@ -28,6 +28,15 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             sub_bodies, collision_groups = self._robot_config()
 
         reward_weights = dict() if reward_weights is None else reward_weights
+        badger_reward_weights = dict(
+            tracking_lin_vel=1.2, tracking_ang_vel=0.6, lin_vel_z=-1.6, ang_vel_xy=-0.07, torques=-1e-5,
+            joint_acc=-2.5e-7, action_rate=-0.005, joint_pos_limits=-0.1, collision=-1.0, feet_air_time=0.,
+            flat_orientation=-0.2, joint_vel_limits=-0.1, power_draw=-4e-6, similar_to_default=-0.085,
+            stand_still_deviation=-1.4, feet_air_time_high=0.125, feet_air_time_low=0.75,
+            feet_air_time_symmetry=-0.25, feet_clearance=0.085, feet_clearance_lateral=0.1, feet_slide=-0.04,
+            feet_slide_low=-0.2, feet_z_velocity=-0.03, long_contact=-0.7, stand_still_short_contact=-0.5,
+            height=-50.
+        )
 
         observation_spec = [
             ("base_lin_vel", "", ObservationType.BODY_LIN_VEL, None),
@@ -52,7 +61,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
                          observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
                          domain_randomization, camera_pos, camera_target,
                          default_joint_max_vel=default_joint_max_vel,
-                         reward_weights=dict(torques=-0.0001, height=-4.0, **reward_weights),
+                         reward_weights=badger_reward_weights | reward_weights,
                          **quadruped_params)
 
     def is_absorbing(self, obs):
