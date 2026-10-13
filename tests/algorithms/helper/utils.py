@@ -16,7 +16,7 @@ from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import Parameter, VariableParameter, LinearParameter, DecayParameter, \
-    VarianceParameter, WindowedVarianceParameter
+    VarianceDrivenParameter, WindowedVarianceDrivenParameter
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 
 from mushroom_rl.features._impl import TilesFeatures, FunctionalFeatures, BasisFeatures
@@ -302,7 +302,7 @@ class TestUtils:
     @classmethod
     def eq_variance_parameter(cls, this, that):
         """
-        Compare two VarianceParameter objects for equality
+        Compare two VarianceDrivenParameter objects for equality
         """
 
         res = cls.eq_variable_parameter(this, that)
@@ -317,7 +317,7 @@ class TestUtils:
     @classmethod
     def eq_windowed_variance_parameter(cls, this, that):
         """
-        Compare two WindowedVarianceParameter objects for equality
+        Compare two WindowedVarianceDrivenParameter objects for equality
         """
 
         res = cls.eq_variable_parameter(this, that)
@@ -418,8 +418,8 @@ class TestUtils:
             (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
             (exact, LinearParameter, asserting(cls.eq_linear_parameter)),
             (exact, DecayParameter, asserting(cls.eq_decay_parameter)),
-            (exact, WindowedVarianceParameter, asserting(cls.eq_windowed_variance_parameter)),
-            (exact, VarianceParameter, asserting(cls.eq_variance_parameter)),
+            (exact, WindowedVarianceDrivenParameter, asserting(cls.eq_windowed_variance_parameter)),
+            (exact, VarianceDrivenParameter, asserting(cls.eq_variance_parameter)),
             (exact, VariableParameter, asserting(cls.eq_variable_parameter)),
             (exact, Parameter, asserting(cls.eq_parameter)),
             (exact, AdaptiveOptimizer, asserting(cls.eq_adaptive_optimizer)),

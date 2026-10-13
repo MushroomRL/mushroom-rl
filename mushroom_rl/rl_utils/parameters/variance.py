@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.rl_utils.parameters.parameter import VariableParameter
 
 
-class VarianceParameter(VariableParameter):
+class VarianceDrivenParameter(VariableParameter):
     """
     Abstract class to implement variance-dependent parameters. A ``target``
     parameter is expected.
@@ -77,10 +77,10 @@ class VarianceParameter(VariableParameter):
         self._log(*args, **kwargs)
 
     def _compute_parameter(self, sigma, **kwargs):
-        raise NotImplementedError('VarianceParameter is an abstract class.')
+        raise NotImplementedError('VarianceDrivenParameter is an abstract class.')
 
 
-class VarianceIncreasingParameter(VarianceParameter):
+class VarianceDrivenIncreasingParameter(VarianceDrivenParameter):
     """
     Class implementing a parameter that increases with the target
     variance.
@@ -93,7 +93,7 @@ class VarianceIncreasingParameter(VarianceParameter):
             return sigma / (sigma + self._tol)
 
 
-class VarianceDecreasingParameter(VarianceParameter):
+class VarianceDrivenDecreasingParameter(VarianceDrivenParameter):
     """
     Class implementing a parameter that decreases with the target
     variance.
@@ -106,7 +106,7 @@ class VarianceDecreasingParameter(VarianceParameter):
             return 1. / (sigma + self._tol)
 
 
-class WindowedVarianceParameter(VariableParameter):
+class WindowedVarianceDrivenParameter(VariableParameter):
     """
     Abstract class to implement variance-dependent parameters. A ``target``
     parameter is expected. differently from the "Variance Parameter" class
@@ -192,10 +192,10 @@ class WindowedVarianceParameter(VariableParameter):
         self._log(*args, **kwargs)
 
     def _compute_parameter(self, sigma, **kwargs):
-        raise NotImplementedError('WindowedVarianceParameter is an abstract class.')
+        raise NotImplementedError('WindowedVarianceDrivenParameter is an abstract class.')
 
 
-class WindowedVarianceIncreasingParameter(WindowedVarianceParameter):
+class WindowedVarianceDrivenIncreasingParameter(WindowedVarianceDrivenParameter):
     """
     Class implementing a parameter that decreases with the target
     variance, where the variance is computed in a fixed length

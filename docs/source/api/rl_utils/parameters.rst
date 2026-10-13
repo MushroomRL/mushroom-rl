@@ -7,8 +7,9 @@ array ``backend`` (numpy by default); a non-scalar parameter converts the indexi
 so a state from any backend can be used to index it directly.
 
 Two families build on top of the base classes:
+
 - *scheduled* parameters, whose value evolves with the number of updates;
-- *variance* parameters, whose value adapts to the observed variance of a target signal.
+- *variance-driven* parameters, whose value adapts to the observed variance of a target signal.
 
 .. automodule:: mushroom_rl.rl_utils.parameters.parameter
     :private-members:
@@ -19,8 +20,8 @@ Scheduled parameters
 .. automodule:: mushroom_rl.rl_utils.parameters.scheduled
     :private-members:
 
-Variance parameters
--------------------
+Variance-driven parameters
+--------------------------
 
 .. automodule:: mushroom_rl.rl_utils.parameters.variance
     :private-members:

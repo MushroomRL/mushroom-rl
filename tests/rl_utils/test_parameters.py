@@ -3,7 +3,7 @@ import torch
 
 from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter, DecayParameter
-from mushroom_rl.rl_utils.parameters import VarianceIncreasingParameter
+from mushroom_rl.rl_utils.parameters import VarianceDrivenIncreasingParameter
 from mushroom_rl.policy import EpsGreedy, Mellowmax
 
 
@@ -103,7 +103,7 @@ def test_parameter_without_logger_does_not_raise():
 
 def test_variance_parameter_logs_on_update():
     logger = FakeLogger()
-    p = VarianceIncreasingParameter(value=0.5, tol=1.)
+    p = VarianceDrivenIncreasingParameter(value=0.5, tol=1.)
     p.set_logger(logger, 'lr')
 
     p.update(0, target=1.0)
@@ -113,7 +113,7 @@ def test_variance_parameter_logs_on_update():
 
 
 def test_variance_parameter_with_shape_tracks_indices_independently():
-    p = VarianceIncreasingParameter(value=1., tol=1., shape=(2,))
+    p = VarianceDrivenIncreasingParameter(value=1., tol=1., shape=(2,))
 
     p.update(0, target=1.0)
     p.update(0, target=2.0)
