@@ -131,7 +131,9 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
 
         An optional ``prefix`` groups the metrics (e.g. ``prefix='critic'``, ``loss=...``
         becomes ``critic/loss``); a ``'/'`` in the resulting name groups the metric in wandb
-        and is replaced by ``'_'`` for the numpy file name (e.g. ``critic_loss.npy``).
+        and is replaced by ``'_'`` for the numpy file name (e.g. ``critic_loss.npy``). A vector
+        value with fewer than 32 elements is logged to wandb as one metric per element
+        (``name/0``, ``name/1``, ...), a larger one as a histogram.
 
         Args:
             prefix (str, None): optional group prepended to each metric name;

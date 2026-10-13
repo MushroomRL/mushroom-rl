@@ -95,7 +95,9 @@ class WandbLogger(object):
         Log a set of named training metrics to wandb, grouped under the ``training/`` prefix
         and using the number of fits as x-axis. An optional ``prefix`` adds an intermediate
         group, so that a value ``loss`` logged with ``prefix='critic'`` becomes
-        ``training/critic/loss``.
+        ``training/critic/loss``. A vector value (numpy array or CPU torch tensor) with fewer
+        than 32 elements is logged as one scalar per element, ``name/0``, ``name/1``, ...; a
+        larger one is logged as a histogram.
 
         Args:
             prefix (str, None): optional group prepended to each metric name;
@@ -104,7 +106,9 @@ class WandbLogger(object):
         """
         if self._wandb_run is not None:
             group = 'training/' + (prefix + '/' if prefix else '')
-            data = {group + name: value for name, value in kwargs.items()}
+            data = dict()
+            for name, value in kwargs.items():
+                data.update(self._unpack_vector(group + name, value))
             data['n_fit'] = self._n_fit
             wandb.log(data)
 
@@ -170,6 +174,17 @@ class WandbLogger(object):
                 with open(run_id_file, 'rb') as f:
                     return pickle.load(f)
         return None
+
+    @staticmethod
+    def _unpack_vector(name, value):
+        if getattr(value, 'ndim', 0) > 0:
+            values = value.ravel()
+            if len(values) < 32:
+                return {name + '/' + str(i): v.item() for i, v in enumerate(values)}
+            else:
+                return {name: wandb.Histogram(values, num_bins=32)}
+        else:
+            return {name: value}
 
     @property
     def wandb_active(self):
