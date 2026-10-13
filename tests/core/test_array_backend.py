@@ -72,6 +72,10 @@ def test_abstract_backend_not_implemented():
         lambda: ArrayBackend.max(None),
         lambda: ArrayBackend.min(None),
         lambda: ArrayBackend.norm(None),
+        lambda: ArrayBackend.diag(None),
+        lambda: ArrayBackend.diagonal(None),
+        lambda: ArrayBackend.cholesky(None),
+        lambda: ArrayBackend.inv(None),
         lambda: ArrayBackend.logical_and(None, None),
         lambda: ArrayBackend.sum(None),
         lambda: ArrayBackend.stack([], 0),
@@ -156,6 +160,11 @@ def test_list_backend():
     assert ListBackend.max(x, None) == 4.0
     assert ListBackend.min(x, None) == 1.0
     assert np.isclose(ListBackend.norm(np.array([3.0, 4.0])), 5.0)
+    matrix = np.array([[4.0, 2.0], [2.0, 3.0]])
+    assert np.array_equal(ListBackend.diag(np.array([1.0, 2.0])), np.array([[1.0, 0.0], [0.0, 2.0]]))
+    assert np.array_equal(ListBackend.diagonal(matrix), np.array([4.0, 3.0]))
+    assert np.allclose(ListBackend.cholesky(matrix), np.array([[2.0, 0.0], [1.0, np.sqrt(2.0)]]))
+    assert np.allclose(ListBackend.inv(matrix), np.array([[0.375, -0.25], [-0.25, 0.5]]))
     assert np.array_equal(ListBackend.logical_and(np.array([True, False]), np.array([True, True])),
                           np.array([True, False]))
     assert ListBackend.sum(x) == 5.0
@@ -196,6 +205,11 @@ def test_backend_ops_numpy():
     assert NumpyBackend.max(np.array([1.0, 3.0, 2.0])) == 3.0
     assert NumpyBackend.min(np.array([1.0, 3.0, 2.0])) == 1.0
     assert np.isclose(NumpyBackend.norm(np.array([3.0, 4.0])), 5.0)
+    matrix = np.array([[4.0, 2.0], [2.0, 3.0]])
+    assert np.array_equal(NumpyBackend.diag(np.array([1.0, 2.0])), np.array([[1.0, 0.0], [0.0, 2.0]]))
+    assert np.array_equal(NumpyBackend.diagonal(matrix), np.array([4.0, 3.0]))
+    assert np.allclose(NumpyBackend.cholesky(matrix), np.array([[2.0, 0.0], [1.0, np.sqrt(2.0)]]))
+    assert np.allclose(NumpyBackend.inv(matrix), np.array([[0.375, -0.25], [-0.25, 0.5]]))
     assert np.array_equal(NumpyBackend.logical_and(np.array([True, False]), np.array([True, True])),
                           np.array([True, False]))
     assert NumpyBackend.sum(np.array([1.0, 2.0, 3.0])) == 6.0
@@ -223,6 +237,11 @@ def test_backend_ops_torch():
     assert TorchBackend.max(torch.tensor([1.0, 3.0, 2.0]), 0) == 3.0
     assert TorchBackend.min(torch.tensor([1.0, 3.0, 2.0]), 0) == 1.0
     assert torch.isclose(TorchBackend.norm(torch.tensor([3.0, 4.0])), torch.tensor(5.0))
+    matrix = torch.tensor([[4.0, 2.0], [2.0, 3.0]])
+    assert torch.equal(TorchBackend.diag(torch.tensor([1.0, 2.0])), torch.tensor([[1.0, 0.0], [0.0, 2.0]]))
+    assert torch.equal(TorchBackend.diagonal(matrix), torch.tensor([4.0, 3.0]))
+    assert torch.allclose(TorchBackend.cholesky(matrix), torch.tensor([[2.0, 0.0], [1.0, 2.0 ** 0.5]]))
+    assert torch.allclose(TorchBackend.inv(matrix), torch.tensor([[0.375, -0.25], [-0.25, 0.5]]))
     assert torch.equal(TorchBackend.logical_and(torch.tensor([True, False]), torch.tensor([True, True])),
                        torch.tensor([True, False]))
     assert TorchBackend.sum(torch.tensor([1.0, 2.0, 3.0])) == 6.0

@@ -840,6 +840,54 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def diag(array):
+        """
+        Args:
+            array: a vector.
+
+        Returns:
+            The square matrix having ``array`` on the diagonal and zeros elsewhere.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def diagonal(array):
+        """
+        Args:
+            array: a square matrix.
+
+        Returns:
+            The vector of the diagonal elements of ``array``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def cholesky(array):
+        """
+        Args:
+            array: a symmetric positive definite matrix.
+
+        Returns:
+            The lower triangular Cholesky factor of ``array``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def inv(array):
+        """
+        Args:
+            array: a square invertible matrix.
+
+        Returns:
+            The inverse of ``array``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def maximum(x, y):
         """
         Args:
@@ -1160,6 +1208,22 @@ class NumpyBackend(ArrayBackend):
         return np.linalg.norm(array, ord=ord, axis=dim)
 
     @staticmethod
+    def diag(array):
+        return np.diag(array)
+
+    @staticmethod
+    def diagonal(array):
+        return np.diagonal(array)
+
+    @staticmethod
+    def cholesky(array):
+        return np.linalg.cholesky(array)
+
+    @staticmethod
+    def inv(array):
+        return np.linalg.inv(array)
+
+    @staticmethod
     def maximum(x, y):
         return np.maximum(x, y)
 
@@ -1426,6 +1490,22 @@ class TorchBackend(ArrayBackend):
         return torch.linalg.norm(array, ord=ord, dim=dim)
 
     @staticmethod
+    def diag(array):
+        return torch.diag(array)
+
+    @staticmethod
+    def diagonal(array):
+        return torch.diagonal(array)
+
+    @staticmethod
+    def cholesky(array):
+        return torch.linalg.cholesky(array)
+
+    @staticmethod
+    def inv(array):
+        return torch.linalg.inv(array)
+
+    @staticmethod
     def maximum(x, y):
         return torch.maximum(x, y)
 
@@ -1682,6 +1762,22 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def norm(array, ord=None, dim=None):
         return NumpyBackend.norm(array, ord=ord, dim=dim)
+
+    @staticmethod
+    def diag(array):
+        return NumpyBackend.diag(array)
+
+    @staticmethod
+    def diagonal(array):
+        return NumpyBackend.diagonal(array)
+
+    @staticmethod
+    def cholesky(array):
+        return NumpyBackend.cholesky(array)
+
+    @staticmethod
+    def inv(array):
+        return NumpyBackend.inv(array)
 
     @staticmethod
     def maximum(x, y):
