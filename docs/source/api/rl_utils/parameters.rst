@@ -1,15 +1,16 @@
 Parameters
 ==========
 
-A parameter is a value used by an algorithm, such as a learning rate or an exploration coefficient. It can be a scalar
-or, when a ``shape`` is given, a table holding one value per state or state-action tuple. Each parameter declares an
-array ``backend`` (numpy by default); a non-scalar parameter converts the indexing inputs into the format it requires,
-so a state from any backend can be used to index it directly.
+A parameter is a value used by an algorithm, such as a learning rate or an exploration coefficient. It can be a scalar,
+a vector or, when a ``shape`` is given, a table holding one value per state or state-action tuple. Each parameter
+declares an array ``backend`` (numpy by default) and, for torch, a ``device``.
 
-Two families build on top of the base classes:
+Three families build on top of the base classes:
 
 - *scheduled* parameters, whose value evolves with the number of updates;
-- *variance-driven* parameters, whose value adapts to the observed variance of a target signal.
+- *variance-driven* parameters, whose value adapts to the observed variance of a target signal;
+- *covariance* parameters, holding the covariance matrix of a Gaussian distribution, either fixed or built from a
+  scheduled standard deviation.
 
 .. automodule:: mushroom_rl.rl_utils.parameters.parameter
     :private-members:
@@ -24,4 +25,10 @@ Variance-driven parameters
 --------------------------
 
 .. automodule:: mushroom_rl.rl_utils.parameters.variance
+    :private-members:
+
+Covariance parameters
+---------------------
+
+.. automodule:: mushroom_rl.rl_utils.parameters.covariance
     :private-members:

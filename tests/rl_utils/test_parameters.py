@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 
 from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
@@ -78,6 +79,109 @@ def test_linear_parameter_logs_post_update_value():
 
     assert len(logger.calls) == 1
     assert np.isclose(logger.calls[0]['eps/value'], 0.9)
+
+
+def test_vector_parameter_logs_vector():
+    logger = FakeLogger()
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3)
+    p.set_logger(logger, 'std')
+
+    p()
+
+    assert len(logger.calls) == 1
+    assert isinstance(logger.calls[0]['std/value'], np.ndarray)
+    assert np.allclose(logger.calls[0]['std/value'], np.array([.7, .4]))
+
+    logger = FakeLogger()
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3, backend='torch')
+    p.set_logger(logger, 'std')
+
+    p()
+
+    assert isinstance(logger.calls[0]['std/value'], np.ndarray)
+    assert np.allclose(logger.calls[0]['std/value'], np.array([.7, .4]))
+
+
+def test_linear_parameter_vector():
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3)
+    values = [p() for _ in range(5)]
+    values_test = [[.7, .4], [.4, .7], [.1, 1.], [.1, 1.], [.1, 1.]]
+
+    assert np.allclose(values, values_test)
+
+    with pytest.raises(AssertionError):
+        LinearParameter(np.array([1., .1]), .5, n=4)
+
+    with pytest.raises(AssertionError):
+        LinearParameter(1., np.array([.1, 1.]), n=4)
+
+
+def test_vector_parameter_torch_backend():
+    device = TorchBackend.check_device(None)
+
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3, backend='torch')
+    values = [p() for _ in range(4)]
+
+    assert all(isinstance(v, torch.Tensor) and v.device == torch.device(device) for v in values)
+    assert torch.allclose(torch.stack(values).cpu(), torch.tensor([[.7, .4], [.4, .7], [.1, 1.], [.1, 1.]]))
+
+    p = DecayParameter(np.array([1., 2.]), min_value=np.array([.1, .5]), backend='torch')
+    values = torch.stack([p() for _ in range(3)]).cpu()
+
+    assert torch.allclose(values, torch.tensor([[1., 2.], [.5, 1.], [.3333333433, .6666666865]]))
+
+    p = Parameter(np.array([.3, .2]), backend='torch')
+
+    assert torch.allclose(p().cpu(), torch.tensor([.3, .2]))
+
+
+def test_scalar_parameter_type_with_torch_backend():
+    assert isinstance(LinearParameter(1., .1, 3, backend='torch')(), np.float64)
+    assert isinstance(Parameter(64, backend='torch')(), int)
+
+
+def test_vector_parameter_set_backend():
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3)
+    p()
+
+    p.set_backend('torch')
+    value = p()
+
+    assert isinstance(value, torch.Tensor)
+    assert torch.allclose(value.cpu(), torch.tensor([.4, .7]))
+
+    p.set_backend('numpy')
+    value = p()
+
+    assert isinstance(value, np.ndarray)
+    assert np.allclose(value, np.array([.1, 1.]))
+
+
+def test_vector_parameter_serialization(tmpdir):
+    path = tmpdir / 'parameter.msh'
+
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3, backend='torch')
+    p()
+    p.save(path)
+    p_load = LinearParameter.load(path)
+
+    assert torch.equal(p_load(), p())
+    assert torch.equal(p_load(), p())
+
+    p = LinearParameter(np.array([1., .1]), np.array([.1, 1.]), n=3)
+    p()
+    p.save(path)
+    p_load = LinearParameter.load(path)
+
+    assert isinstance(p_load.initial_value, np.ndarray)
+    assert np.array_equal(p_load(), p())
+
+    p.set_backend('torch')
+    p.save(path)
+    p_load = LinearParameter.load(path)
+
+    assert isinstance(p_load.initial_value, torch.Tensor)
+    assert torch.equal(p_load(), p())
 
 
 def test_decay_parameter_logs_post_update_value():

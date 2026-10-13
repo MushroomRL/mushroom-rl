@@ -1,4 +1,4 @@
-import numpy as np
+import math
 
 from mushroom_rl.rl_utils.parameters.parameter import VariableParameter
 
@@ -10,13 +10,23 @@ class VarianceDrivenParameter(VariableParameter):
 
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False,
-                 backend='numpy'):
+                 backend='numpy', device=None):
         """
         Constructor.
 
         Args:
-            tol (float): value of the variance of the target variable such that
-                The parameter value is 0.5.
+            value (float): initial value of the parameter;
+            exponential (bool, False): whether the parameter follows an exponential law of the target variance
+                instead of a rational one;
+            min_value (float, None): minimum value that the parameter can reach;
+            tol (float, 1.): value of the variance of the target variable such that the parameter value is 0.5;
+            shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
+                parameter for each state or state-action tuple. If None, the parameter is a scalar;
+            log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
+                than one value);
+            backend (str, 'numpy'): array backend of the parameter;
+            device (str, None): device of the parameter, only for the torch backend. If None, the default device
+                is used.
 
         """
         self._exponential = exponential
@@ -27,7 +37,7 @@ class VarianceDrivenParameter(VariableParameter):
         self._x2 = self._make_approximator(table_shape)
         self._parameter_value = self._make_approximator(table_shape)
 
-        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend, device=device)
 
         self._add_save_attr(
             _exponential='primitive',
@@ -88,7 +98,7 @@ class VarianceDrivenIncreasingParameter(VarianceDrivenParameter):
     """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
-            return 1 - np.exp(sigma * np.log(.5) / self._tol)
+            return 1 - math.exp(sigma * math.log(.5) / self._tol)
         else:
             return sigma / (sigma + self._tol)
 
@@ -101,7 +111,7 @@ class VarianceDrivenDecreasingParameter(VarianceDrivenParameter):
     """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
-            return np.exp(sigma * np.log(.5) / self._tol)
+            return math.exp(sigma * math.log(.5) / self._tol)
         else:
             return 1. / (sigma + self._tol)
 
@@ -109,19 +119,30 @@ class VarianceDrivenDecreasingParameter(VarianceDrivenParameter):
 class WindowedVarianceDrivenParameter(VariableParameter):
     """
     Abstract class to implement variance-dependent parameters. A ``target``
-    parameter is expected. differently from the "Variance Parameter" class
+    parameter is expected. Differently from :class:`VarianceDrivenParameter`,
     the variance is computed in a window interval.
 
     """
     def __init__(self, value, exponential=False, min_value=None, tol=1., window=100, shape=None, log_full=False,
-                 backend='numpy'):
+                 backend='numpy', device=None):
         """
         Constructor.
 
         Args:
-            tol (float): value of the variance of the target variable such that the
-                parameter value is 0.5.
-            window (int):
+            value (float): initial value of the parameter;
+            exponential (bool, False): whether the parameter follows an exponential law of the target variance
+                instead of a rational one;
+            min_value (float, None): minimum value that the parameter can reach;
+            tol (float, 1.): value of the variance of the target variable such that the parameter value is 0.5;
+            window (int, 100): number of most recent targets used to compute the variance;
+            shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
+                parameter for each state or state-action tuple. If None, the parameter is a scalar;
+            log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
+                than one value);
+            backend (str, 'numpy'): array backend of the parameter;
+            device (str, None): device of the parameter, only for the torch backend. If None, the default device
+                is used.
+
         """
         self._exponential = exponential
         self._tol = tol
@@ -142,7 +163,7 @@ class WindowedVarianceDrivenParameter(VariableParameter):
             _parameter_value='mushroom',
         )
 
-        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend)
+        super().__init__(value, min_value=min_value, shape=shape, log_full=log_full, backend=backend, device=device)
 
     def _compute(self, *args, **kwargs):
         return self._parameter_value[args]
@@ -174,13 +195,12 @@ class WindowedVarianceDrivenParameter(VariableParameter):
             if n < self._window:
                 samples = samples[:int(n)]
 
-            var = np.var(samples)
+            var = samples.var()
             var_estimator = var * self._weights_var[args]
             parameter_value = self._compute_parameter(var_estimator, sigma_process=var, index=args)
 
         # update state
-        index = np.array([self._index[args]], dtype=int)
-        self._samples[args + (index,)] = x
+        self._samples[args + (int(self._index[args]),)] = x
         self._index[args] += 1
         if self._index[args] >= self._window:
             self._index[args] = 0
@@ -197,13 +217,13 @@ class WindowedVarianceDrivenParameter(VariableParameter):
 
 class WindowedVarianceDrivenIncreasingParameter(WindowedVarianceDrivenParameter):
     """
-    Class implementing a parameter that decreases with the target
+    Class implementing a parameter that increases with the target
     variance, where the variance is computed in a fixed length
     window.
 
     """
     def _compute_parameter(self, sigma, **kwargs):
         if self._exponential:
-            return 1 - np.exp(sigma * np.log(.5) / self._tol)
+            return 1 - math.exp(sigma * math.log(.5) / self._tol)
         else:
             return sigma / (sigma + self._tol)

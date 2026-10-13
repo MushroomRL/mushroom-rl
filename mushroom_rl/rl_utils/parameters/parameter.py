@@ -1,7 +1,5 @@
 import math
 
-import numpy as np
-
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.approximators.table import Table
@@ -14,31 +12,34 @@ class Parameter(MushroomObject):
     tuple.
 
     """
-    def __init__(self, value, shape=None, log_full=False, backend='numpy'):
+    def __init__(self, value, shape=None, log_full=False, backend='numpy', device=None):
         """
         Constructor.
 
         Args:
-            value (float): initial value of the parameter;
+            value ([float, Array]): initial value of the parameter, a scalar or a vector;
             shape (tuple, None): shape of the matrix of parameters; this shape can be used to have a single
                 parameter for each state or state-action tuple. If None, the parameter is a scalar;
             log_full (bool, False): if True, the parameter is logged even when it is non-scalar (it holds more
                 than one value). By default, non-scalar parameters are not logged, as logging a per-state or
                 per-state-action value on every update is too expensive;
-            backend (str, 'numpy'): array backend the parameter's inputs are given in; the inputs are
-                converted to numpy before indexing a non-scalar parameter.
+            backend (str, 'numpy'): array backend of the parameter;
+            device (str, None): device of the parameter, only for the torch backend. If None, the default device
+                is used.
 
         """
-        self._initial_value = value
         self._shape = shape
         self._log_full = log_full
         self._backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
+        self._initial_value = self._to_backend(value)
 
         self._add_save_attr(
-            _initial_value='primitive',
+            _initial_value=self._value_serialization_method(self._initial_value),
             _shape='primitive',
             _log_full='primitive',
             _backend='primitive',
+            _device='none',
         )
 
     def __call__(self, *args, **kwargs):
@@ -82,33 +83,42 @@ class Parameter(MushroomObject):
         """
         self._log(*args, **kwargs)
 
-    def set_backend(self, backend):
+    def set_backend(self, backend, device=None):
         """
-        Set the array backend the parameter's inputs are given in.
+        Set the array backend and the device of the parameter.
 
         Args:
-            backend (str): name of the array backend.
+            backend (str): name of the array backend;
+            device (str, None): device of the parameter, only for the torch backend. If None, the default device
+                is used.
 
         """
         self._backend = ArrayBackend.get_array_backend(backend)
+        self._device = device
+        self._initial_value = self._to_backend(self._initial_value)
+
+        self._add_save_attr(_initial_value=self._value_serialization_method(self._initial_value))
 
     @staticmethod
-    def make(x, backend='numpy'):
+    def make(x, backend='numpy', device=None):
         """
         Args:
-            x ([float, Parameter]): the value to convert to a parameter, if it is not one already;
-            backend (str, 'numpy'): array backend to assign to the parameter.
+            x ([float, Array, Parameter]): the value to convert to a parameter, if it is not one
+                already;
+            backend (str, 'numpy'): array backend to assign to the parameter;
+            device (str, None): device of the parameter, only for the torch backend. If None, the default device
+                is used.
 
         Returns:
-            ``x`` with its backend set to ``backend`` if it is already a ``Parameter``, otherwise a constant
+            ``x`` with its backend and device set if it is already a ``Parameter``, otherwise a constant
             ``Parameter`` wrapping it in the given backend.
 
         """
         if isinstance(x, Parameter):
-            x.set_backend(backend)
+            x.set_backend(backend, device)
             return x
         else:
-            return Parameter(x, backend=backend)
+            return Parameter(x, backend=backend, device=device)
 
     def _compute(self, *args, **kwargs):
         """
@@ -128,14 +138,35 @@ class Parameter(MushroomObject):
         if self._is_scalar:
             return args
 
-        return tuple(a if isinstance(a, np.ndarray) else self._backend.to_numpy(a) for a in args)
+        return tuple(ArrayBackend.convert(a, to='numpy') if self._is_array(a) else a for a in args)
+
+    def _to_backend(self, array):
+        if self._is_array(array):
+            return ArrayBackend.convert(array, to=self._backend.get_backend_name(),
+                                        device=self._backend.check_device(self._device))
+        else:
+            return array
 
     def _log(self, *args, **kwargs):
         should_log = self._logger is not None and (self._log_full or self._is_scalar)
         if should_log:
             name = self._log_label or 'value'
-            value = float(np.squeeze(self.get_value(*args, **kwargs)))
+            value = self._log_value(*args, **kwargs)
+            if self._is_array(value):
+                value = ArrayBackend.convert(value, to='numpy').squeeze()
+            if not self._is_array(value):
+                value = float(value)
             self._logger.log_training(self._log_prefix, **{name: value})
+
+    def _log_value(self, *args, **kwargs):
+        return self.get_value(*args, **kwargs)
+
+    def _value_serialization_method(self, value):
+        return self._backend.get_backend_serialization() if self._is_array(value) else 'primitive'
+
+    @staticmethod
+    def _is_array(x):
+        return getattr(x, 'ndim', 0) > 0
 
     @property
     def shape(self):
@@ -171,16 +202,17 @@ class VariableParameter(Parameter):
     visit counter on top of :class:`Parameter`, used by the formula implemented by subclasses.
 
     """
-    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False, backend='numpy'):
-        super().__init__(value, shape=shape, log_full=log_full, backend=backend)
+    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False, backend='numpy',
+                 device=None):
+        super().__init__(value, shape=shape, log_full=log_full, backend=backend, device=device)
 
-        self._min_value = min_value
-        self._max_value = max_value
+        self._min_value = self._to_backend(min_value)
+        self._max_value = self._to_backend(max_value)
         self._n_updates = self._make_approximator(shape if shape is not None else (1,))
 
         self._add_save_attr(
-            _min_value='primitive',
-            _max_value='primitive',
+            _min_value=self._value_serialization_method(self._min_value),
+            _max_value=self._value_serialization_method(self._max_value),
             _n_updates='mushroom',
         )
 
@@ -191,13 +223,24 @@ class VariableParameter(Parameter):
         if self._min_value is None and self._max_value is None:
             return new_value
         else:
-            return np.clip(new_value, self._min_value, self._max_value)
+            return new_value.clip(self._min_value, self._max_value)
 
     def update(self, *args, **kwargs):
         args = self._to_numpy(args)
         self._n_updates[args] += 1
 
         super().update(*args, **kwargs)
+
+    def set_backend(self, backend, device=None):
+        super().set_backend(backend, device)
+
+        self._min_value = self._to_backend(self._min_value)
+        self._max_value = self._to_backend(self._max_value)
+
+        self._add_save_attr(
+            _min_value=self._value_serialization_method(self._min_value),
+            _max_value=self._value_serialization_method(self._max_value),
+        )
 
     def _make_approximator(self, shape, dtype=None):
         """
