@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom_rl.policy.policy import Policy, HasGradient
+from mushroom_rl.rl_utils.parameters import CovarianceParameter
 from scipy.stats import multivariate_normal
 
 
@@ -29,7 +30,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
     This is a differentiable policy for continuous action spaces.
     The policy samples an action in every state following a gaussian
     distribution, where the mean is computed in the state and the covariance
-    matrix is fixed.
+    matrix is a :class:`CovarianceParameter`, updated at every drawn action.
 
     """
     def __init__(self, mu, sigma):
@@ -39,37 +40,43 @@ class GaussianPolicy(AbstractGaussianPolicy):
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the
                 state;
-            sigma (np.ndarray): a square positive definite matrix representing
-                the covariance matrix. The size of this matrix must be n x n,
-                where n is the action dimensionality.
+            sigma ([Array, Parameter, CovarianceParameter]): the covariance of the policy: a square positive
+                definite covariance matrix of size n x n, a vector of size n with the standard deviation of each action
+                component, a :class:`Parameter` returning such a vector, or a :class:`CovarianceParameter`; n is the
+                action dimensionality.
 
         """
         self._approximator = mu
         self._predict_params = dict()
-        self._inv_sigma = np.linalg.inv(sigma)
-        self._sigma = sigma
+        self._sigma = CovarianceParameter.make(sigma, backend='numpy')
 
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
-            _inv_sigma='numpy',
-            _sigma='numpy'
+            _sigma='mushroom'
         )
+        self._add_logger_attr(_sigma='sigma', group='policy')
+
+    def draw_action(self, state):
+        self._sigma.update()
+
+        return super().draw_action(state)
 
     def set_sigma(self, sigma):
         """
         Setter.
 
         Args:
-            sigma (np.ndarray): the new covariance matrix. Must be a square
-                positive definite matrix.
+            sigma ([Array, Parameter, CovarianceParameter]): the new covariance of the policy, in any of the
+                forms accepted by the constructor.
 
         """
-        self._sigma = sigma
-        self._inv_sigma = np.linalg.inv(sigma)
+        self._sigma = CovarianceParameter.make(sigma, backend='numpy')
+        self.set_logger(self._logger, self._log_prefix, self._log_label)
 
     def diff_log(self, state, action, policy_state=None):
-        mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
+        mu = self._compute_multivariate_gaussian(state)[0]
+        inv_sigma = self._sigma.get_inverse()
 
         delta = action - mu
 
@@ -95,7 +102,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
     def _compute_multivariate_gaussian(self, state):
         mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
 
-        return mu, self._sigma, self._inv_sigma
+        return mu, self._sigma.get_value()
 
 
 class DiagonalGaussianPolicy(AbstractGaussianPolicy):

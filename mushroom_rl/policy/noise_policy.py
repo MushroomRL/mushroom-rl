@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
+from mushroom_rl.rl_utils.parameters import CovarianceParameter
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
@@ -97,7 +98,8 @@ class ClippedGaussianPolicy(HasWeights, Policy):
 
     This is a non-differentiable policy for continuous action spaces.
     The policy samples an action in every state following a gaussian distribution, where the mean is computed in the
-    state and the covariance matrix is fixed. The action is then clipped using the given action range.
+    state and the covariance matrix is a :class:`CovarianceParameter`, updated at every drawn action. The action is
+    then clipped using the given action range.
     This policy is not a truncated Gaussian, as it simply clips the action if the value is bigger than the boundaries.
     Thus, the non-differentiability.
 
@@ -108,34 +110,39 @@ class ClippedGaussianPolicy(HasWeights, Policy):
 
         Args:
             mu (Regressor): the regressor representing the mean w.r.t. the state;
-            sigma (torch.tensor): a square positive definite matrix representing the covariance matrix. The size of this
-                matrix must be n x n, where n is the action dimensionality;
+            sigma ([Array, Parameter, CovarianceParameter]): the covariance of the policy: a square positive
+                definite covariance matrix of size n x n, a vector of size n with the standard deviation of each action
+                component, a :class:`Parameter` returning such a vector, or a :class:`CovarianceParameter`; n is the
+                action dimensionality;
             low (torch.tensor): a vector containing the minimum action for each component;
             high (torch.tensor): a vector containing the maximum action for each component.
 
         """
         self._approximator = mu
         self._predict_params = dict()
-        self._chol_sigma = torch.linalg.cholesky(torch.as_tensor(sigma, device=TorchUtils.get_device()))
+        self._sigma = CovarianceParameter.make(sigma, backend='torch')
         self._low = torch.as_tensor(low, device=TorchUtils.get_device())
         self._high = torch.as_tensor(high, device=TorchUtils.get_device())
 
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
-            _chol_sigma='torch',
+            _sigma='mushroom',
             _low='torch',
             _high='torch'
         )
+        self._add_logger_attr(_sigma='sigma', group='policy')
 
     def __call__(self, state, action=None):
         raise NotImplementedError
 
     def draw_action(self, state):
+        self._sigma.update()
+
         with torch.no_grad():
             mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
 
-            distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma,
+            distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._sigma.get_cholesky(),
                                                                   validate_args=False)
 
             action_raw = distribution.sample()

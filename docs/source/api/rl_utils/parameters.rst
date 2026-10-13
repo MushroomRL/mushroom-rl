@@ -9,8 +9,7 @@ Three families build on top of the base classes:
 
 - *scheduled* parameters, whose value evolves with the number of updates;
 - *variance-driven* parameters, whose value adapts to the observed variance of a target signal;
-- *covariance* parameters, holding the covariance matrix of a Gaussian distribution, either fixed or built from a
-  scheduled standard deviation.
+- *covariance* parameters, holding a covariance matrix, either fixed or built from a scheduled standard deviation.
 
 .. automodule:: mushroom_rl.rl_utils.parameters.parameter
     :private-members:
