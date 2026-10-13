@@ -82,3 +82,24 @@ def test_variance_parameter_torch_backend_device():
 
     assert p_torch.get_value(0) == p.get_value(0)
     assert w_torch.get_value(0) == w.get_value(0)
+
+
+def test_variance_parameter_set_updates():
+    np.random.seed(42)
+    targets = np.random.randn(50).tolist()
+
+    p = VarianceDrivenIncreasingParameter(value=1., tol=1.)
+    w = WindowedVarianceDrivenIncreasingParameter(value=1., tol=1., window=10)
+    for t in targets[:25]:
+        p.update(0, target=t)
+        w.update(0, target=t)
+    value, value_windowed = p.get_value(0), w.get_value(0)
+
+    p.set_updates(False)
+    w.set_updates(False)
+    for t in targets[25:]:
+        p.update(0, target=t)
+        w.update(0, target=t)
+
+    assert p.get_value(0) == value
+    assert w.get_value(0) == value_windowed

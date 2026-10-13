@@ -6,6 +6,7 @@ from mushroom_rl.core.array_backend import NumpyBackend, TorchBackend
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter, DecayParameter
 from mushroom_rl.rl_utils.parameters import VarianceDrivenIncreasingParameter
 from mushroom_rl.policy import EpsGreedy, Mellowmax
+from mushroom_rl.approximators.table import Table
 
 
 class FakeLogger:
@@ -182,6 +183,63 @@ def test_vector_parameter_serialization(tmpdir):
 
     assert isinstance(p_load.initial_value, torch.Tensor)
     assert torch.equal(p_load(), p())
+
+
+def test_parameter_set_updates(tmpdir):
+    logger = FakeLogger()
+    p = LinearParameter(1., .1, n=10)
+    p.set_logger(logger, 'eps')
+
+    p()
+    p.set_updates(False)
+    values = [p() for _ in range(3)]
+
+    assert np.allclose(values, [.91, .91, .91])
+    assert len(logger.calls) == 1
+
+    path = tmpdir / 'parameter.msh'
+    p.save(path)
+    p_load = LinearParameter.load(path)
+
+    assert np.isclose(p_load(), .91)
+
+    p.set_updates()
+    p_load.set_updates()
+
+    assert np.isclose(p(), .82)
+    assert np.isclose(p_load(), .82)
+    assert len(logger.calls) == 2
+
+
+def test_parameter_set_updates_old_save(tmpdir):
+    p = LinearParameter(1., .1, n=10)
+    p()
+    del p._save_attributes['_updates_enabled']
+    del p._updates_enabled
+
+    path = tmpdir / 'parameter.msh'
+    p.save(path)
+    p_load = LinearParameter.load(path)
+
+    assert np.isclose(p_load(), .82)
+
+
+def test_eps_greedy_set_updates():
+    np.random.seed(42)
+    epsilon = LinearParameter(1., .1, n=10)
+    pi = EpsGreedy(epsilon)
+    pi.set_q(Table((10, 3)))
+
+    epsilon.set_updates(False)
+    for _ in range(3):
+        pi.draw_action(np.array([2]))
+
+    assert np.isclose(epsilon.get_value(), 1.)
+
+    epsilon.set_updates()
+    pi.draw_action(np.array([2]))
+
+    assert np.isclose(epsilon.get_value(), .91)
 
 
 def test_decay_parameter_logs_post_update_value():

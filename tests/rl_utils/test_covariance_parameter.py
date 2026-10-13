@@ -176,3 +176,20 @@ def test_covariance_serialization(tmpdir):
     c.update()
     c_load.update()
     assert np.array_equal(c_load.get_cholesky(), c.get_cholesky())
+
+
+def test_covariance_set_updates():
+    std = LinearParameter(np.array([1., .5]), np.array([.2, .1]), n=4)
+    c = DiagonalCovarianceParameter(std)
+
+    c.update()
+    c.set_updates(False)
+    c.update()
+
+    assert np.allclose(c.get_std(), np.array([.8, .4]))
+
+    c.set_updates()
+    std.set_updates(False)
+    c.update()
+
+    assert np.allclose(c.get_std(), np.array([.8, .4]))

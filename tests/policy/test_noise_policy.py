@@ -181,3 +181,16 @@ def test_clipped_gaussian_logs_sigma():
     assert isinstance(logger.calls[0]['policy/sigma'], np.ndarray)
     assert np.allclose(logger.calls[0]['policy/sigma'], np.array([.55, .3]))
     assert np.allclose(logger.calls[1]['policy/sigma'], np.array([.1, .1]))
+
+
+def test_clipped_gaussian_set_updates():
+    torch.manual_seed(1)
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    std = LinearParameter(np.array([1., .5]), np.array([.1, .1]), n=2)
+    pi = ClippedGaussianPolicy(mu, std, -torch.ones(2), torch.ones(2))
+
+    std.set_updates(False)
+    for _ in range(3):
+        pi.draw_action(torch.randn(5))
+
+    assert np.allclose(std.get_value(), np.array([1., .5]))

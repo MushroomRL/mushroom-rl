@@ -33,6 +33,7 @@ class Parameter(MushroomObject):
         self._backend = ArrayBackend.get_array_backend(backend)
         self._device = device
         self._initial_value = self._to_backend(value)
+        self._updates_enabled = True
 
         self._add_save_attr(
             _initial_value=self._value_serialization_method(self._initial_value),
@@ -40,6 +41,7 @@ class Parameter(MushroomObject):
             _log_full='primitive',
             _backend='primitive',
             _device='none',
+            _updates_enabled='primitive',
         )
 
     def __call__(self, *args, **kwargs):
@@ -74,14 +76,26 @@ class Parameter(MushroomObject):
 
     def update(self, *args, **kwargs):
         """
-        Update the internal state of the parameter at the provided point.
+        Update the internal state of the parameter at the provided point. Has no effect while updates are disabled.
 
         Args:
             *args: point at which the parameter is updated (e.g. the state or state-action index for a
                 tabular parameter; ignored for a scalar one).
 
         """
-        self._log(*args, **kwargs)
+        if self._updates_enabled:
+            self._update(*args, **kwargs)
+
+    def set_updates(self, enabled=True):
+        """
+        Enable or disable the updates of the parameter. While updates are disabled, :meth:`update` has no effect
+        and the parameter keeps its current value.
+
+        Args:
+            enabled (bool, True): whether the updates are enabled.
+
+        """
+        self._updates_enabled = enabled
 
     def set_backend(self, backend, device=None):
         """
@@ -119,6 +133,9 @@ class Parameter(MushroomObject):
             return x
         else:
             return Parameter(x, backend=backend, device=device)
+
+    def _update(self, *args, **kwargs):
+        self._log(*args, **kwargs)
 
     def _compute(self, *args, **kwargs):
         """
@@ -163,6 +180,11 @@ class Parameter(MushroomObject):
 
     def _value_serialization_method(self, value):
         return self._backend.get_backend_serialization() if self._is_array(value) else 'primitive'
+
+    def _post_load(self):
+        if '_updates_enabled' not in self._save_attributes:
+            self._updates_enabled = True
+            self._add_save_attr(_updates_enabled='primitive')
 
     @staticmethod
     def _is_array(x):
@@ -225,11 +247,11 @@ class VariableParameter(Parameter):
         else:
             return new_value.clip(self._min_value, self._max_value)
 
-    def update(self, *args, **kwargs):
+    def _update(self, *args, **kwargs):
         args = self._to_numpy(args)
         self._n_updates[args] += 1
 
-        super().update(*args, **kwargs)
+        super()._update(*args, **kwargs)
 
     def set_backend(self, backend, device=None):
         super().set_backend(backend, device)

@@ -184,10 +184,10 @@ class DiagonalCovarianceParameter(CovarianceParameter):
     def get_value(self, *args, **kwargs):
         return self._backend.diag(self.get_std() ** 2)
 
-    def update(self, *args, **kwargs):
+    def _update(self, *args, **kwargs):
         self._std.update()
 
-        super().update()
+        super()._update()
 
     def set_backend(self, backend, device=None):
         super().set_backend(backend, device)

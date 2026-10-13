@@ -53,7 +53,7 @@ class VarianceDrivenParameter(VariableParameter):
 
     def update(self, *args, target, factor=1., **kwargs):
         """
-        Updates the value of the parameter at the provided point.
+        Updates the value of the parameter at the provided point. Has no effect while updates are disabled.
 
         Args:
             *args: point at which the parameter is updated (e.g. the state or state-action index for a
@@ -63,6 +63,9 @@ class VarianceDrivenParameter(VariableParameter):
                 depends on another parameter value.
 
         """
+        super().update(*args, target=target, factor=factor, **kwargs)
+
+    def _update(self, *args, target, factor=1., **kwargs):
         args = self._to_numpy(args)
         x = target
 
@@ -170,7 +173,7 @@ class WindowedVarianceDrivenParameter(VariableParameter):
 
     def update(self, *args, target, factor=1., **kwargs):
         """
-        Updates the value of the parameter at the provided point.
+        Updates the value of the parameter at the provided point. Has no effect while updates are disabled.
 
         Args:
             *args: point at which the parameter is updated (e.g. the state or state-action index for a
@@ -180,6 +183,9 @@ class WindowedVarianceDrivenParameter(VariableParameter):
                 depends on another parameter value.
 
         """
+        super().update(*args, target=target, factor=factor, **kwargs)
+
+    def _update(self, *args, target, factor=1., **kwargs):
         args = self._to_numpy(args)
         x = target
 
