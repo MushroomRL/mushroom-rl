@@ -73,6 +73,7 @@ class Agent(MushroomObject):
                                                                    action_history_length)
 
         self._core_preprocessors = list()
+        self._fit_preprocessors = list()
 
         self._add_logger_attr('policy')
 
@@ -83,7 +84,8 @@ class Agent(MushroomObject):
             _history_manager='mushroom',
             _agent_backend='primitive',
             _env_backend='primitive',
-            _core_preprocessors='mushroom'
+            _core_preprocessors='mushroom',
+            _fit_preprocessors='pickle'
         )
 
     def fit(self, dataset):
@@ -205,6 +207,17 @@ class Agent(MushroomObject):
         """
         self._history_manager.add_preprocessor(preprocessor)
 
+    def add_fit_preprocessor(self, preprocessor):
+        """
+        Add a preprocessor to the fit preprocessor list. The preprocessors are applied in order to the
+        observations of a fit batch, and never to the observations the policy acts on.
+
+        Args:
+            preprocessor (object): state preprocessor to be applied to the observations of a fit batch.
+
+        """
+        self._fit_preprocessors.append(preprocessor)
+
     @property
     def core_preprocessors(self):
         """
@@ -256,6 +269,22 @@ class Agent(MushroomObject):
         self._history_manager.record_action(action)
 
         return self._convert_to_env_backend(action)
+
+    def _augment(self, state):
+        """
+        Method used to apply the fit preprocessors to the observations of a fit batch.
+
+        Args:
+            state: the observations of a fit batch.
+
+        Returns:
+            The observations, with every fit preprocessor applied in order.
+
+        """
+        for preprocessor in self._fit_preprocessors:
+            state = preprocessor(state)
+
+        return state
 
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array)

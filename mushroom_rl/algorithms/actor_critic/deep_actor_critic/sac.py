@@ -111,6 +111,7 @@ class SAC(DeepAC):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
             state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
+            state, next_state = self._augment(state), self._augment(next_state)
 
             if self._replay_memory.size > self._warmup_transitions():
                 action_new, log_prob = self.policy.draw_with_log_prob(state)

@@ -14,7 +14,18 @@ from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 
 
-def learn(alg):
+class RecordingPreprocessor:
+    def __init__(self, scale):
+        self.scale = scale
+        self.shapes = list()
+
+    def __call__(self, state):
+        self.shapes.append(tuple(state.shape))
+
+        return state * self.scale
+
+
+def learn(alg, setup=None):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -51,6 +62,9 @@ def learn(alg):
     agent = alg(mdp.info, policy_class, policy_params,
                 actor_params, actor_optimizer, critic_params, batch_size,
                 initial_replay_size, max_replay_size, tau)
+
+    if setup is not None:
+        setup(agent)
 
     core = Core(agent, mdp)
 
@@ -105,3 +119,33 @@ def test_td3_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_ddpg_fit_preprocessor_identity():
+    preprocessor = RecordingPreprocessor(1.)
+    policy = learn(DDPG, lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
+    w = policy.get_weights()
+    w_test = torch.tensor([-0.00764989, 1.23425770, 0.10049075])
+
+    assert torch.allclose(w, w_test)
+    assert preprocessor.shapes == [(200, 2)] * 4
+
+
+def test_ddpg_fit_preprocessor():
+    preprocessor = RecordingPreprocessor(0.)
+    policy = learn(DDPG, lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
+    w = policy.get_weights()
+    w_test = torch.tensor([-0.00564953, 1.23625839, 0.10049096])
+
+    assert torch.allclose(w, w_test)
+    assert preprocessor.shapes == [(200, 2)] * 4
+
+
+def test_td3_fit_preprocessor():
+    preprocessor = RecordingPreprocessor(0.)
+    policy = learn(TD3, lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
+    w = policy.get_weights()
+    w_test = torch.tensor([1.34145999, 0.93346554, 0.19654009])
+
+    assert torch.allclose(w, w_test)
+    assert preprocessor.shapes == [(200, 2)] * 4

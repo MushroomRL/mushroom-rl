@@ -14,7 +14,18 @@ from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 
 
-def learn_sac():
+class RecordingPreprocessor:
+    def __init__(self, scale):
+        self.scale = scale
+        self.shapes = list()
+
+    def __call__(self, state):
+        self.shapes.append(tuple(state.shape))
+
+        return state * self.scale
+
+
+def learn_sac(setup=None):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -57,6 +68,9 @@ def learn_sac():
                 warmup_transitions, tau, lr_alpha,
                 critic_fit_params=None)
 
+    if setup is not None:
+        setup(agent)
+
     core = Core(agent, mdp)
 
     core.learn(n_steps=4 * initial_replay_size,
@@ -86,3 +100,23 @@ def test_sac_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_sac_fit_preprocessor_identity():
+    preprocessor = RecordingPreprocessor(1.)
+    policy = learn_sac(lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
+    w = policy.get_weights()
+    w_test = torch.tensor([1.34026611, 0.93226570, 0.19634973, 1.24291027, -0.23446862, -0.33998108])
+
+    assert torch.allclose(w, w_test)
+    assert preprocessor.shapes == [(64, 2)] * 8
+
+
+def test_sac_fit_preprocessor():
+    preprocessor = RecordingPreprocessor(0.)
+    policy = learn_sac(lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
+    w = policy.get_weights()
+    w_test = torch.tensor([1.34145999, 0.93346554, 0.19633915, 1.24183750, -0.23556413, -0.33986139])
+
+    assert torch.allclose(w, w_test)
+    assert preprocessor.shapes == [(64, 2)] * 8
