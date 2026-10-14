@@ -147,4 +147,4 @@ class DDPG(DeepAC):
 
     def _post_load(self):
         self._actor_approximator = self.policy._approximator
-        self._update_optimizer_parameters(self._actor_approximator.parameters())
+        self.overwrite_actor_parameters(self._actor_approximator.parameters())

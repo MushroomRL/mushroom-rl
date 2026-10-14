@@ -111,6 +111,28 @@ class DeepAC(Agent):
         """
         raise NotImplementedError('DeepAC is an abstract class')
 
+    def overwrite_actor_parameters(self, parameters):
+        """
+        Overwrite the parameters updated by the actor optimizer, which default to all the parameters of the
+        actor approximator.
+
+        Args:
+            parameters (list): the parameters to be updated by the actor optimizer.
+
+        """
+        self._parameters = list(parameters)
+        if self._optimizer is not None:
+            TorchUtils.update_optimizer_parameters(self._optimizer, self._parameters)
+
+    @property
+    def actor_parameters(self):
+        """
+        Returns:
+            The parameters updated by the actor optimizer.
+
+        """
+        return self._parameters
+
     def _optimize_actor_parameters(self, loss):
         """
         Method used to update actor parameters to maximize a given loss.
@@ -138,11 +160,6 @@ class DeepAC(Agent):
             weights = self._tau() * online[i].get_weights()
             weights += (1 - self._tau.get_value()) * target[i].get_weights()
             target[i].set_weights(weights)
-
-    def _update_optimizer_parameters(self, parameters):
-        self._parameters = list(parameters)
-        if self._optimizer is not None:
-            TorchUtils.update_optimizer_parameters(self._optimizer, self._parameters)
 
     def _post_load(self):
         raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')

@@ -149,3 +149,28 @@ def test_td3_fit_preprocessor():
 
     assert torch.allclose(w, w_test)
     assert preprocessor.shapes == [(200, 2)] * 4
+
+
+def test_ddpg_overwrite_actor_parameters():
+    parameters = dict()
+
+    def exclude_bias(agent):
+        parameters['default'] = agent.actor_parameters
+        weight, bias = agent.actor_parameters
+        parameters['weight'], parameters['bias'] = weight.detach().clone(), bias.detach().clone()
+        agent.overwrite_actor_parameters([weight])
+
+    agent = learn(DDPG, exclude_bias)
+
+    weight, bias = agent.policy._approximator.parameters()
+
+    assert len(parameters['default']) == 2
+    assert parameters['default'][0] is weight and parameters['default'][1] is bias
+    assert len(agent.actor_parameters) == 1 and agent.actor_parameters[0] is weight
+    assert torch.equal(bias, parameters['bias'])
+    assert not torch.equal(weight, parameters['weight'])
+
+    w = agent.policy.get_weights()
+    w_test = torch.tensor([-0.00764989, 1.23425770, 0.10249085])
+
+    assert torch.allclose(w, w_test)
