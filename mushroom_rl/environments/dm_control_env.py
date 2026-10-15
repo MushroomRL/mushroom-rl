@@ -18,7 +18,7 @@ class DMControl(Environment):
     """
     def __init__(self, domain_name, task_name, horizon=None, gamma=0.99, task_kwargs=None,
                  dt=.01, width_screen=480, height_screen=480, camera_id=0,
-                 use_pixels=False, pixels_width=64, pixels_height=64):
+                 use_pixels=False, pixels_width=64, pixels_height=64, action_repeat=1):
         """
         Constructor.
 
@@ -36,11 +36,17 @@ class DMControl(Environment):
                 rather than the state vector;
              pixels_width (int, 64): width of the pixel observation;
              pixels_height (int, 64): height of the pixel observation;
+             action_repeat (int, 1): number of consecutive dm_control steps each action is applied for. The
+                rewards of the repeated steps are summed without discounting, and the observation of the last
+                one is returned. The horizon counts repeated steps as one.
 
         """
+        assert action_repeat >= 1, 'action_repeat must be at least 1.'
+
         # MDP creation
         self._domain_name = domain_name
         self._task_name = task_name
+        self._action_repeat = action_repeat
 
         self.env = suite.load(domain_name, task_name, task_kwargs=task_kwargs)
         if use_pixels:
@@ -86,11 +92,17 @@ class DMControl(Environment):
         return self._state.copy(), {}
 
     def step(self, action):
-        step = self.env.step(action)
+        reward = 0.
 
-        reward = step.reward
+        for _ in range(self._action_repeat):
+            step = self.env.step(action)
+            reward += step.reward
+            absorbing = step.last()
+
+            if absorbing:
+                break
+
         self._state = self._convert_observation(step.observation)
-        absorbing = step.last()
 
         return self._state.copy(), reward, absorbing, {}
 
