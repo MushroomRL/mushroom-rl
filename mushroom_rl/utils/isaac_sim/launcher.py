@@ -1,17 +1,16 @@
+import os
 import atexit
 import contextlib
-import os
 
 import isaacsim
-from isaacsim import SimulationApp
 
 
 class IsaacLauncher:
     """
-    Owner of the Isaac Sim simulation app.
+    Class managing the Isaac Sim simulation app of the process. It cannot be instantiated: every method is a
+    classmethod.
 
-    Isaac Sim's Carbonite framework only lets its modules be imported once the app is running, so everything
-    in MushroomRL's Isaac layer has to be imported *after* :meth:`launch` has been called::
+    The MushroomRL Isaac Sim environments and utilities can only be imported after :meth:`launch` has been called::
 
         from mushroom_rl.utils.isaac_sim import IsaacLauncher
 
@@ -19,22 +18,13 @@ class IsaacLauncher:
 
         from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 
-    This class is the only part of the layer that can be imported before that point.
-
-    The app is a per-process singleton: it wraps ``omni.kit.app``, which is global to the process, and
-    starting a second one crashes the interpreter. There is correspondingly nothing to instantiate here --
-    the class is a namespace holding the one app, and every method is a classmethod. It also means the
-    settings that belong to the app rather than to a scene -- whether to open a window, and which physics
-    engine to simulate with -- are arguments of :meth:`launch` instead of arguments of the environments.
-
     """
     _app = None
 
     def __new__(cls, *args, **kwargs):
         """
         Raises:
-            TypeError: Always. There is a single simulation app per process and the class holds it, so an
-                instance would carry no state of its own.
+            TypeError: Always.
 
         """
         raise TypeError(f"{cls.__name__} cannot be instantiated: it holds the one simulation app of  the process. "
@@ -43,21 +33,16 @@ class IsaacLauncher:
     @classmethod
     def launch(cls, headless=True, physics_engine='physx', log_level='warning', carb_settings=None):
         """
-        Starts Isaac Sim, so that its modules and the MushroomRL environments built on them can be imported.
-
-        Calling this a second time does nothing but return the running app: a process can only hold one.
+        Launches Isaac Sim. If Isaac Sim is already running, the arguments are ignored and the running app is
+        returned.
 
         Args:
             headless (bool, True): Whether to run without a window.
-            physics_engine (str, 'physx'): The physics engine to simulate with, either 'physx' or 'newton'. Isaac Sim
-                documents Newton as experimental, and MushroomRL does not test it: the robot assets shipped
-                here are tuned for PhysX and the two engines do not produce the same dynamics.
-            log_level (str, 'warning'): The lowest severity Isaac Sim prints to the console, one of 'verbose',
-                'info', 'warning', 'error' or 'fatal'. Below 'info', Isaac Sim's startup messages are not printed
-                either. The log file written by Isaac Sim is not affected.
-            carb_settings (dict, None): Overrides for the default carb settings applied at startup, see
-                :meth:`_apply_carb_settings`. Keys are carb setting paths (e.g. ``"/physics/fabricEnabled"``);
-                values override the corresponding default, and unknown keys are simply added.
+            physics_engine (str, 'physx'): The physics engine to use, either 'physx' or 'newton'.
+            log_level (str, 'warning'): The lowest severity printed to the console, one of 'verbose', 'info',
+                'warning', 'error' or 'fatal'. Startup messages are printed only at 'verbose' and 'info'.
+            carb_settings (dict, None): Carb settings, keyed by setting path (e.g. ``"/physics/fabricEnabled"``),
+                overriding or extending the default ones.
 
         Returns:
             The running simulation app.
@@ -71,9 +56,13 @@ class IsaacLauncher:
                 stdout = contextlib.nullcontext() if cls._is_verbose(log_level) else contextlib.redirect_stdout(devnull)
 
                 with stdout:
-                    cls._app = SimulationApp({"headless": headless, "hide_ui": False, "renderer": "RaytracedLighting",
-                                              "extra_args": ["--/persistent/app/usd/muteUsdDiagnostics=false",
-                                                             *log_args]})
+                    config = {
+                        "headless": headless,
+                        "hide_ui": False,
+                        "renderer": "RaytracedLighting",
+                        "extra_args": ["--/persistent/app/usd/muteUsdDiagnostics=false", *log_args]
+                    }
+                    cls._app = isaacsim.SimulationApp(config)
             cls._apply_carb_settings(cls._app, carb_settings)
             cls._select_physics_engine(physics_engine)
 
@@ -84,12 +73,8 @@ class IsaacLauncher:
     @classmethod
     def shutdown(cls):
         """
-        Closes Isaac Sim. This ends the process: the app shuts the Carbonite framework down and terminates,
-        so nothing can be simulated afterward and Isaac Sim cannot be launched again. Since this is also
-        registered to run at exit, any ``atexit`` callback registered *before* :meth:`launch` is never
-        reached; register cleanups afterward, where they run first.
-
-        Does nothing if Isaac Sim is not running.
+        Closes Isaac Sim and terminates the process. Called automatically at exit, so ``atexit`` callbacks
+        registered before :meth:`launch` are not run. Does nothing if Isaac Sim is not running.
 
         """
         if cls._app is not None:
@@ -114,17 +99,7 @@ class IsaacLauncher:
     @classmethod
     def require_running(cls):
         """
-        Guards a module against being imported before Isaac Sim is running.
-
-        Isaac's Carbonite framework only allows ``isaacsim.*`` submodules to be imported once the app is live, so
-        importing a module that does so too early fails deep inside Isaac's own machinery with an opaque
-        ``ModuleNotFoundError``. Modules that import such submodules should trigger this check first -- see
-        :mod:`mushroom_rl.utils.isaac_sim._require_launched` -- so the failure instead points back to the actual
-        cause.
-
-        Skipped when ``isaacsim`` itself is a Sphinx autodoc mock (``autodoc_mock_imports``): every downstream
-        ``isaacsim.*`` import then resolves harmlessly to a mock attribute instead of raising, so there is
-        nothing left for this check to guard against.
+        Checks that Isaac Sim is running.
 
         Raises:
             RuntimeError: If Isaac Sim has not been launched yet.
@@ -185,11 +160,11 @@ class IsaacLauncher:
     @staticmethod
     def _apply_carb_settings(simulation_app, overrides=None):
         """
-        Apply mushroom default settings for optimization.
+        Applies the default carb settings to the simulation app.
 
         Args:
             simulation_app: The running simulation app.
-            overrides (dict, None): Carb setting paths overriding the defaults below, or adding new ones.
+            overrides (dict, None): Carb settings, keyed by setting path, overriding or extending the default ones.
 
         """
         headless = simulation_app.config["headless"]
