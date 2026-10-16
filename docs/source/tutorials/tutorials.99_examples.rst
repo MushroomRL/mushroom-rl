@@ -84,8 +84,8 @@ MuJoCo Environments
 Continuous Control From Pixels
 ------------------------------
 
-- `Walker (Stand Task) from Pixel <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/dm_control/walker_stand_ddpg.py>`_
-- `Walker (Stand Task) from Pixel and Shared Network <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/dm_control/walker_stand_ddpg_shared_net.py>`_
+- `Walker (Stand Task) from Pixel <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/dm_control/walker_stand_td3.py>`_
+- `Walker (Stand Task) from Pixel and Shared Network <https://github.com/MushroomRL/mushroom-rl/blob/dev/examples/environments/dm_control/walker_stand_td3_shared_net.py>`_
 
 
 Vectorized Environments

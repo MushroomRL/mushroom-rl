@@ -20,8 +20,8 @@ The DeepMind Control Suite, also installed with `pip install mushroom_rl[mujoco]
 
 | Script                                                                          | Shows                                                                                                                                               |
 |---------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`walker_stand_ddpg.py`](dm_control/walker_stand_ddpg.py)                       | the walker stand task **from pixels**, with DDPG; actor and critic each carry their own convolutional encoder                                       |
-| [`walker_stand_ddpg_shared_net.py`](dm_control/walker_stand_ddpg_shared_net.py) | the same task, with the convolutional encoder factored into a separate embedding module shared by actor and critic, which then reduce to plain MLPs |
+| [`walker_stand_td3.py`](dm_control/walker_stand_td3.py)                         | the walker stand task **from pixels**, with TD3; actor and critic each carry their own convolutional encoder                                        |
+| [`walker_stand_td3_shared_net.py`](dm_control/walker_stand_td3_shared_net.py)   | the same task, with one convolutional encoder shared by actor and critic and trained by the critic alone, plus random shift augmentation                |
 
 Together they are the reference for learning from images, and show the two ways of arranging the encoder.
 
