@@ -58,8 +58,8 @@ class ActuationHelper:
 
         Args:
             action (torch.tensor): The action to be applied to the controlled joints.
-            env_indices (torch.tensor, none): The indices of the environments where
-                the action should be applied. If None, the action is applied to all environments.
+            env_indices (torch.tensor, None): The indices of the environments where the action should be applied. If
+                None, the action is applied to all environments.
 
         """
         indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
@@ -79,7 +79,7 @@ class ActuationHelper:
         quantity the actuation type drives the joints with.
 
         Returns:
-            Two tensors: the first contains the lower limit, and the second contains the upper limit.
+            Two tensors, the first containing the lower limit and the second the upper limit.
 
         """
         if self._actuation_type == ActuationType.EFFORT:

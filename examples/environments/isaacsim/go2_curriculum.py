@@ -53,11 +53,11 @@ class PolicyNetwork(ActorNetwork):
         Constructor.
 
         Args:
-            input_shape (tuple): shape of the network input, whose last axis is the full observation and whose
-                leading axes, if any, are the stacked history;
-            output_shape (tuple): shape of the output (e.g. the action);
-            observed_indices (torch.tensor): the entries of the observation the policy is allowed to see;
-            **kwargs: other parameters of :class:`ActorNetwork`.
+            input_shape (tuple): Shape of the network input, whose last axis is the full observation and whose
+                leading axes, if any, are the stacked history.
+            output_shape (tuple): Shape of the output (e.g. the action).
+            observed_indices (torch.tensor): The entries of the observation the policy is allowed to see.
+            **kwargs: Other parameters of :class:`ActorNetwork`.
 
         """
         super().__init__(tuple(input_shape[:-1]) + (len(observed_indices),), output_shape, **kwargs)
@@ -82,12 +82,12 @@ class Curriculum:
         Constructor.
 
         Args:
-            mdp (Go2Isaac): the environment the schedule is applied to;
-            command_steps (list): the step counts at which the next stage begins, one fewer than the stages;
-            command_ranges (list): the linear velocity command range of each stage, applied to x and y;
-            delay_steps (list): the ceiling on the actuation delay of each stage, in physics steps;
-            tracking_steps (tuple): the step counts the tracking tolerance is interpolated between;
-            tracking_stds (tuple): the tolerances at the two ends of that interpolation.
+            mdp (Go2Isaac): The environment the schedule is applied to.
+            command_steps (list): The step counts at which the next stage begins, one fewer than the stages.
+            command_ranges (list): The linear velocity command range of each stage, applied to x and y.
+            delay_steps (list): The ceiling on the actuation delay of each stage, in physics steps.
+            tracking_steps (tuple): The step counts the tracking tolerance is interpolated between.
+            tracking_stds (tuple): The tolerances at the two ends of that interpolation.
 
         """
         self._mdp = mdp
@@ -172,8 +172,8 @@ def tracking_errors(mdp, dataset):
     velocity of the robot stays from the commanded one.
 
     Args:
-        mdp (Go2Isaac): the environment the dataset was collected on;
-        dataset (Dataset): the dataset to measure.
+        mdp (Go2Isaac): The environment the dataset was collected on.
+        dataset (Dataset): The dataset to measure.
 
     """
     commands = dataset.state[:, mdp.observation_indices('commands')]

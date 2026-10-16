@@ -274,7 +274,7 @@ class QuadrupedIsaac(IsaacSim):
         episodes starting afterwards begin from the initial state of the chosen setting.
 
         Args:
-            enabled (bool): whether the domain randomization is enabled.
+            enabled (bool): Whether the domain randomization is enabled.
 
         """
         self._domain_randomization = enabled
@@ -386,7 +386,7 @@ class QuadrupedIsaac(IsaacSim):
         by the default pose and scaled down by the nominal action scaling factor.
 
         Returns:
-            Two tensors: the first contains the lower limit, and the second contains the upper limit.
+            Two tensors, the first containing the lower limit and the second the upper limit.
 
         """
         return (self._actuation_helper.get_joint_pos_limits() - self._default_joint_angles) \
@@ -674,9 +674,9 @@ class QuadrupedIsaac(IsaacSim):
         :meth:`_modify_observation` takes back out of the joint position the agent reads.
 
         Args:
-            action (torch.tensor): the action provided at every intermediate step.
-            joint_vels (torch.tensor): the current velocity of the controlled joints.
-            joint_pos (torch.tensor): the current position of the controlled joints.
+            action (torch.tensor): The action provided at every intermediate step.
+            joint_vels (torch.tensor): The current velocity of the controlled joints.
+            joint_pos (torch.tensor): The current position of the controlled joints.
 
         Returns:
             The torque to apply to the controlled joints.

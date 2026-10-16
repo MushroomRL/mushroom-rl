@@ -13,6 +13,10 @@ from mushroom_rl.utils import TorchUtils
 
 
 class CollisionHelper:
+    """
+    Class for computing the contact forces between groups of bodies, in every parallel environment.
+
+    """
     def __init__(self, collision_groups, zero_env_robot_path, robot_glob, num_envs,
                  n_intermediate_steps=1):
         """
@@ -46,7 +50,8 @@ class CollisionHelper:
         Ensures that all objects in the collision groups possess the necessary APIs.
 
         Args:
-            stage: current stage of the isaac sim simulation
+            stage: The current stage of the Isaac Sim simulation.
+
         """
         for group_name, group in self.collision_groups.items():
             for path in group:
@@ -67,6 +72,7 @@ class CollisionHelper:
 
         Note that this layer matches paths as wildcards rather than as the regular expressions used by
         ``isaacsim.core.experimental.prims``, which is why the environment hands down a separate pattern.
+
         """
         simulation_view = SimulationManager.get_physics_simulation_view()
 
@@ -106,11 +112,11 @@ class CollisionHelper:
                 A function that processes the collision force tensor.
                 Defaults to selecting the maximum force of each environment
             dt (float, optional): The time step duration used for computing forces.
-                The function returns contact impulses if the default dt is used
+                The function returns contact impulses if the default dt is used.
 
         Returns:
-            A tensor containing the computed collision forces between the groups,
-            processed by the `selector` function.
+            A tensor containing the computed collision forces between the groups, processed by the `selector` function.
+
         """
         assert not (self._collision_group_contains_world[group1]
                     and self._collision_group_contains_world[group2])
@@ -147,10 +153,11 @@ class CollisionHelper:
                 A function that processes the collision force tensor.
                 If None, a default selector is used. Defaults to None.
             dt (float, optional): The time step duration used for computing forces.
-                The function uses impulses if the default dt is used
+                The function uses impulses if the default dt is used.
 
         Returns:
             A boolean tensor indicating where the computed forces exceed the given threshold.
+
         """
         forces = self.get_collision_force(group1, group2, selector, dt)
         return forces > threshold
@@ -173,7 +180,8 @@ class CollisionHelper:
             dt (float, optional): The time step duration used for computing forces. Defaults to 1.0.
 
         Returns:
-            A tensor containing the count of collisions
+            A tensor containing the count of collisions.
+
         """
         if selector is None:
             def selector(x):
@@ -192,6 +200,7 @@ class CollisionHelper:
 
         Returns:
             A tensor of shape (num_envs, n_bodies, 3) with the net contact force on each body.
+
         """
         forces = wp.to_torch(self._views[group].get_net_contact_forces(dt))
 
@@ -226,6 +235,7 @@ class CollisionHelper:
 
         Returns:
             The same tensor with the environment as the leading axis.
+
         """
         assert forces.shape[0] == n_bodies * self._num_envs, \
             f"expected {n_bodies * self._num_envs} contact rows, got {forces.shape[0]}"

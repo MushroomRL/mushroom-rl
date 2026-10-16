@@ -50,8 +50,8 @@ class ObservationType(Enum):
 
         Args:
             category (str): The category of the observation type, either 'body', 'joint' or 'sub_body'.
-            length (int): The length of the observation, representing the number of values
-                associated with this observation type.
+            length (int): The length of the observation, representing the number of values associated with this
+                observation type.
             accessor (str): The name of the Isaac Sim call serving the observation, without the ``get_`` or
                 ``set_`` prefix.
             component (int, None): Which component of the tuple the getter returns this type is, or None
@@ -72,6 +72,7 @@ class ObservationType(Enum):
 
         Returns:
             bool: True if the observation type is category 'body', False otherwise.
+
         """
         return self.category == 'body'
 
@@ -81,16 +82,18 @@ class ObservationType(Enum):
 
         Returns:
             bool: True if the observation type is category 'joint', False otherwise.
+
         """
         return self.category == 'joint'
 
     def is_sub_body(self):
         """
-        Checks whether the observation type belongs to the 'sub_body' category, meaning
-        it is a property of a rigid body within an articulation.
+        Checks whether the observation type belongs to the 'sub_body' category, meaning it is a property of a rigid body
+        within an articulation.
 
         Returns:
             bool: True if the observation type is category 'sub_body', False otherwise.
+
         """
         return self.category == 'sub_body'
 
@@ -100,6 +103,7 @@ class ObservationType(Enum):
 
         Returns:
             bool: True if the observation type is a joint parameter, False otherwise.
+
         """
         # the members from JOINT_GAIN to JOINT_MAX_POS, which are declared next to each other
         return ObservationType.JOINT_GAIN.value <= self.value <= ObservationType.JOINT_MAX_POS.value
@@ -136,11 +140,10 @@ class ObservationHelper:
 
         Args:
             observation_spec (list): A list containing the names of data that should be made available to the agent as
-               an observation and their type (ObservationType). They are combined with a path, which is used
-               to access the prim, and a list or a single string with name of the subelements of prim which
-               should be accessed. For example a subbody or a joint of an ArticulationView
-               An entry in the list is given by: (key, name, type, element). The name can later be used to retrieve
-               specific observations.
+                an observation and their type (ObservationType). They are combined with a path, which is used to access
+                the prim, and a list or a single string with name of the subelements of prim which should be accessed.
+                For example a subbody or a joint of an ArticulationView. An entry in the list is given by: (key, name,
+                type, element). The name can later be used to retrieve specific observations.
             additional_data_spec (list): A specification of the same form, for the data read from or written to
                 during the simulation without being part of the observation.
             num_env (int): Number of parallel environments.
@@ -148,6 +151,7 @@ class ObservationHelper:
             views (dict): The view covering every environment, for each path appearing in the specifications.
             env_pos (torch.tensor): The origin of each environment, which world positions are relative to.
             actuation_helper (ActuationHelper): The helper owning the joints the agent controls.
+
         """
         self._observation_spec = observation_spec
         self._additional_data_spec = additional_data_spec
@@ -188,7 +192,7 @@ class ObservationHelper:
         declares for the observed joints, and unbounded for every other observation type.
 
         Returns:
-            Two tensors: the first contains the lower limit, and the second contains the upper limit.
+            Two tensors, the first containing the lower limit and the second the upper limit.
 
         """
         obs_low = []
@@ -232,13 +236,13 @@ class ObservationHelper:
         Constructs a tensor for all observations and fills it with the data of the dictionary.
 
         Args:
-            data (dict): A dictionary where keys are observations names and values are their corresponding
-                data tensors. Should contain all data for all observations specified in
-                observation_spec
+            data (dict): A dictionary where keys are observation names and values are their corresponding
+                data tensors. Should contain all data for all observations specified in ``observation_spec``.
 
         Returns:
-            A tensor of shape (num_env, combined length of all observations), containing all
-            data given in the dictionary.
+            A tensor of shape (num_env, combined length of all observations), containing all data given in the
+            dictionary.
+
         """
         size = self.obs_length
         obs = torch.zeros(self._num_env, size, device=TorchUtils.get_device())
@@ -258,7 +262,8 @@ class ObservationHelper:
             name (str): The name specifing the specific observation to extract.
 
         Returns:
-            A tensor containing the specified observation data
+            A tensor containing the specified observation data.
+
         """
         indices = self.obs_idx_map[name]
         return obs[:, indices]
@@ -272,7 +277,8 @@ class ObservationHelper:
             obs_type (ObservationType): The type of observation to retrieve.
 
         Returns:
-            A tensor containing the specified observation data
+            A tensor containing the specified observation data.
+
         """
         indices = self.obs_types_idx_map[obs_type]
         return obs[:, indices]
@@ -285,7 +291,8 @@ class ObservationHelper:
             name (str): The name of the new observation
             length (int): The length of the observation
             min_value (float, torch.tensor): The lower bound for the observation.
-            max_value (float, torch.tensor): The upper bound for the observation
+            max_value (float, torch.tensor): The upper bound for the observation.
+
         """
         idx = self.obs_length
         self.obs_idx_map[name] = torch.tensor(list(range(idx, idx + length)), device=TorchUtils.get_device())
@@ -295,7 +302,7 @@ class ObservationHelper:
 
     def read_data(self, name, env_indices=None):
         """
-        Read data from isaac sim.
+        Read data from Isaac Sim.
 
         Args:
             name (str): A name referring to an entry contained in additional_data_spec or observation_spec.
@@ -310,7 +317,7 @@ class ObservationHelper:
 
     def write_data(self, name, value, env_indices=None):
         """
-        Writes data to isaac sim.
+        Writes data to Isaac Sim.
 
         Args:
             name (str): A name referring to an entry contained in additional_data_spec or observation_spec.
@@ -323,7 +330,7 @@ class ObservationHelper:
 
     def write_obs(self, obs, env_indices=None):
         """
-        Writes every entry of the observation specification into isaac sim, taking its value from the given
+        Writes every entry of the observation specification into Isaac Sim, taking its value from the given
         observation. Entries registered with ``add_obs`` are not written.
 
         Args:
@@ -341,8 +348,7 @@ class ObservationHelper:
 
         Args:
             value (torch.tensor): The value to set for the specified joint property.
-            type (mushroom_rl.utils.isaac_sim.ObservationType): The type of joint property to be set
-                (e.g., "position", "velocity").
+            type (ObservationType): The type of joint property to be set (e.g., "position", "velocity").
             element_idx (torch.tensor, list[int], optional): The indices of the joints to update.
                 If None, defaults to the controlled joints.
             env_indices (torch.tensor, list[int], optional): The indices of the environments where
@@ -355,10 +361,20 @@ class ObservationHelper:
 
     @property
     def obs_limits(self):
+        """
+        Returns:
+            The lower and upper bounds of the observation, as two tensors.
+
+        """
         return self._obs_low, self._obs_high
 
     @property
     def obs_length(self):
+        """
+        Returns:
+            The number of entries of the observation vector.
+
+        """
         return max(map(lambda x: x[-1].item(), self.obs_idx_map.values())) + 1
 
     def _create_observer_tuple(self, spec):
@@ -457,7 +473,7 @@ class ObservationHelper:
         names are handled explicitly; the others are passed to it whole.
 
         Args:
-            view: The isaac sim view where the properties should be set.
+            view: The Isaac Sim view where the properties should be set.
             obs_type (ObservationType): The type of observation to update.
             value (torch.Tensor): The new values to be assigned.
             element_idx (warp.array, None): The joint or body indices to be updated, in the form Isaac Sim
@@ -539,7 +555,7 @@ class ObservationHelper:
         Retrieves the current observations from the simulation.
 
         Returns:
-            A dictionary mapping observation names to their respective values
+            A dictionary mapping observation names to their respective values.
 
         """
         obs = {}
@@ -553,6 +569,7 @@ class ObservationHelper:
 
         Returns:
             A dictionary mapping observation names to lists of index values.
+
         """
         index = 0
         mapping = {}
@@ -569,6 +586,7 @@ class ObservationHelper:
 
         Returns:
             A dictionary mapping ObservationType instances to lists of index values.
+
         """
         mapping = {}
         for obs_type in ObservationType.__members__.values():

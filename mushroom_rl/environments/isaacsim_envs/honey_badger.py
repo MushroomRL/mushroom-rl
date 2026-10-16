@@ -10,20 +10,24 @@ from mushroom_rl.utils.isaac_sim import ObservationType
 class HoneyBadgerIsaac(QuadrupedIsaac):
     """
     A learning environment for training the Honey Badger quadruped to walk.
-    Honey Badger is a Robot from MAB Robotics: https://www.mabrobotics.pl/
-
-    Args:
-        num_envs (int): Number of parallel environments.
-        horizon (int): The maximum horizon for the environment.
-        domain_randomization (bool): Whether the domain randomization is enabled.
-        camera_pos (tuple, None): The position of the camera looking at the scene.
-        camera_target (tuple, None): The point the camera looking at the scene points to.
-        reward_weights (dict, None): Overrides for the reward weights, on top of the ones this robot sets.
-        **quadruped_params: Further parameters of :class:`QuadrupedIsaac`.
+    Honey Badger is a robot from MAB Robotics: https://www.mabrobotics.pl/
 
     """
     def __init__(self, num_envs, horizon, domain_randomization=True, camera_pos=None, camera_target=None,
                  reward_weights=None, **quadruped_params):
+        """
+        Constructor.
+
+        Args:
+            num_envs (int): Number of parallel environments.
+            horizon (int): The maximum horizon for the environment.
+            domain_randomization (bool): Whether the domain randomization is enabled.
+            camera_pos (tuple, None): The position of the camera looking at the scene.
+            camera_target (tuple, None): The point the camera looking at the scene points to.
+            reward_weights (dict, None): Overrides for the reward weights, on top of the ones this robot sets.
+            **quadruped_params: Further parameters of :class:`QuadrupedIsaac`.
+
+        """
         usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
             sub_bodies, collision_groups = self._robot_config()
 

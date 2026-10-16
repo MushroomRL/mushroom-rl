@@ -14,18 +14,22 @@ class A1Isaac(QuadrupedIsaac):
     Resembles environment implemented by Rudin et al. for
     "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning"
 
-    Args:
-        num_envs (int): Number of parallel environments.
-        horizon (int): The maximum horizon for the environment.
-        domain_randomization (bool): Whether the domain randomization is enabled.
-        camera_position (tuple, None): The position of the camera looking at the scene.
-        camera_target (tuple, None): The point the camera looking at the scene points to.
-        reward_weights (dict, None): Overrides for the reward weights, on top of the ones this robot sets.
-        **quadruped_params: Further parameters of :class:`QuadrupedIsaac`.
-
     """
     def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=None, camera_target=None,
                  reward_weights=None, **quadruped_params):
+        """
+        Constructor.
+
+        Args:
+            num_envs (int): Number of parallel environments.
+            horizon (int): The maximum horizon for the environment.
+            domain_randomization (bool): Whether the domain randomization is enabled.
+            camera_position (tuple, None): The position of the camera looking at the scene.
+            camera_target (tuple, None): The point the camera looking at the scene points to.
+            reward_weights (dict, None): Overrides for the reward weights, on top of the ones this robot sets.
+            **quadruped_params: Further parameters of :class:`QuadrupedIsaac`.
+
+        """
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/a1/a1.usd")
         device = TorchUtils.get_device()
 

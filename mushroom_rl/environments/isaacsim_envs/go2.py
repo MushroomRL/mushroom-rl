@@ -19,17 +19,21 @@ class Go2Isaac(QuadrupedIsaac):
     A policy meant to be deployed should not, since the real robot cannot measure it, any more than it can
     measure the linear velocity of its trunk -- see the training example for how to hide both from it.
 
-    Args:
-        num_envs (int): Number of parallel environments.
-        horizon (int): The maximum horizon for the environment.
-        domain_randomization (bool): Whether the domain randomization is enabled.
-        camera_position (tuple, None): The position of the camera looking at the scene.
-        camera_target (tuple, None): The point the camera looking at the scene points to.
-        **quadruped_params: Further parameters of :class:`QuadrupedIsaac`, e.g. the reward weights.
-
     """
     def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=None, camera_target=None,
                  **quadruped_params):
+        """
+        Constructor.
+
+        Args:
+            num_envs (int): Number of parallel environments.
+            horizon (int): The maximum horizon for the environment.
+            domain_randomization (bool): Whether the domain randomization is enabled.
+            camera_position (tuple, None): The position of the camera looking at the scene.
+            camera_target (tuple, None): The point the camera looking at the scene points to.
+            **quadruped_params: Further parameters of :class:`QuadrupedIsaac`, e.g. the reward weights.
+
+        """
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/go2/go2.usd")
         device = TorchUtils.get_device()
 

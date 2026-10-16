@@ -16,6 +16,9 @@ reports the contacts of the tracked bodies, and ``IsaacViewer`` holds the camera
 .. automodule:: mushroom_rl.utils.isaac_sim.scene_builder
     :private-members:
 
+.. automodule:: mushroom_rl.utils.isaac_sim.gpu_params
+    :private-members:
+
 .. automodule:: mushroom_rl.utils.isaac_sim.observation_helper
     :private-members:
 

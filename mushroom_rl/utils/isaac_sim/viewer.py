@@ -84,6 +84,11 @@ class IsaacViewer:
 
     @property
     def render_product_size(self):
+        """
+        Returns:
+            The (width, height) of the recorded and displayed frames.
+
+        """
         return self._rp_size
 
     def _prime(self):

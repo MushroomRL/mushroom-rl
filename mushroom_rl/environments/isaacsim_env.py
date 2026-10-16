@@ -23,6 +23,7 @@ from mushroom_rl.utils.isaac_sim.viewer import IsaacViewer
 class IsaacSim(VectorizedEnvironment):
     """
     Class to create a Mushroom environment using the Isaac Sim simulator.
+
     """
 
     def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon,
@@ -45,7 +46,7 @@ class IsaacSim(VectorizedEnvironment):
             horizon (int): The maximum horizon for the environment.
             timestep (float, None): Simulation timestep.
             n_substeps (int, None): Number of substeps per simulation step. If None default timestep
-                of isaac sim is used
+                of Isaac Sim is used
             n_intermediate_steps (int): Number of intermediate control steps. Defaults to 1.
             additional_data_spec (list, None): A list containing the data fields of interest, which should be read from
                or written to during simulation. The entries are given as the following tuples: (key, path, type) key
@@ -117,15 +118,13 @@ class IsaacSim(VectorizedEnvironment):
         Performs a simulation step for all active environments.
 
         Args:
-            env_mask (torch.tensor): A boolean mask indicating which environments
-                are active for this step.
+            env_mask (torch.tensor): A boolean mask indicating which environments are active for this step.
             action (torch.tensor): The actions to be applied to the active environments.
 
         Returns:
-            cur_obs (torch.tensor): The updated observations after the step.
-            reward (torch.tensor): The computed rewards for each environment.
-            absorbing (torch.tensor): A boolean tensor indicating if an environment is in an absorbing state.
-            extra_info (dict): Additional information about the simulation step.
+            The updated observations after the step, the computed rewards for each environment, a boolean tensor
+            indicating if an environment is in an absorbing state, and a dictionary of additional information about
+            the simulation step.
 
         """
         action = self._preprocess_action(action)
@@ -166,14 +165,12 @@ class IsaacSim(VectorizedEnvironment):
         Resets the specified environments and initializes their states.
 
         Args:
-            env_mask (torch.tensor): A boolean mask indicating which environments
-                should be reset.
-            state (torch.tensor): The initial state to set for the reset environments.
-                Defaults to None.
+            env_mask (torch.tensor): A boolean mask indicating which environments should be reset.
+            state (torch.tensor, None): The initial state to set for the reset environments.
 
         Returns:
-            obs (torch.tensor): The observations after resetting the environments.
-            info (dict): Additional information about the reset environments.
+            The observations after resetting the environments, and a dictionary of additional information about the
+            reset environments.
 
         """
         env_indices = torch.where(env_mask)[0]
@@ -202,7 +199,7 @@ class IsaacSim(VectorizedEnvironment):
         couple of passes back.
 
         Args:
-            env_mask (torch.tensor): mask selecting the environments to render.
+            env_mask (torch.tensor): Mask selecting the environments to render.
             record (bool, False): If True, the function returns the rendered image data.
 
         """
@@ -219,11 +216,10 @@ class IsaacSim(VectorizedEnvironment):
         Compute the rewards based on the given transitions.
 
         Args:
-            obs (torch.tensor): the current states of the parallel environments.
-            action (torch.tensor): the actions that are applied in the current states.
-            next_obs (torch.tensor): the states reached after applying the given
-                actions.
-            absorbing (torch.tensor): whether next_state is an absorbing state or not.
+            obs (torch.tensor): The current states of the parallel environments.
+            action (torch.tensor): The actions that are applied in the current states.
+            next_obs (torch.tensor): The states reached after applying the given actions.
+            absorbing (torch.tensor): Whether next_state is an absorbing state or not.
 
         Returns:
             The rewards as a tensor.
@@ -236,7 +232,7 @@ class IsaacSim(VectorizedEnvironment):
         Check whether the given states are an absorbing states or not.
 
         Args:
-            obs (torch.tensor): the states of the parallel environments.
+            obs (torch.tensor): The states of the parallel environments.
 
         Returns:
             A tensor of booleans indicating whether the corresponding states are absorbing or not.
@@ -252,9 +248,8 @@ class IsaacSim(VectorizedEnvironment):
 
         Args:
             env_indices (torch.tensor): The indices of the environments being reset.
-            obs (torch.tensor, None): The observation every environment is reset to, of shape
-                (num_envs, observation length), of which only the rows at ``env_indices`` are read, or None to
-                keep the default state.
+            obs (torch.tensor, None): The observation every environment is reset to, of shape (num_envs, observation
+                length), of which only the rows at ``env_indices`` are read, or None to keep the default state.
 
         """
         if obs is not None:
@@ -292,10 +287,20 @@ class IsaacSim(VectorizedEnvironment):
 
     @property
     def dt(self):
+        """
+        Returns:
+            The duration of a control step of the environment.
+
+        """
         return self._timestep * self._n_intermediate_steps * self._n_substeps
 
     @property
     def render_product_size(self):
+        """
+        Returns:
+            The (width, height) of the recorded and displayed frames.
+
+        """
         return self._viewer.render_product_size
 
     def _setup_simulation(self, timestep, gpu_params=None):
@@ -371,8 +376,8 @@ class IsaacSim(VectorizedEnvironment):
         Applies default values to joints and position, orientation and velocity of the robot.
 
         Args:
-            env_indices (torch.tensor, none): The indices of the environments where
-                the action should be applied. If None, the action is applied to all environments.
+            env_indices (torch.tensor, None): The indices of the environments where the action should be applied. If
+                None, the action is applied to all environments.
 
         """
         indices = wp.from_torch(env_indices.to(torch.int32))
@@ -415,8 +420,8 @@ class IsaacSim(VectorizedEnvironment):
 
     def _teleport_away(self, env_mask):
         """
-        Teleports robots away by setting their Z-coordinate to 50. This speeds up computation
-        when not all environments are used, as fewer collisions need to be processed.
+        Teleports robots away by setting their Z-coordinate to 50. This speeds up computation when not all environments
+        are used, as fewer collisions need to be processed.
 
         Args:
             env_mask (torch.tensor): A boolean mask selecting the environments to teleport.
@@ -439,7 +444,7 @@ class IsaacSim(VectorizedEnvironment):
         been registered via _observation_helper.add_obs(self, name, length, min_value, max_value)
 
         Args:
-            obs (torch.tensor): the generated observation
+            obs (torch.tensor): The generated observation.
 
         Returns:
             The environment observation.
@@ -454,7 +459,7 @@ class IsaacSim(VectorizedEnvironment):
         observation order is not preserved, the helper functions in ObervationHelper breaks.
 
         Args:
-            obs (torch.tensor): the generated observation
+            obs (torch.tensor): The generated observation.
 
         Returns:
             The environment observation.
@@ -468,24 +473,23 @@ class IsaacSim(VectorizedEnvironment):
         Useful to add control signals simulated directly in python.
 
         Args:
-            action (torch.tensor): the actions, provided at every step.
+            action (torch.tensor): The actions, provided at every step.
 
         Returns:
-            The action to be applied in the isaac sim simulation
+            The action to be applied in the Isaac Sim simulation.
 
         """
         return action
 
     def _preprocess_action(self, action):
         """
-        Compute a transformation of the action provided to the
-        environment.
+        Compute a transformation of the action provided to the environment.
 
         Args:
-            action (torch.tensor): the actions provided to the environment.
+            action (torch.tensor): The actions provided to the environment.
 
         Returns:
-            The action to be used for the current step
+            The action to be used for the current step.
 
         """
         return action
@@ -506,7 +510,7 @@ class IsaacSim(VectorizedEnvironment):
         By default, returns the given mdp_info structure unchanged.
 
         Args:
-            mdp_info (MDPInfo): the MDPInfo structure automatically computed by the environment.
+            mdp_info (MDPInfo): The MDPInfo structure automatically computed by the environment.
 
         Returns:
             The modified MDPInfo data structure.
@@ -519,7 +523,7 @@ class IsaacSim(VectorizedEnvironment):
         This method can be overridden to create a custom info dictionary.
 
         Args:
-            obs (torch.tensor): the generated observation
+            obs (torch.tensor): The generated observation.
 
         Returns:
             The information dictionary.
@@ -529,18 +533,16 @@ class IsaacSim(VectorizedEnvironment):
 
     def _simulation_pre_step(self):
         """
-        Allows information to be accesed and changed at every intermediate step
-        before taking a step in the isaac sim simulation.
-        Can be usefull to apply an external force/torque to the specified bodies.
+        Allows information to be accessed and changed at every intermediate step before taking a step in the Isaac Sim
+        simulation. Can be useful to apply an external force/torque to the specified bodies.
 
         """
         pass
 
     def _simulation_post_step(self):
         """
-        Allows information to be accesed at every intermediate step
-        after taking a step in the isaac sim simulation.
-        Can be usefull to average forces over all intermediate steps.
+        Allows information to be accessed at every intermediate step after taking a step in the Isaac Sim simulation.
+        Can be useful to average forces over all intermediate steps.
 
         """
         pass

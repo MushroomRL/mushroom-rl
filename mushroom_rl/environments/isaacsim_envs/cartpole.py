@@ -16,6 +16,15 @@ class CartPoleIsaac(IsaacSim):
 
     """
     def __init__(self, num_envs, camera_pos=None, camera_target=None):
+        """
+        Constructor.
+
+        Args:
+            num_envs (int): Number of parallel environments.
+            camera_pos (tuple, None): The position of the camera looking at the scene.
+            camera_target (tuple, None): The point the camera looking at the scene points to.
+
+        """
         usd_path = str(Path(__file__).resolve().parent / "robots_usds/cartpole/cartpole.usd")
         action_spec = ["rail_cart_joint"]
         observation_spec = [

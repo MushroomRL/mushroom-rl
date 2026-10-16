@@ -162,10 +162,20 @@ class SceneBuilder:
 
     @property
     def zero_env_robot_path(self):
+        """
+        Returns:
+            The path of the robot of the first environment.
+
+        """
         return self._zero_env_robot_path
 
     @property
     def robot_glob(self):
+        """
+        Returns:
+            The wildcard matching the robot of every environment.
+
+        """
         return self._robot_glob
 
     def _acquire_material_properties(self):
