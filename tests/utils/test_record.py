@@ -1,4 +1,4 @@
-import cv2
+import av
 import numpy as np
 from pathlib import Path
 from pytest import raises
@@ -7,20 +7,8 @@ from mushroom_rl.utils.record import VideoRecorder, VectorizedVideoRecorder
 
 
 def read_frame_values(path):
-    capture = cv2.VideoCapture(str(path))
-    values = list()
-
-    while True:
-        read, frame = capture.read()
-
-        if not read:
-            break
-
-        values.append(frame.mean())
-
-    capture.release()
-
-    return values
+    with av.open(str(path)) as container:
+        return [frame.to_ndarray(format='bgr24').mean() for frame in container.decode(video=0)]
 
 
 def test_video_recorder_stop_without_frames(tmpdir):

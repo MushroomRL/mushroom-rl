@@ -29,6 +29,7 @@ extras = {
     'bullet': ['pybullet'],
     'mujoco': ['mujoco>=3.11,<3.15'],
     'mujoco_warp': ['mujoco-warp<3.15'],
+    'isaacsim': ['isaacsim[all,extscache]>=6.1'],
     'dm_control': ['dm_control>=1.0.44,<1.0.48'],
     'monitors': ['pyqtgraph', 'PySide6'],
     'wandb': ['wandb']
@@ -36,11 +37,9 @@ extras = {
 
 all_deps = []
 for group_name in extras:
-    if group_name not in ['box2d', 'bullet']:
+    if group_name not in ['box2d', 'bullet', 'isaacsim']:
         all_deps += extras[group_name]
 extras['all'] = all_deps
-
-print(extras['all'])
 
 long_description = 'MushroomRL is a Python Reinforcement Learning (RL) library' \
                    ' whose modularity allows to easily use well-known Python' \
@@ -54,6 +53,7 @@ long_description = 'MushroomRL is a Python Reinforcement Learning (RL) library' 
 
 mujoco_data_package = 'mushroom_rl.environments.mujoco_envs.data'
 pybullet_data_package = 'mushroom_rl.environments.pybullet_envs.data'
+isaacsim_data_package = 'mushroom_rl.environments.isaacsim_envs.robots_usds'
 
 setup(
     version=__version__,
@@ -65,6 +65,7 @@ setup(
     extras_require=extras,
     package_data={
         mujoco_data_package: glob_data_files(mujoco_data_package),
-        pybullet_data_package: glob_data_files(pybullet_data_package)
+        pybullet_data_package: glob_data_files(pybullet_data_package),
+        isaacsim_data_package: glob_data_files(isaacsim_data_package)
     }
 )
