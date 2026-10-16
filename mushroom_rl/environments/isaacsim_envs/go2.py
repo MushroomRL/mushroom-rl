@@ -10,14 +10,9 @@ class Go2Isaac(QuadrupedIsaac):
     """
     A learning environment for training the Unitree Go2 quadruped to walk.
 
-    The geometry of the robot comes from the model Unitree ships for MuJoCo, and its inertial properties and
-    actuator limits from the urdf Unitree publishes, which describes the motor rotors the MuJoCo model leaves
-    out and keeps the feet apart from the calves carrying them.
-
-    On top of what every quadruped observes, this one observes the position of its trunk, of which only the
-    height means anything: the reward term on the height of the trunk reads it, and a critic can be given it.
-    A policy meant to be deployed should not, since the real robot cannot measure it, any more than it can
-    measure the linear velocity of its trunk -- see the training example for how to hide both from it.
+    Besides the observations of every quadruped, the observation contains the trunk height (``base_pos``, whose x and
+    y are always zero) and, unless ``observed_randomization`` is overridden, the randomized actuation delay and joint
+    calibration offsets.
 
     """
     def __init__(self, num_envs, horizon, domain_randomization=True, camera_position=None, camera_target=None,

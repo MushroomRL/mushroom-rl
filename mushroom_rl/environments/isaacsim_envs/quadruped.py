@@ -49,7 +49,7 @@ class QuadrupedIsaac(IsaacSim):
             domain_randomization (bool): Whether the domain randomization is enabled.
             camera_position (tuple, None): The position of the camera looking at the scene, defaulting to a
                 view of env 0.
-            camera_target (tuple, None): The point the camera looks at, defaulting to env 0's position.
+            camera_target (tuple, None): The point the camera looks at, defaulting to a view of env 0.
             default_joint_max_vel (torch.tensor, None): The nominal maximum velocity of every controlled
                 joint, overriding the one reported by the simulation.
             nominal_p_gain (float): The proportional gain of the PD control law, before randomization.
@@ -268,10 +268,8 @@ class QuadrupedIsaac(IsaacSim):
 
     def set_domain_randomization(self, enabled):
         """
-        Enable or disable the domain randomization of every environment. Disabling it sets the robots of every
-        environment back to their nominal properties; enabling it draws new properties for the robots of every
-        environment, the ones varying from episode to episode being drawn at each environment's next reset. The
-        episodes starting afterwards begin from the initial state of the chosen setting.
+        Enable or disable the domain randomization of every environment. Disabling restores the nominal properties;
+        enabling draws new startup properties at once and new per-episode ones at each environment's next reset.
 
         Args:
             enabled (bool): Whether the domain randomization is enabled.
@@ -394,8 +392,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _build_action_space(self):
         """
-        Builds the action space from the joint-position-relative bounds computed by
-        :meth:`_compute_action_position_limits`.
+        Builds the joint-position-relative action space.
 
         Returns:
             The action space, as a :class:`~mushroom_rl.core.spaces.Box`.
@@ -407,8 +404,7 @@ class QuadrupedIsaac(IsaacSim):
     def _build_observation_space(self, observation_space):
         """
         Builds the observation space by offsetting the joint position bounds to match the default-pose-relative
-        observation and widening every bound by the noise the same way :meth:`_modify_observation` corrupts the
-        runtime observation.
+        observation and widening every bound by the observation noise amplitude.
 
         Args:
             observation_space: the observation space computed from every registered observation, before this
@@ -429,11 +425,11 @@ class QuadrupedIsaac(IsaacSim):
 
     def _add_domain_randomization_obs_spec(self):
         """
-        Registers an observation for every randomized parameter the environment was asked to expose, in the
-        physical units the randomizer draws it in, bounded by the very range it draws it from.
+        Registers an observation for every parameter in ``observed_randomization``, bounded by its randomization
+        range.
 
         Raises:
-            ValueError: if a name that is not a randomized parameter was asked for.
+            ValueError: If a name that is not a randomized parameter was asked for.
 
         """
         bounds = self._domain_randomization_obs_bounds()
@@ -450,8 +446,8 @@ class QuadrupedIsaac(IsaacSim):
         """
         Returns:
             The length and the bounds of the observation exposing every randomized parameter, keyed by the
-            name the parameter is drawn under. The bounds of the joint properties also cover their nominal
-            value, which the randomizer leaves them at with a fixed probability.
+            name the parameter is drawn under. The bounds of the joint properties also include their nominal
+            value.
 
         """
         n_joints = len(self._action_spec)
@@ -523,9 +519,8 @@ class QuadrupedIsaac(IsaacSim):
 
     def _sample_setup_joint_pos(self, env_indices):
         """
-        Samples the joint configuration a reset environment starts in: the pose the robot was authored with
-        when the domain randomization is enabled, so that the randomized nominal the control law works from is
-        an offset the robot starts out of, a randomly scaled pose otherwise.
+        Samples the joint configuration a reset environment starts in: the default pose when the domain
+        randomization is enabled, otherwise the default pose scaled by a random factor in [0.5, 1.5].
 
         """
         if self._domain_randomization:
@@ -544,8 +539,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _push_domain_randomization(self, env_indices):
         """
-        Applies the domain randomization happening at every step, which is the random push knocking the robot
-        off balance. Everything else is drawn either once, when the simulation starts, or at every reset.
+        Applies the random push to the given environments when the domain randomization is enabled.
 
         """
         if self._domain_randomization:
@@ -602,8 +596,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _add_domain_randomization_observations(self, obs):
         """
-        Fills in the observations telling the agent the randomized parameters it currently runs with. Leaves
-        obs untouched when the environment exposes none, since no such observation is registered then.
+        Fills in the observations of the randomized parameters listed in ``observed_randomization``.
 
         """
         for name in self._observed_randomization:
@@ -641,9 +634,8 @@ class QuadrupedIsaac(IsaacSim):
 
     def _apply_action_delay(self, action):
         """
-        Delays the action by the number of physics steps the randomizer draws, simulating actuation latency.
-        The history is indexed in physics steps, so a delay can be shorter than a whole control step, the way
-        a real actuator's is. Returns the action unchanged when the domain randomization is disabled.
+        Delays the action by the number of physics steps the randomizer draws. Returns the action unchanged when
+        the domain randomization is disabled.
 
         """
         if self._domain_randomization:
@@ -668,10 +660,8 @@ class QuadrupedIsaac(IsaacSim):
 
     def _compute_torque(self, action, joint_vels, joint_pos):
         """
-        Converts the (possibly delayed) action and the current joint state into the torque to apply, through a
-        PD law whose gains, action scaling, motor strength and torque limit are the domain-randomized ones.
-        The target pose is offset by the randomized miscalibration of the joint encoders, which
-        :meth:`_modify_observation` takes back out of the joint position the agent reads.
+        Computes the torque of the randomized PD law from the action and the joint state, with the target offset by
+        the randomized joint position offset.
 
         Args:
             action (torch.tensor): The action provided at every intermediate step.
@@ -697,7 +687,7 @@ class QuadrupedIsaac(IsaacSim):
     def _extra_reward_terms(self, next_obs):
         """
         Hook for a subclass to add reward terms beyond the ones common to every quadruped (e.g. a height
-        penalty). Unlike the common terms, whatever this returns is not added to ``_extra_info_rewards``.
+        penalty). Unlike the common terms, it is not reported in the info dictionary.
         Returns ``0.`` by default.
 
         """
@@ -725,16 +715,14 @@ class QuadrupedIsaac(IsaacSim):
 
     def _reward_collision(self):
         """
-        Penalizes collisions on the robot's non-foot bodies. Robot-specific: the collision group it reads
-        from differs between quadrupeds.
+        Penalizes collisions on the robot's non-foot bodies. Must be implemented by every robot.
 
         """
         raise NotImplementedError
 
     def _foot_contacts(self):
         """
-        Tells which feet are currently touching the ground. Robot-specific: the collision group holding the
-        feet, and where in it they sit, differ between quadrupeds.
+        Tells which feet are currently touching the ground. Must be implemented by every robot.
 
         Returns:
             A boolean tensor of shape (n_envs, n_feet).
@@ -781,16 +769,14 @@ class QuadrupedIsaac(IsaacSim):
 
     def _optional_reward_terms_value(self, next_obs):
         """
-        Computes the reward terms that are off by default, skipping every one whose weight is zero, so that a
-        quadruped opting into none of them pays nothing for their existence. Adds each computed term to the
-        info dictionary under its own name, the way the always-on terms are.
+        Computes the optional reward terms with non-zero weight and adds each to the info dictionary under its own
+        name.
 
-        The terms extend the Rudin et al. baseline the always-on terms implement with a foot timing and
-        clearance subsystem (``feet_air_time_high``, ``feet_air_time_low``, ``feet_air_time_symmetry``,
-        ``feet_clearance``, ``feet_clearance_lateral``, ``feet_slide``, ``feet_slide_low``,
+        The optional terms are a foot timing and clearance subsystem (``feet_air_time_high``, ``feet_air_time_low``,
+        ``feet_air_time_symmetry``, ``feet_clearance``, ``feet_clearance_lateral``, ``feet_slide``, ``feet_slide_low``,
         ``feet_z_velocity``, ``long_contact``), a standing-still subsystem (``stand_still_deviation``,
-        ``stand_still_short_contact``, ``similar_to_default``), and ``flat_orientation``,
-        ``joint_vel_limits``, ``power_draw`` and ``base_height``.
+        ``stand_still_short_contact``, ``similar_to_default``), and ``flat_orientation``, ``joint_vel_limits``,
+        ``power_draw`` and ``base_height``.
 
         Returns:
             The weighted sum of the active terms, or ``0.`` when none of them is.
@@ -962,8 +948,7 @@ class QuadrupedIsaac(IsaacSim):
 
     def _build_randomizer(self):
         """
-        Builds the randomizer out of the nominal properties the live simulation reports, so that every
-        parameter it holds is set from the moment it exists.
+        Builds the randomizer from the nominal properties the simulation reports.
 
         """
         nominal_names = ("trunk_mass", "trunk_inertia", "trunk_com", "torque_limit", "joint_damping",
@@ -991,12 +976,8 @@ class QuadrupedIsaac(IsaacSim):
 
     def _update_foot_state(self):
         """
-        Advances, once per step, the per-foot bookkeeping the optional foot reward terms read: which feet are
-        on the ground, which of them have just landed, how long the air phase that ended lasted, how long each
-        foot has been in contact, and where the feet are and how fast they move.
-
-        The always-on ``feet_air_time`` term keeps its own separate bookkeeping, since it filters the contacts
-        over two steps and accumulates the air time in a different order.
+        Updates the per-foot contact, air time, contact time, position and velocity read by the optional foot
+        reward terms.
 
         """
         contact = self._foot_contacts()
@@ -1032,8 +1013,7 @@ class QuadrupedIsaac(IsaacSim):
     def _command_norm(self):
         """
         Returns:
-            The magnitude of the full velocity command, the linear and the angular part together, which is
-            what the optional reward terms gate on.
+            The magnitude of the full velocity command, the linear and the angular part together.
 
         """
         return torch.norm(self._command_generator.commands, dim=1)

@@ -60,8 +60,8 @@ class IsaacSim(VectorizedEnvironment):
             scene_params (dict, None): The parameters describing the scene to simulate, passed to
                 :class:`~mushroom_rl.utils.isaac_sim.scene_builder.SceneBuilder`, which documents them.
             viewer_params (dict, None): The parameters of the camera looking at the scene, passed to
-                :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them. The ``camera_target``
-                parameter defaults to env 0's position.
+                :class:`~mushroom_rl.utils.isaac_sim.viewer.IsaacViewer`, which documents them. The camera position
+                and target default to a view of env 0.
 
         """
         # Isaac Sim overrides sys.stderr, which breaks tqdm — restore the original
@@ -194,9 +194,7 @@ class IsaacSim(VectorizedEnvironment):
         """
         Render all environments. Optionally record the frames.
 
-        The frame read back is the last one the renderer finished, so it trails the simulation by a pass or
-        two: rendering every step shows the run as it goes, while a single call on its own shows the state a
-        couple of passes back.
+        The returned frame lags the simulation by up to two render passes.
 
         Args:
             env_mask (torch.tensor): Mask selecting the environments to render.
@@ -242,9 +240,8 @@ class IsaacSim(VectorizedEnvironment):
 
     def setup(self, env_indices, obs):
         """
-        Executes the setup code after an environment reset. By default, writes the given observation into the
-        simulation, every entry of the observation specification taking the value the observation holds for it.
-        An environment whose observation is not the one the specification reads has to override this method.
+        Executes the setup code after an environment reset. By default, writes the observation-specification entries
+        of ``obs`` into the simulation; override it if the observation differs from the specification.
 
         Args:
             env_indices (torch.tensor): The indices of the environments being reset.
@@ -266,9 +263,7 @@ class IsaacSim(VectorizedEnvironment):
 
     def observation_indices(self, *names):
         """
-        Tells where the named observations sit in the observation vector, so that whoever consumes it can
-        single them out: an asymmetric actor-critic hiding the privileged entries from the policy, a
-        preprocessor normalizing one group apart from the rest, or a plot of one signal.
+        Returns the indices of the named observations in the observation vector.
 
         Args:
             *names (str): The names of the observations to locate, as declared in the observation
@@ -276,6 +271,9 @@ class IsaacSim(VectorizedEnvironment):
 
         Returns:
             The indices the named observations occupy, in the order the names are given.
+
+        Raises:
+            ValueError: If a name is not an observation of the environment.
 
         """
         unknown = [name for name in names if name not in self._observation_helper.obs_idx_map]
@@ -356,9 +354,6 @@ class IsaacSim(VectorizedEnvironment):
         """
         Records the state the robots start in, which resets restore them to.
 
-        Isaac Sim only reports a default state once one has been set, so the pose and joint configuration the
-        USD asset was authored with have to be read back from the simulation right after it starts.
-
         """
         positions, orientations = self._robots.get_world_poses()
         zero_velocities = wp.from_torch(torch.zeros(self._num_envs, 3, device=TorchUtils.get_device()))
@@ -397,9 +392,7 @@ class IsaacSim(VectorizedEnvironment):
     @staticmethod
     def _enable_fabric_updates(active):
         """
-        Sets whether PhysX writes the pose of every body into Fabric, which is what the renderer draws from.
-        A window needs those writes throughout, while a headless run only needs them around the frames it
-        draws, which are far fewer than its steps.
+        Sets whether PhysX writes body poses, velocities and joint states into Fabric.
 
         Args:
             active (bool): Whether the poses are handed over.
@@ -420,8 +413,7 @@ class IsaacSim(VectorizedEnvironment):
 
     def _teleport_away(self, env_mask):
         """
-        Teleports robots away by setting their Z-coordinate to 50. This speeds up computation when not all environments
-        are used, as fewer collisions need to be processed.
+        Teleports robots away by setting their Z-coordinate to 50.
 
         Args:
             env_mask (torch.tensor): A boolean mask selecting the environments to teleport.
@@ -455,8 +447,8 @@ class IsaacSim(VectorizedEnvironment):
     def _modify_observation(self, obs):
         """
         This method can be overridden to edit the created observation. This is done after the reward and absorbing
-        functions are evaluated. Especially useful to transform the observation into different frames. If the original
-        observation order is not preserved, the helper functions in ObervationHelper breaks.
+        functions are evaluated. If the original observation order is not preserved, the helper functions in
+        ObservationHelper break.
 
         Args:
             obs (torch.tensor): The generated observation.
@@ -470,7 +462,6 @@ class IsaacSim(VectorizedEnvironment):
     def _compute_action(self, action):
         """
         Compute a transformation of the action at every intermediate step.
-        Useful to add control signals simulated directly in python.
 
         Args:
             action (torch.tensor): The actions, provided at every step.
@@ -534,7 +525,7 @@ class IsaacSim(VectorizedEnvironment):
     def _simulation_pre_step(self):
         """
         Allows information to be accessed and changed at every intermediate step before taking a step in the Isaac Sim
-        simulation. Can be useful to apply an external force/torque to the specified bodies.
+        simulation.
 
         """
         pass
@@ -542,7 +533,6 @@ class IsaacSim(VectorizedEnvironment):
     def _simulation_post_step(self):
         """
         Allows information to be accessed at every intermediate step after taking a step in the Isaac Sim simulation.
-        Can be useful to average forces over all intermediate steps.
 
         """
         pass

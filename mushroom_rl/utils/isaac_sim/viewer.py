@@ -13,9 +13,6 @@ class IsaacViewer:
     """
     The camera looking at the simulated scene, and the window showing what it sees.
 
-    Isaac Sim renders into a render product rather than into a window, so a frame is always available: the same
-    image is displayed and, when the environment is recording, handed back to it.
-
     """
 
     def __init__(self, dt, camera_position=(5, 0, 4), camera_target=(0, 0, 0), render_product_size=(800, 600)):
@@ -94,10 +91,6 @@ class IsaacViewer:
     def _prime(self):
         """
         Binds the annotator to the render product and runs the passes it needs before it yields a frame.
-
-        Attaching in the constructor, before there is a scene to draw, leaves the annotator without the render
-        variable it reads, which Isaac Sim reports as a missing ``LdrColorSDbuff``. Reading it before three
-        passes have gone through returns an empty array; two run here and :meth:`render` runs the third.
 
         """
         self._rgb_annot.attach(self._render_product)

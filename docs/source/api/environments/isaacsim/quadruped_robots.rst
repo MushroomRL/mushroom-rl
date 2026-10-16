@@ -2,8 +2,8 @@ Quadruped robots
 ================
 
 A concrete quadruped supplies its own USD asset, controlled joints, default pose, trunk, foot and link names and
-collision groups, and implements the termination condition and the collision-dependent reward terms, since those
-genuinely differ between robots. ``SilverBadgerIsaac`` subclasses ``HoneyBadgerIsaac``, differing only in that
+collision groups, and implements the termination condition and the collision-dependent reward terms.
+``SilverBadgerIsaac`` subclasses ``HoneyBadgerIsaac``, differing only in that
 robot-specific configuration.
 
 .. automodule:: mushroom_rl.environments.isaacsim_envs.a1

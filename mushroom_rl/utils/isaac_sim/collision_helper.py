@@ -28,9 +28,7 @@ class CollisionHelper:
                 string for later reference and prim_paths is a list of paths to the prims.
             zero_env_robot_path (str): Path of the robot of the first environment, which the collision groups
                 are relative to.
-            robot_glob (str): Wildcard matching the robot of every environment. Note that this is a wildcard
-                and not a regular expression: the physics tensor views the contact views are built on match
-                prim paths differently from ``isaacsim.core.experimental``.
+            robot_glob (str): Wildcard matching the robot of every environment.
             num_envs (int): Number of parallel environments.
             n_intermediate_steps (int): Number of intermediate control steps. Defaults to 1.
 
@@ -65,13 +63,7 @@ class CollisionHelper:
         """
         Sets up a contact-tracking view for all objects of all collision groups.
 
-        Has to be called once the simulation is running, since the views are built directly on the physics
-        simulation view. That is one level below ``isaacsim.core.experimental.prims``, which cannot express
-        these views: it resolves the body patterns to concrete prims before applying the filters, losing the
-        pairing that makes each body see only the partners inside its own environment.
-
-        Note that this layer matches paths as wildcards rather than as the regular expressions used by
-        ``isaacsim.core.experimental.prims``, which is why the environment hands down a separate pattern.
+        Has to be called once the simulation is running.
 
         """
         simulation_view = SimulationManager.get_physics_simulation_view()
@@ -225,9 +217,6 @@ class CollisionHelper:
     def _to_env_major(self, forces, n_bodies):
         """
         Reorders a contact tensor from the prim ordering of the view to an environment-major one.
-
-        The view resolves one path pattern per body, each matching every environment, so its rows run
-        body-major. The environment is the leading axis everywhere else in the environment, hence the swap.
 
         Args:
             forces (torch.tensor): The contact tensor, whose first axis spans ``n_bodies * num_envs`` prims.

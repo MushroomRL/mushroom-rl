@@ -1,9 +1,6 @@
 """
 This script shows how to run the Isaac Sim quadruped locomotion environments, solving them with RudinPPO.
 
-IsaacSim environments are natively vectorized: a single environment object simulates many copies of the task
-on the GPU and returns batched observations, so no wrapper is needed to parallelize them.
-
 The three quadrupeds share the same reward structure and training setup, and differ only in the robot: the
 Unitree A1, the Honey Badger and the Silver Badger, the last of which adds a spine joint.
 

@@ -20,8 +20,7 @@ class ActuationHelper:
     """
     A helper class driving the joints the agent controls.
 
-    It owns which joints those are, applies the action to them in the mode the actuation type names, and
-    reports the limits the simulator declares for them, from which the action space is built.
+    It applies the action to the joints in the mode the actuation type names, and reports joint limits.
 
     """
 
@@ -44,8 +43,7 @@ class ActuationHelper:
 
     def initialize(self):
         """
-        Resolves the controlled joints. Isaac Sim only names the degrees of freedom of an articulation once the
-        simulation is running, so this cannot happen at construction.
+        Resolves the controlled joints. Has to be called once the simulation is running.
 
         """
         # kept in both forms: Isaac Sim selects joints with the warp one, torch indexing needs the other

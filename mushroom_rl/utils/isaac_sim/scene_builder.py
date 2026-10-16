@@ -22,10 +22,6 @@ class SceneBuilder:
     parallel environment, and creates the views through which the environment then reads and writes simulation
     data.
 
-    It also owns the layout of the stage, i.e. where on it every prim lives. Everything addressing a prim derives
-    from the paths this class exposes, so that the environment, its collision helper and the builder itself
-    cannot disagree about where the robots are.
-
     """
 
     def __init__(self, usd_path, num_envs, env_spacing=3., collisions_between_envs=False,
@@ -121,12 +117,7 @@ class SceneBuilder:
 
     def set_robot_friction(self, static_friction, dynamic_friction, env_indices):
         """
-        Gives the collision shapes of the given environments' robots a new friction, so that a property as
-        coarse as how slippery the ground is can change from episode to episode.
-
-        The write goes through the physics view of the articulation rather than through the material prims of
-        the stage: those are read once, when the simulation starts, so authoring them afterwards has no effect
-        on what is simulated.
+        Sets the friction of the collision shapes of the given environments' robots.
 
         Args:
             static_friction (torch.tensor): The static friction of each of the environments, on the host.
@@ -220,8 +211,8 @@ class SceneBuilder:
 
     def _create_views(self, stage, specifications, robots):
         """
-        Creates one view per distinct path appearing in the specifications, choosing the kind of view from the
-        API the prim of environment 0 carries.
+        Creates one view per distinct path appearing in the specifications: an ``Articulation`` for prims with the
+        PhysX articulation API, a ``RigidPrim`` otherwise.
 
         Args:
             stage: The stage the prims live on.

@@ -3,14 +3,8 @@ This script trains the Unitree Go2 to walk with RudinPPO: the full reward set, t
 sampling, an asymmetric actor-critic, an eight-step observation history, and a curriculum that tightens the
 task as training goes on.
 
-The curriculum deliberately lives here rather than in the environment. `Go2Isaac` and its command generator
-only accept new values -- for the velocity command ranges, the tolerance of the tracking rewards and the
-ceiling on the actuation delay -- and the decision of when to change them is the training script's.
-
-The asymmetry is the other half of the training setup: the robot can measure neither its own linear velocity,
-nor the height it holds its trunk at, nor how late its actions arrive and how far its joint encoders are out
-of calibration, so the policy is given none of them, while the critic, which only ever runs in simulation, is
-given all four.
+The policy does not observe the base linear velocity, the trunk height, the actuation delay and the joint
+calibration offsets; the critic observes all of them.
 
 """
 import argparse
@@ -44,8 +38,7 @@ from mushroom_rl.environments.isaacsim_envs.quadruped_commands import UniformVel
 
 class PolicyNetwork(ActorNetwork):
     """
-    An actor network reading only part of the observation, so that the policy is trained on what the real
-    robot can measure while the critic keeps the entries only the simulation knows.
+    An actor network reading only the given entries of the observation.
 
     """
     def __init__(self, input_shape, output_shape, observed_indices, **kwargs):
@@ -72,9 +65,8 @@ class Curriculum:
     """
     The schedule the task is tightened along, applied after every policy update.
 
-    Two schedules run on their own thresholds, so that the shift in the reward function and the widening of
-    the commands do not reach the critic in the same window: the command ranges widen and the actuation delay
-    grows in stages, while the tracking tolerance is interpolated continuously.
+    The command ranges and the actuation delay ceiling change in stages, while the tracking tolerance is
+    interpolated linearly.
 
     """
     def __init__(self, mdp, command_steps, command_ranges, delay_steps, tracking_steps, tracking_stds):

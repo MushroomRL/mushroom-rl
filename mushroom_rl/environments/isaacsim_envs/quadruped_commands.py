@@ -214,9 +214,8 @@ class VelocityCommandGenerator(CommandGenerator):
 
     def _bias_commands(self, env_ids):
         """
-        Skews the freshly drawn commands towards the regimes a draw from the ranges barely covers: standing
-        still, turning on the spot, and walking slowly in an arbitrary direction. Every block is inert, and draws
-        no random number at all, while the fraction driving it is zero.
+        Skews the freshly drawn commands towards standing still, turning on the spot, and walking slowly in an
+        arbitrary direction, according to ``rel_standing_envs``, ``frac_rotating_envs`` and ``frac_low_speed_envs``.
 
         """
         device = TorchUtils.get_device()

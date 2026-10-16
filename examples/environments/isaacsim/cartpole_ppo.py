@@ -1,9 +1,6 @@
 """
 This script shows how to run the Isaac Sim Cartpole environment, solving it with PPO.
 
-IsaacSim environments are natively vectorized: a single environment object simulates many copies of the task
-on the GPU and returns batched observations, so no wrapper is needed to parallelize them.
-
 """
 import argparse
 

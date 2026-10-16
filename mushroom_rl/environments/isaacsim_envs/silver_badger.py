@@ -10,8 +10,8 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
     A learning environment for training the Silver Badger quadruped to walk.
     Silver Badger is a robot from MAB Robotics: https://www.mabrobotics.pl/
 
-    Same robot family as :class:`HoneyBadgerIsaac`, only differing in the robot-specific configuration
-    ``_robot_config`` returns: it adds the ``rear`` body and its extra ``sp_j0`` joint.
+    Same robot family as :class:`HoneyBadgerIsaac`, only differing in the robot-specific configuration: it adds the
+    ``rear`` body and its extra ``sp_j0`` joint.
 
     """
     @staticmethod

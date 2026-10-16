@@ -151,10 +151,9 @@ class QuadrupedRandomizer:
     """
     Class for sampling and storing the domain randomization parameters of every parallel environment.
 
-    Every parameter is drawn as a value the control law and the observations work from, and some carry a
-    second, hidden draw on top: the simulation is then set up with the perturbed value while the value the
-    environment reports stays the first one. Every ``*_factor`` range governs one such hidden layer, and
-    setting it to ``0.`` collapses the two.
+    The parameters perturbed by the unseen noise of :class:`QuadrupedRandomizationParams` take two values: the drawn
+    one, which the observations report, and the perturbed one, which the simulation runs with. A noise of ``0.``
+    makes the two equal.
 
     """
     def __init__(self, n_envs, n_joints, nominal_values, params=None):
@@ -324,8 +323,7 @@ class QuadrupedRandomizer:
 
     def sample_disturbance(self, env_indices, episode_length, dt):
         """
-        Draws the random push that knocks the robot off balance, applied only to the environments that have
-        been alive long enough.
+        Draws the random pushes of the environments alive longer than ``push_min_episode_length`` steps.
 
         Args:
             env_indices (torch.tensor): The environments a push may be applied to.
@@ -485,7 +483,7 @@ class QuadrupedRandomizer:
     def _sample_trunk_noise(self, env_indices):
         """
         Draws the unseen multiplicative noise perturbing the mass and the center of mass, on top of the seen
-        values :meth:`_sample_trunk_params` draws.
+        values.
 
         Returns:
             The noise factors, of shape (len(env_indices), 1), keyed by the property they perturb.
@@ -545,8 +543,8 @@ class QuadrupedRandomizer:
 
     def _sample_gain_params(self, env_indices, noise):
         """
-        Draws the seen gains of the control law, as additive offsets around their nominal values, and the
-        unseen gains it is actually run with.
+        Draws the seen gains of the control law, as factors on their nominal values, and the unseen gains it is
+        actually run with.
 
         """
         shape = (env_indices.shape[0], self._n_joints)
@@ -627,8 +625,8 @@ class QuadrupedRandomizer:
 
     def _sample_latency_regime(self, env_indices):
         """
-        Draws how late the actions of an episode arrive: a fixed delay for most environments, and a delay
-        redrawn at every single action for the few that land in the mixed regime.
+        Draws how late the actions of an episode arrive: a fixed delay, or a delay redrawn at every single action
+        for the environments drawn into the mixed regime with probability ``mixed_chance``.
 
         """
         device = TorchUtils.get_device()

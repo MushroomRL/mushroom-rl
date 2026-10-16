@@ -128,9 +128,7 @@ class ObservationHelper:
     """
     A helper class reading and writing the properties of the simulated entities.
 
-    It resolves every entry of the observation and the additional data specifications into the Isaac Sim view
-    and accessor serving it, assembles the observation of each environment out of those reads, and reports the
-    limits of the resulting observation vector.
+    It builds the observation vector from the specifications and reports observation limits.
 
     """
 
@@ -175,8 +173,8 @@ class ObservationHelper:
 
     def initialize(self, physics_view):
         """
-        Resolves the specifications into the accessors serving them. Isaac Sim only names the joints and the bodies
-        of a prim once the simulation is running, so this cannot happen at construction.
+        Resolves the specifications into the accessors serving them. Has to be called once the simulation is
+        running.
 
         Args:
             physics_view (ArticulationView): The physics view of the robots.
@@ -427,9 +425,6 @@ class ObservationHelper:
         """
         Retrieves a specific property from the given view based on the observation type.
 
-        The getter the observation type names is called once, and only the types whose value is not one of
-        the arrays it returns are post-processed explicitly.
-
         Args:
             view: The view object that provides access to simulation data.
             obs_type (ObservationType): The type of observation to retrieve.
@@ -468,9 +463,6 @@ class ObservationHelper:
     def _set_property(self, view, obs_type, value, element_idx=None, env_indices=None):
         """
         Sets the specified property values immediately.
-
-        Only the types whose value has to be split over several arguments of the setter the observation type
-        names are handled explicitly; the others are passed to it whole.
 
         Args:
             view: The Isaac Sim view where the properties should be set.

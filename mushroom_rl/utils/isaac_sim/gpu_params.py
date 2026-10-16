@@ -59,7 +59,7 @@ class IsaacGpuParams:
     def keys(self):
         """
         Returns:
-            The name of every parameter, so that the object can be unpacked with ``**``.
+            The name of every parameter.
 
         """
         return self._values.keys()
