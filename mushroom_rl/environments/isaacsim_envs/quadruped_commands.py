@@ -10,6 +10,14 @@ class CommandGenerator:
     Base class for the generators of the command a quadruped is asked to follow.
 
     """
+    def __init__(self):
+        """
+        Constructor.
+
+        """
+        self._n_envs = None
+        self._dt = None
+
     def initialize(self, n_envs, dt):
         """
         Allocates the command of every environment.
@@ -102,6 +110,8 @@ class VelocityCommandGenerator(CommandGenerator):
             ValueError: if a command range is unknown, empty, or not contained in its maximum range.
 
         """
+        super().__init__()
+
         self._max_command_ranges = dict(lin_vel_x=(-1., 1.), lin_vel_y=(-1., 1.), ang_vel_z=(-math.pi, math.pi),
                                         heading=(-3.14, 3.14))
         self._max_command_ranges |= max_command_ranges or {}
@@ -119,6 +129,13 @@ class VelocityCommandGenerator(CommandGenerator):
         self._frac_rotating_envs = frac_rotating_envs
         self._frac_low_speed_envs = frac_low_speed_envs
         self._low_speed_threshold = low_speed_threshold
+
+        self._commands = None
+        self._is_heading_env = None
+        self._is_standing_env = None
+        self._time_to_resample = None
+        self._steps = None
+        self._forward_vec = None
 
     def initialize(self, n_envs, dt):
         super().initialize(n_envs, dt)
@@ -341,7 +358,7 @@ class EllipticVelocityCommands(VelocityCommandGenerator):
     def _sample(self, env_ids):
         device = TorchUtils.get_device()
         n_envs = len(env_ids)
-        center, half_width = self._ellipsoid()
+        center, half_width = self._ellipsoid_parameters()
 
         direction = torch.randn(n_envs, 3, device=device)
         direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
@@ -357,7 +374,7 @@ class EllipticVelocityCommands(VelocityCommandGenerator):
     def _bias_moving_commands(self, moving):
         if self._frac_max_speed_envs > 0.:
             device = TorchUtils.get_device()
-            center, half_width = self._ellipsoid()
+            center, half_width = self._ellipsoid_parameters()
 
             is_max_speed = torch_rand_float(0., 1., (len(moving), 1), device=device).squeeze(1) \
                 <= self._frac_max_speed_envs
@@ -367,7 +384,7 @@ class EllipticVelocityCommands(VelocityCommandGenerator):
             direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
             self._commands[max_speed, :3] = center + half_width * direction
 
-    def _ellipsoid(self):
+    def _ellipsoid_parameters(self):
         """
         Returns:
             The center and the half-widths of the ellipsoid the linear velocity along x and y and the yaw rate
