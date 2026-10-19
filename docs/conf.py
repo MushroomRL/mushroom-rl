@@ -22,6 +22,9 @@
 
 from mushroom_rl import __version__
 import datetime
+import importlib
+
+from sphinx.domains.python import PythonDomain
 
 # -- General configuration ------------------------------------------------
 
@@ -220,7 +223,7 @@ epub_exclude_files = ['search.html']
 autodoc_member_order = 'bysource'
 autodoc_mock_imports = ['scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data', 'pybullet_utils',
                         'dm_control', 'minigrid', 'mujoco', 'glfw', 'av', 'cv2',
-                        'omni', 'pyqtgraph', 'PySide6', 'mujoco_warp']
+                        'isaacsim', 'carb', 'omni', 'pxr', 'warp', 'pyqtgraph', 'PySide6', 'mujoco_warp']
 add_module_names = False
 
 autodoc_default_options = {
@@ -249,6 +252,71 @@ def skip(app, what, name, obj, skip, options):
     return skip
 
 
+# Utility package each simulator's modules refer to, to tell apart classes sharing a name across simulators
+# (e.g. the Isaac Sim and MuJoCo ObservationHelper).
+_SIMULATOR_UTILS = {
+    'mushroom_rl.environments.isaacsim': 'mushroom_rl.utils.isaac_sim.',
+    'mushroom_rl.utils.isaac_sim': 'mushroom_rl.utils.isaac_sim.',
+}
+
+
+def _defining_name(target):
+    # Maps a public path (mushroom_rl.core.Dataset) to the module defining the object
+    # (mushroom_rl.core.dataset.Dataset), which is the name autodoc registers.
+    if not target.startswith('mushroom_rl.'):
+        return None
+
+    parts = target.split('.')
+    for i in range(len(parts) - 1, 0, -1):
+        try:
+            obj = importlib.import_module('.'.join(parts[:i]))
+        except ImportError:
+            continue
+        try:
+            for part in parts[i:]:
+                obj = getattr(obj, part)
+        except AttributeError:
+            return None
+        module, qualname = getattr(obj, '__module__', None), getattr(obj, '__qualname__', None)
+        return f'{module}.{qualname}' if module and qualname else None
+
+    return None
+
+
+def _prefer_same_simulator(modname, matches):
+    for package, utils in _SIMULATOR_UTILS.items():
+        if modname and modname.startswith(package):
+            preferred = [match for match in matches if match[0].startswith(utils)]
+            if preferred:
+                return preferred
+    return matches
+
+
+class MushroomPythonDomain(PythonDomain):
+    """
+    Python domain also resolving bare names outside their own module, public paths, and names shared across
+    simulators.
+
+    """
+    def find_obj(self, env, modname, classname, name, type, searchmode=0):
+        matches = super().find_obj(env, modname, classname, name, type, searchmode)
+
+        if len(matches) > 1:
+            return _prefer_same_simulator(modname, matches)
+
+        if not matches:
+            fallback = super().find_obj(env, modname, classname, name, type, 1) if searchmode == 0 else []
+            if not fallback:
+                defining_name = _defining_name(name)
+                if defining_name is not None:
+                    fallback = super().find_obj(env, modname, classname, defining_name, type, 0)
+            fallback = _prefer_same_simulator(modname, fallback)
+            if len(fallback) == 1:
+                matches = fallback
+
+        return matches
+
+
 def configure_builder(app):
     if 'latex' in app.builder.name:
         app.config.exclude_patterns.append('index.rst')
@@ -258,6 +326,7 @@ def configure_builder(app):
 
 
 def setup(app):
+    app.add_domain(MushroomPythonDomain, override=True)
     app.connect('builder-inited', configure_builder)
     app.connect("autodoc-skip-member", skip)
     app.add_css_file('theme_overrides.css')
