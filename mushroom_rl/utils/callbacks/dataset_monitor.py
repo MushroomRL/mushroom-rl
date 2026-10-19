@@ -12,7 +12,7 @@ class DatasetMonitor(Callback):
     reward per step, reward per episode, episode length only for the training.
 
     """
-    def __init__(self, mdp_info, obs_normalized=False, window_size=1000,
+    def __init__(self, mdp_info, obs_normalized=False, title="Experiment Monitor", window_size=1000,
                  update_freq=10, show=True):
 
         """
@@ -22,6 +22,7 @@ class DatasetMonitor(Callback):
             mdp_info (MDPInfo): information of the environment;
             obs_normalized (bool, False): whether observation needs to be
                 normalized or not;
+            title (str, "Experiment Monitor"): title of the window;
             window_size (int, 1000): number of steps plotted in the windowed
                 plots. Only action, observation and reward per step plots are
                 affected. The other are always adding information;
@@ -38,17 +39,17 @@ class DatasetMonitor(Callback):
 
         self.action_buffers_list = []
         for i in range(mdp_info.action_space.shape[0]):
-            self.action_buffers_list.append(DataBuffer('Action_' + str(i), window_size))
+            self.action_buffers_list.append(DataBuffer(f'Action {i}', window_size))
 
         self.observation_buffers_list = []
         for i in range(mdp_info.observation_space.shape[0]):
-            self.observation_buffers_list.append(DataBuffer('Observation_' + str(i), window_size))
+            self.observation_buffers_list.append(DataBuffer(f'Observation {i}', window_size))
 
-        self.instant_reward_buffer = DataBuffer("Instant_reward", window_size)
+        self.instant_reward_buffer = DataBuffer("Reward", window_size)
 
-        self.training_reward_buffer = DataBuffer("Episode_reward")
+        self.training_reward_buffer = DataBuffer("Return")
 
-        self.episodic_len_buffer_training = DataBuffer("Episode_len")
+        self.episodic_len_buffer_training = DataBuffer("Length")
 
         if isinstance(mdp_info.action_space, Box):
             high_actions = mdp_info.action_space.high.tolist()
@@ -89,9 +90,10 @@ class DatasetMonitor(Callback):
         self.plot_window = Window(
             plot_list=[training_reward_plot, episodic_len_training_plot,
                        step_reward_plot, actions_plot, observation_plot],
-            title="EnvironmentPlot",
+            title=title,
             track_if_deactivated=[True, True, False, False, False],
-            update_freq=update_freq)
+            update_freq=update_freq,
+            layout=[[0, 1], [2], [3], [4]])
 
         if show:
             self.plot_window.show()

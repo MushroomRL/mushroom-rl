@@ -60,4 +60,4 @@ def experiment(n_epochs, n_iterations, ep_per_run, seed=None):
 
 
 if __name__ == '__main__':
-    experiment(n_epochs=10, n_iterations=10, ep_per_run=100)
+    experiment(n_epochs=50, n_iterations=10, ep_per_run=100)

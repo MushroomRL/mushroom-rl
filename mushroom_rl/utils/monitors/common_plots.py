@@ -15,9 +15,9 @@ class RewardPerStep(PlotItemBuffer):
             plot_buffer (DataBuffer): data buffer to be used.
 
         """
-        title = "Step_Reward"
+        title = "Step Reward"
         curves_params = [dict(data_buffer=plot_buffer)]
-        super().__init__(title, curves_params)
+        super().__init__(title, curves_params, labels=dict(bottom='step'))
 
 
 class RewardPerEpisode(PlotItemBuffer):
@@ -33,9 +33,9 @@ class RewardPerEpisode(PlotItemBuffer):
             plot_buffer (DataBuffer): data buffer to be used.
 
         """
-        title = "Episode_Reward"
+        title = "Episode Reward"
         curves_params = [dict(data_buffer=plot_buffer)]
-        super().__init__(title, curves_params)
+        super().__init__(title, curves_params, labels=dict(bottom='episode'))
 
 
 class Actions(PlotItemBufferLimited):
@@ -56,7 +56,7 @@ class Actions(PlotItemBufferLimited):
 
         """
         title = "Actions"
-        super().__init__(title, plot_buffers, maxs=maxs, mins=mins)
+        super().__init__(title, plot_buffers, maxs=maxs, mins=mins, labels=dict(bottom='step'))
 
 
 class Observations(PlotItemBufferLimited):
@@ -80,7 +80,8 @@ class Observations(PlotItemBufferLimited):
 
         """
         title = "Observations"
-        super().__init__(title, plot_buffers, maxs=maxs, mins=mins, dotted_limits=dotted_limits)
+        super().__init__(title, plot_buffers, maxs=maxs, mins=mins, dotted_limits=dotted_limits,
+                         labels=dict(bottom='step'))
 
 
 class LenOfEpisodeTraining(PlotItemBuffer):
@@ -96,6 +97,6 @@ class LenOfEpisodeTraining(PlotItemBuffer):
             plot_buffer (DataBuffer): data buffer to be used;
 
         """
-        title = "Len of Episode"
+        title = "Episode Length"
         plot_params = [dict(data_buffer=plot_buffer)]
-        super().__init__(title, plot_params)
+        super().__init__(title, plot_params, labels=dict(bottom='episode'))
