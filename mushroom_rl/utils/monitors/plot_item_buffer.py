@@ -111,10 +111,8 @@ class PlotItemBuffer(PlotItem):
         """
         index_item = self.plot_data_items_list.index(item)
 
-        try:
+        if self.legend is not None:
             self.legend.removeItem(self._curves_names[index_item])
-        except:
-            pass
 
         if item in self.listDataItems():
             self.removeItem(item)

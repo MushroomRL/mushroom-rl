@@ -116,12 +116,9 @@ class Gymnasium(Environment):
         return None
 
     def stop(self):
-        try:
-            self.env.close()
-            if self._viewer is not None:
-                self._viewer.close()
-        except:
-            pass
+        self.env.close()
+        if self._viewer is not None:
+            self._viewer.close()
 
     @staticmethod
     def _set_horizon(env, horizon):
