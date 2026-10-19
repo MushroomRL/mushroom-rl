@@ -653,7 +653,8 @@ class QuadrupedRandomizer:
         half_width = self._params[param_name]
         return self._uniform((1 - half_width, 1 + half_width), (n_envs, 1))
 
-    def _uniform(self, bounds, shape, device=None):
+    @staticmethod
+    def _uniform(bounds, shape, device=None):
         """
         Draws values uniformly distributed between the given bounds, drawing no random number when the bounds
         coincide.
@@ -667,7 +668,8 @@ class QuadrupedRandomizer:
 
         return torch_rand_float(lower, upper, shape, device)
 
-    def _bernoulli(self, probability, n_envs):
+    @staticmethod
+    def _bernoulli(probability, n_envs):
         """
         Draws one boolean per environment, true with the given probability, drawing no random number when the
         outcome is certain.
