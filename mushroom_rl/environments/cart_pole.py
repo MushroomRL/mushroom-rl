@@ -13,16 +13,16 @@ class CartPole(Environment):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, m=2., M=8., l=.5, g=9.8, mu=1e-2, max_u=50., noise_u=10.,
-                 horizon=200, gamma=.95):
+    def __init__(self, pole_mass=2., cart_mass=8., pole_length=.5, gravity=9.8, friction=1e-2, max_u=50.,
+                 noise_u=10., horizon=200, gamma=.95):
         """
         Constructor.
 
         Args:
-            m (float, 2.0): mass of the pendulum;
-            M (float, 8.0): mass of the cart;
-            l (float, .5): length of the pendulum;
-            g (float, 9.8): gravity acceleration constant;
+            pole_mass (float, 2.0): mass of the pendulum;
+            cart_mass (float, 8.0): mass of the cart;
+            pole_length (float, .5): length of the pendulum;
+            gravity (float, 9.8): gravity acceleration constant;
             max_u (float, 50.): maximum allowed input torque;
             noise_u (float, 10.): maximum noise on the action;
             horizon (int, 3000): horizon of the problem;
@@ -30,12 +30,12 @@ class CartPole(Environment):
 
         """
         # MDP parameters
-        self._m = m
-        self._M = M
-        self._l = l
-        self._g = g
+        self._m = pole_mass
+        self._M = cart_mass
+        self._l = pole_length
+        self._g = gravity
         self._alpha = 1 / (self._m + self._M)
-        self._mu = mu
+        self._mu = friction
         self._max_u = max_u
         self._noise_u = noise_u
         high = np.array([np.inf, np.inf])
@@ -47,7 +47,7 @@ class CartPole(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
-        self._viewer = Viewer(2.5 * l, 2.5 * l)
+        self._viewer = Viewer(2.5 * pole_length, 2.5 * pole_length)
         self._last_u = None
         self._state = None
 

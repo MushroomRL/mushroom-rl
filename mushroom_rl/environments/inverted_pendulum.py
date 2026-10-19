@@ -15,7 +15,7 @@ class InvertedPendulum(Environment):
     "Deterministic Policy Gradient Algorithms". Silver D. et al. 2014.
 
     """
-    def __init__(self, random_start=False, m=1., l=1., g=9.8, mu=1e-2,
+    def __init__(self, random_start=False, pole_mass=1., pole_length=1., gravity=9.8, friction=1e-2,
                  max_u=5., horizon=5000, gamma=.99):
         """
         Constructor.
@@ -23,20 +23,20 @@ class InvertedPendulum(Environment):
         Args:
             random_start (bool, False): whether to start from a random position
                 or from the horizontal one;
-            m (float, 1.0): mass of the pendulum;
-            l (float, 1.0): length of the pendulum;
-            g (float, 9.8): gravity acceleration constant;
-            mu (float, 1e-2): friction constant of the pendulum;
+            pole_mass (float, 1.0): mass of the pendulum;
+            pole_length (float, 1.0): length of the pendulum;
+            gravity (float, 9.8): gravity acceleration constant;
+            friction (float, 1e-2): friction constant of the pendulum;
             max_u (float, 5.0): maximum allowed input torque;
             horizon (int, 5000): horizon of the problem;
             gamma (int, .99): discount factor.
 
         """
         # MDP parameters
-        self._m = m
-        self._l = l
-        self._g = g
-        self._mu = mu
+        self._m = pole_mass
+        self._l = pole_length
+        self._g = gravity
+        self._mu = friction
         self._random = random_start
         self._max_u = max_u
         self._max_omega = 5 / 2 * np.pi
@@ -49,7 +49,7 @@ class InvertedPendulum(Environment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, dt)
 
         # Visualization
-        self._viewer = Viewer(2.5 * l, 2.5 * l)
+        self._viewer = Viewer(2.5 * pole_length, 2.5 * pole_length)
         self._last_u = None
 
         super().__init__(mdp_info)
