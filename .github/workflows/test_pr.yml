@@ -30,12 +30,14 @@ jobs:
     - name: Install Atari ROMs
       run: |
         pip install "autorom[accept-rom-license]"
-    - name: Lint with flake8
+    - name: Lint with flake8 (errors)
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. Project style uses a 120-char line length
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+    - name: Lint with flake8 (style)
+      run: |
+        # stop the build on any style issue. Project style uses a 120-char line length
+        flake8 . --count --max-complexity=10 --max-line-length=120 --show-source --statistics
     - name: Log CPU model
       run: lscpu | grep "Model name"
     - name: Test with pytest

@@ -1,5 +1,4 @@
 For Mushroom 2.0:
-    * linting as much as possible
     * Check MuJoCo envs (in particular air hockey)
     * Fix examples showing poor learning
         - Mujoco: air hockey, manipulation, locomotion
