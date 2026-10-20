@@ -87,7 +87,7 @@ class Gymnasium(Environment):
         else:
             _, info = self.env.reset(seed=self._seed)
             self._seed = None
-            self.env.state = state
+            self.env.unwrapped.state = state
 
             return np.atleast_1d(state).copy(), info
 
