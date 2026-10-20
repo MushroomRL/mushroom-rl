@@ -44,9 +44,10 @@ missing from ``Environment.list_registered()`` means its extra is not installed.
    "``dm_control``", "The DeepMind Control Suite"
    "``bullet``", "The PyBullet environments"
    "``box2d``", "The Box2D Gymnasium environments"
+   "``isaacsim``", "The Isaac Sim environments"
    "``monitors``", "The live plotting windows (:doc:`api/utils/monitors`)"
    "``wandb``", "Logging to Weights & Biases"
-   "``all``", "Everything above **except** ``box2d`` and ``bullet``"
+   "``all``", "Everything above **except** ``box2d``, ``bullet`` and ``isaacsim``"
 
 Install one or more of them with the usual syntax, e.g.
 
@@ -60,8 +61,14 @@ or, from a clone,
 
     pip install -e .[all]
 
-The Isaac Sim environments are not covered by an extra: Isaac Sim has to be installed separately, following
-NVIDIA's instructions.
+The ``isaacsim`` extra has to be installed in a dedicated environment, never alongside the other extras:
+
+* Isaac Sim supports **Python 3.12 only**, whereas MushroomRL also supports Python 3.11.
+* ``isaacsim-core`` pins exact versions of packages shared with the other extras (``mujoco==3.11.0``,
+  ``mujoco-warp==3.11.0``, ``torch==2.11.0``, ``scipy==1.17.0``), so they cannot move past those versions in the
+  same environment.
+
+Running the Isaac Sim environments additionally requires an NVIDIA RTX GPU.
 
 Building the documentation
 --------------------------
