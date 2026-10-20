@@ -98,21 +98,17 @@ class Gymnasium(Environment):
         return np.atleast_1d(obs).copy(), reward, absorbing, info
 
     def render(self, record=False):
+        img = self.env.render()
+
         if self._first:
-            img = self.env.render()
+            self._viewer = ImageViewer((img.shape[1], img.shape[0]), self.info.dt, headless=self._headless)
 
-            if self._first:
-                self._viewer = ImageViewer((img.shape[1], img.shape[0]), self.info.dt, headless=self._headless)
+        self._viewer.display(img)
 
-            self._viewer.display(img)
+        self._first = False
 
-            self._first = False
-
-            if record:
-                return img
-            else:
-                return None
-
+        if record:
+            return img
         return None
 
     def stop(self):
