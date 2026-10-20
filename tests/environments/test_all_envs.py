@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from mushroom_rl.environments.gymnasium_env import Gymnasium
 from mushroom_rl.environments.atari import Atari
 from mushroom_rl.environments.minigrid_env import MiniGrid, MiniGridRGB
@@ -136,6 +137,62 @@ def test_gymnasium():
     ns_test = np.array([0.9996687, -0.02573896, 0.9839331, -0.17853762, -0.17821608, 0.5534913])
 
     assert np.allclose(ns, ns_test)
+
+
+def test_gymnasium_reset_state():
+    mdp = Gymnasium('MountainCar-v0', 1000, .99)
+    mdp.seed(1)
+    initial_state = np.array([-.75, -.02])
+    state, _ = mdp.reset(initial_state)
+    assert np.array_equal(state, initial_state)
+    assert not np.shares_memory(state, initial_state)
+    for i in range(5):
+        ns, r, ab, _ = mdp.step(np.array([2]))
+    ns_test = np.array([-0.8097278, -0.0063345535])
+
+    assert np.allclose(ns, ns_test)
+    assert r == -1.
+    assert not ab
+    assert np.array_equal(initial_state, np.array([-.75, -.02]))
+
+    mdp = Gymnasium('CartPole-v1', 1000, .99)
+    mdp.seed(1)
+    initial_state = np.array([.1, 0., .1, 0.])
+    state, _ = mdp.reset(initial_state)
+    assert np.array_equal(state, initial_state)
+    for i in range(5):
+        ns, r, ab, _ = mdp.step(np.array([1]))
+    ns_test = np.array([0.13872232, 0.96879756, 0.04791078, -1.3157222])
+
+    assert np.allclose(ns, ns_test)
+    assert r == 1.
+    assert not ab
+
+
+def test_gymnasium_reset_state_not_supported():
+    for name in ['Pendulum-v1', 'FrozenLake-v1']:
+        mdp = Gymnasium(name, 100, .99)
+        state, _ = mdp.reset()
+        with pytest.raises(NotImplementedError):
+            mdp.reset(state)
+
+
+def test_gymnasium_render():
+    mdp = Gymnasium('Pendulum-v1', 200, .99, headless=True)
+    for _ in range(2):
+        mdp.seed(1)
+        mdp.reset()
+        frames = []
+        for i in range(3):
+            mdp.step(np.array([.5]))
+            frames.append(mdp.render(record=True))
+            assert np.array_equal(frames[-1], mdp.env.render())
+            assert mdp.render(record=False) is None
+        mdp.stop()
+
+        assert all(frame.shape == (500, 500, 3) and frame.dtype == np.uint8 for frame in frames)
+        assert not np.array_equal(frames[0], frames[1])
+        assert not np.array_equal(frames[1], frames[2])
 
 
 def test_inverted_pendulum():

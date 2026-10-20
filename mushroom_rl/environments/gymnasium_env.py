@@ -87,6 +87,10 @@ class Gymnasium(Environment):
         else:
             _, info = self.env.reset(seed=self._seed)
             self._seed = None
+
+            if not self._can_set_state:
+                raise NotImplementedError(f'{self._env_name} does not expose the observation as its state, it '
+                                          f'cannot be reset to a given state.')
             self.env.unwrapped.state = state
 
             return np.atleast_1d(state).copy(), info
@@ -146,3 +150,9 @@ class Gymnasium(Environment):
             return Box(low=space.low, high=space.high, shape=space.shape)
         else:
             raise ValueError
+
+    @property
+    def _can_set_state(self):
+        unwrapped = self.env.unwrapped
+
+        return hasattr(unwrapped, 'state') and np.shape(unwrapped.state) == self.env.observation_space.shape
