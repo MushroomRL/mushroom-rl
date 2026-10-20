@@ -36,45 +36,17 @@ class IndexMap(object):
         self._contacts.compute_contacts()
 
         for name, obs_type in self.observation_map:
-            if obs_type is PyBulletObservationType.BODY_POS \
-               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
-               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
-                model_id = self.model_map[name]
-                if obs_type is PyBulletObservationType.BODY_POS:
-                    t, q = self._client.getBasePositionAndOrientation(model_id)
-                    data_obs += t + q
-                else:
-                    v, w = self._client.getBaseVelocity(model_id)
-                    if obs_type is PyBulletObservationType.BODY_LIN_VEL:
-                        data_obs += v
-                    else:
-                        data_obs += w
-            elif obs_type is PyBulletObservationType.LINK_POS \
-                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
-                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
-                model_id, link_id = self.link_map[name]
-
-                if obs_type is PyBulletObservationType.LINK_POS:
-                    link_data = self._client.getLinkState(model_id, link_id)
-                    t = link_data[0]
-                    q = link_data[1]
-                    data_obs += t + q
-                elif obs_type is PyBulletObservationType.LINK_LIN_VEL:
-                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-2]
-                elif obs_type is PyBulletObservationType.LINK_ANG_VEL:
-                    data_obs += self._client.getLinkState(model_id, link_id, computeLinkVelocity=True)[-1]
-            elif obs_type is PyBulletObservationType.JOINT_POS \
-                    or obs_type is PyBulletObservationType.JOINT_VEL:
-                model_id, joint_id = self.joint_map[name]
-                pos, vel, _, _ = self._client.getJointState(model_id, joint_id)
-                if obs_type is PyBulletObservationType.JOINT_POS:
-                    data_obs.append(pos)
-                elif obs_type is PyBulletObservationType.JOINT_VEL:
-                    data_obs.append(vel)
-            elif obs_type is PyBulletObservationType.CONTACT_FLAG:
+            if obs_type.is_contact():
                 contact = self._contacts.get_contact(name)
-                contact_flag = 0 if contact is None else 1
-                data_obs.append(contact_flag)
+                data_obs.append(0 if contact is None else 1)
+            else:
+                data = getattr(self._client, obs_type.accessor)(*self._element_ids(name, obs_type),
+                                                                **obs_type.accessor_kwargs)
+                for component in obs_type.components:
+                    if obs_type.is_joint():
+                        data_obs.append(data[component])
+                    else:
+                        data_obs += data[component]
 
         return np.array(data_obs)
 
@@ -141,40 +113,41 @@ class IndexMap(object):
         high = list()
 
         for name, obs_type in self.observation_map:
-            index_count = len(low)
-            if obs_type is PyBulletObservationType.BODY_POS \
-               or obs_type is PyBulletObservationType.BODY_LIN_VEL \
-               or obs_type is PyBulletObservationType.BODY_ANG_VEL:
-                n_dim = 7 if obs_type is PyBulletObservationType.BODY_POS else 3
-                low += [-np.inf] * n_dim
-                high += [np.inf] * n_dim
-            elif obs_type is PyBulletObservationType.LINK_POS \
-                    or obs_type is PyBulletObservationType.LINK_LIN_VEL \
-                    or obs_type is PyBulletObservationType.LINK_ANG_VEL:
-                n_dim = 7 if obs_type is PyBulletObservationType.LINK_POS else 3
-                low += [-np.inf] * n_dim
-                high += [np.inf] * n_dim
-            elif obs_type is PyBulletObservationType.JOINT_POS \
-                    or obs_type is PyBulletObservationType.JOINT_VEL:
-                model_id, joint_id = self.joint_map[name]
-                joint_info = self._client.getJointInfo(model_id, joint_id)
+            if not isinstance(obs_type, PyBulletObservationType):
+                raise RuntimeError('Unsupported observation type')
 
-                if obs_type is PyBulletObservationType.JOINT_POS:
-                    low.append(joint_info[8])
-                    high.append(joint_info[9])
-                else:
-                    max_joint_vel = joint_info[11]
-                    low.append(-max_joint_vel)
-                    high.append(max_joint_vel)
-            elif obs_type is PyBulletObservationType.CONTACT_FLAG:
+            index_count = len(low)
+            if obs_type.is_joint():
+                joint_low, joint_high = self._joint_limits(name, obs_type)
+                low.append(joint_low)
+                high.append(joint_high)
+            elif obs_type.is_contact():
                 low.append(0.)
                 high.append(1.)
             else:
-                raise RuntimeError('Unsupported observation type')
+                low += [-np.inf] * obs_type.length
+                high += [np.inf] * obs_type.length
 
             self._add_observation_index(name, obs_type, index_count, len(low))
 
         return np.array(low), np.array(high)
+
+    def _joint_limits(self, name, obs_type):
+        joint_info = self._client.getJointInfo(*self.joint_map[name])
+
+        if obs_type is PyBulletObservationType.JOINT_POS:
+            return joint_info[8], joint_info[9]
+        else:
+            max_joint_vel = joint_info[11]
+            return -max_joint_vel, max_joint_vel
+
+    def _element_ids(self, name, obs_type):
+        if obs_type.is_body():
+            return self.model_map[name],
+        elif obs_type.is_link():
+            return self.link_map[name]
+        else:
+            return self.joint_map[name]
 
     def _add_observation_index(self, name, obs_type, start, end):
         if name not in self.observation_indices_map:
