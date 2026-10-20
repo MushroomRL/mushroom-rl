@@ -15,9 +15,8 @@ class MuJoCoWarp(VectorizedEnvironment):
     """
     Class to create N parallel environments using MuJoCo Warp for GPU-accelerated batch simulation.
 
-    Simulation is not bit-reproducible run to run beyond the first couple of steps: the GPU contact solver's
-    parallel reduction order isn't fixed, so identical seeds can diverge by ~1e-6 after a handful of steps.
-    Construct the environment with ``device='cpu'`` for bit-reproducible results.
+    Simulation on GPU is not bit-reproducible across runs with the same seed. Construct the environment with
+    ``device='cpu'`` for bit-reproducible results.
 
     """
 
@@ -196,7 +195,7 @@ class MuJoCoWarp(VectorizedEnvironment):
 
             self._simulation_pre_step()
 
-            self.step_graph()
+            self._step_simulation()
 
             self._simulation_post_step()
 
@@ -212,25 +211,31 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         return self._modify_observation(cur_obs), reward, absorbing & env_mask, info
 
-    def step_graph(self):
-        if not self._use_graph_capture:
+    def _step_simulation(self):
+        """
+        Advance the simulation of every world by ``n_substeps`` simulation steps. This is the sequence of steps captured
+        as a CUDA graph when ``use_graph_capture`` is True: the graph is captured on the first call and replayed on
+        every call.
+
+        """
+        if self._use_graph_capture:
+            if self._sim_step_graph is None:
+                with self._wp.ScopedCapture() as cap:
+                    for _ in range(self._n_substeps):
+                        self._mj_warp.step(self._model_wp, self._data_wp)
+                self._sim_step_graph = cap.graph
+
+            self._wp.capture_launch(self._sim_step_graph)
+        else:
             for _ in range(self._n_substeps):
                 self._mj_warp.step(self._model_wp, self._data_wp)
-            return
-        if self._sim_step_graph is None:
-            with self._wp.ScopedCapture() as cap:
-                for _ in range(self._n_substeps):
-                    self._mj_warp.step(self._model_wp, self._data_wp)
-            self._sim_step_graph = cap.graph
-
-        self._wp.capture_launch(self._sim_step_graph)
 
     def reset_all(self, env_mask, state=None):
         env_indices = torch.where(env_mask)[0]
 
         self._reset_mask_t.zero_()
         self._reset_mask_t[env_indices] = True
-        self._reset_data(self._reset_mask_wp)
+        self._reset_simulation(self._reset_mask_wp)
         self.setup(env_indices, state)
 
         obs = self._create_observation(self.obs_helper.build_obs())
@@ -244,20 +249,26 @@ class MuJoCoWarp(VectorizedEnvironment):
         info = self._create_info_dictionary(obs)
         return obs.clone(), info
 
-    def _reset_data(self, reset_mask_wp):
-        if not self._use_graph_capture:
+    def _reset_simulation(self, reset_mask_wp):
+        """
+        Reset the simulation data of the selected worlds. This is the reset captured as a CUDA graph when
+        ``use_graph_capture`` is True: the graph is captured on the first call and replayed on every call, reading
+        the mask array passed on the first call, so every later call must pass that same array, with its contents
+        updated.
+
+        Args:
+            reset_mask_wp (warp.array): boolean array of shape (num_envs,) selecting the worlds to reset.
+
+        """
+        if self._use_graph_capture:
+            if self._reset_graph is None:
+                with self._wp.ScopedCapture() as cap:
+                    self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask_wp)
+                self._reset_graph = cap.graph
+
+            self._wp.capture_launch(self._reset_graph)
+        else:
             self._mj_warp.reset_data(self._model_wp, self._data_wp, reset=reset_mask_wp)
-            return
-
-        if self._reset_graph is None:
-
-            with self._wp.ScopedCapture() as cap:
-                self._mj_warp.reset_data(
-                    self._model_wp, self._data_wp, reset=reset_mask_wp
-                )
-            self._reset_graph = cap.graph
-
-        self._wp.capture_launch(self._reset_graph)
 
     def render_all(self, env_mask, record=False):
         if self._viewer is None:
@@ -602,8 +613,18 @@ class MuJoCoWarp(VectorizedEnvironment):
     # ------------------------------------------------------------------
 
     def get_all_observation_keys(self):
+        """
+        Returns:
+            The list of observation keys defined in the observation specification.
+
+        """
         return self.obs_helper.get_all_observation_keys()
 
     @property
     def dt(self):
+        """
+        Returns:
+            The duration of a control step of the environment.
+
+        """
         return self._timestep * self._n_intermediate_steps * self._n_substeps
