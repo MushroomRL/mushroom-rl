@@ -24,6 +24,7 @@ registered only if that dependency imports successfully, so an environment missi
    finite/index
    external/index
    mujoco/index
+   mujoco_warp/index
    pybullet/index
    isaacsim/index
 
@@ -77,6 +78,20 @@ registered only if that dependency imports successfully, so an environment missi
    "AirHockeyDefend", ":class:`~mushroom_rl.environments.mujoco_envs.air_hockey.defend.AirHockeyDefend`", "Box (13)", "Box (3)", "``mushroom_rl[mujoco]``"
    "AirHockeyPrepare", ":class:`~mushroom_rl.environments.mujoco_envs.air_hockey.prepare.AirHockeyPrepare`", "Box (13)", "Box (3)", "``mushroom_rl[mujoco]``"
    "AirHockeyRepel", ":class:`~mushroom_rl.environments.mujoco_envs.air_hockey.repel.AirHockeyRepel`", "Box (13)", "Box (3)", "``mushroom_rl[mujoco]``"
+
+.. rubric:: MuJoCo Warp
+
+The MuJoCo Warp environments are vectorized environments: they step a batch of simulated copies at once, and are
+driven through the vectorized ``Core``. Their constructors require ``num_envs``.
+
+.. csv-table::
+   :header: "``make()`` name", "Class", "Observations", "Actions", "Extra dependency"
+   :widths: 22, 24, 18, 16, 20
+
+   "AntWarp", ":class:`~mushroom_rl.environments.mujoco_warp_envs.locomotion.ant.AntWarp`", "Box (27)", "Box (8)", "``mushroom_rl[mujoco_warp]``"
+   "HalfCheetahWarp", ":class:`~mushroom_rl.environments.mujoco_warp_envs.locomotion.half_cheetah.HalfCheetahWarp`", "Box (17)", "Box (6)", "``mushroom_rl[mujoco_warp]``"
+   "HopperWarp", ":class:`~mushroom_rl.environments.mujoco_warp_envs.locomotion.hopper.HopperWarp`", "Box (11)", "Box (3)", "``mushroom_rl[mujoco_warp]``"
+   "Walker2DWarp", ":class:`~mushroom_rl.environments.mujoco_warp_envs.locomotion.walker_2d.Walker2DWarp`", "Box (17)", "Box (6)", "``mushroom_rl[mujoco_warp]``"
 
 .. rubric:: PyBullet
 

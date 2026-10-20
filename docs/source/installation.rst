@@ -40,6 +40,7 @@ missing from ``Environment.list_registered()`` means its extra is not installed.
    "``atari``", "The Arcade Learning Environment games"
    "``minigrid``", "The MiniGrid grid worlds"
    "``mujoco``", "The MuJoCo environments"
+   "``mujoco_warp``", "The MuJoCo Warp environments"
    "``dm_control``", "The DeepMind Control Suite"
    "``bullet``", "The PyBullet environments"
    "``box2d``", "The Box2D Gymnasium environments"

@@ -6,8 +6,8 @@ knows about agents, environments or datasets: these are the mathematical, plotti
 utilities the rest of the library is written on top of.
 
 The last three pages are the helpers used to *write* an environment on a given simulator, and are needed when
-subclassing ``MuJoCo``, ``PyBullet`` or ``IsaacSim`` rather than when using one of the environments already
-implemented.
+subclassing ``MuJoCo``, ``MuJoCoWarp``, ``PyBullet`` or ``IsaacSim`` rather than when using one of the environments
+already implemented.
 
 .. toctree::
    :maxdepth: 1

@@ -225,6 +225,7 @@ autodoc_mock_imports = ['scipy', 'sklearn', 'ale_py', 'pybullet', 'pybullet_data
                         'dm_control', 'minigrid', 'mujoco', 'glfw', 'av', 'cv2',
                         'isaacsim', 'carb', 'omni', 'pxr', 'warp', 'pyqtgraph', 'PySide6', 'mujoco_warp']
 add_module_names = False
+autodoc_class_signature = 'separated'
 
 autodoc_default_options = {
     'members': True,
