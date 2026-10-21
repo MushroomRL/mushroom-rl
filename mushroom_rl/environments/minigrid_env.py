@@ -12,7 +12,7 @@ class MiniGridBase(Gymnasium):
 
         self._fixed_seed = fixed_seed
         self._img_size = self.env.observation_space.shape[0:2]
-        self.info.observation_space = Box(low=0., high=obs_high, shape=self._obs_shape())
+        self.info.observation_space = Box(low=0., high=obs_high, shape=self._obs_shape(), data_type=np.uint8)
         self.info.dt = 1 / self.env.unwrapped.metadata["render_fps"]
         self.env.unwrapped.max_steps = self.info.horizon + 1
 

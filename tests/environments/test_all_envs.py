@@ -333,6 +333,7 @@ def test_taxi():
 def test_minigrid():
     np.random.seed(1)
     mdp = MiniGrid('MiniGrid-Empty-5x5-v0', fixed_seed=1)
+    assert mdp.info.observation_space.data_type == np.uint8
     mdp.reset()
     states, snapshots = [], []
     for i in range(10):
@@ -349,6 +350,7 @@ def test_minigrid():
 def test_minigrid_rgb():
     np.random.seed(1)
     mdp = MiniGridRGB('MiniGrid-Empty-5x5-v0', fixed_seed=1)
+    assert mdp.info.observation_space.data_type == np.uint8
     mdp.reset()
     states, snapshots = [], []
     for i in range(10):
