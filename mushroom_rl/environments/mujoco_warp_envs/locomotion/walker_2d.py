@@ -151,6 +151,10 @@ class Walker2DWarp(MuJoCoWarp):
     def setup(self, env_indices, obs):
         super().setup(env_indices, obs)
 
+        if obs is not None:
+            self._mj_warp.forward(self._model_wp, self._data_wp)
+            return
+
         qpos = wp.to_torch(self._data_wp.qpos)
         qvel = wp.to_torch(self._data_wp.qvel)
 

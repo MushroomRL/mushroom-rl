@@ -170,7 +170,8 @@ class Walker2D(MuJoCo):
     def setup(self, obs):
         super().setup(obs)
 
-        self._generate_noise()
+        if obs is None:
+            self._generate_noise()
 
         mujoco.mj_forward(self._model, self._data)  # type: ignore
 
