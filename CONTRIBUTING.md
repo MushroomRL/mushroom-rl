@@ -55,3 +55,12 @@ Proposing improvements
 If you find some lack of features, please open a GitHub issue and use the "enhancement" tag to label it. However, before
 opening a pull request, we suggest to discuss it with the maintainers of the library, that will be glad of providing
 suggestions and help in case the proposed improvement is particularly interesting.
+
+AI-generated pull requests
+--------------------------
+Everyone is welcome to contribute to MushroomRL. However, maintaining the library becomes very difficult when we are
+flooded with pull requests making minor, irrelevant changes, and reviewing code and tests that do not follow the
+style of the library often takes us more time than fixing the problem ourselves. For this reason, we do not accept
+unsolicited AI-generated pull requests, unless they fix a major bug in the library: those proposing minor changes will
+be closed without review, and users who keep submitting them will be blocked. If you have found a minor bug, please
+open a GitHub issue instead: a short description of the problem is much easier for us to handle than a pull request.
