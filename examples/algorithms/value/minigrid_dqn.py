@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, \
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
 from mushroom_rl.core import Core, Logger
-from mushroom_rl.environments import MiniGridRGB
+from mushroom_rl.environments import MiniGrid, MiniGridRGB
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
@@ -21,12 +21,12 @@ from mushroom_rl.utils.experiments import get_log_dir, select_class
 
 
 class Network(nn.Module):
-    def __init__(self, input_shape, output_shape, n_features=512, obs_high=255., **kwargs):
+    def __init__(self, input_shape, output_shape, feature_network, n_features=512, obs_high=255., **kwargs):
         super().__init__()
 
         n_output = output_shape[0]
 
-        self._phi = FeatureNetwork(input_shape, (n_features,), obs_high=obs_high)
+        self._phi = feature_network(input_shape, (n_features,), obs_high=obs_high)
         self._h5 = nn.Linear(n_features, n_output)
 
         nn.init.xavier_uniform_(self._h5.weight,
@@ -77,6 +77,31 @@ class FeatureNetwork(nn.Module):
         return F.relu(self._h4(h.view(state.shape[0], -1)))
 
 
+class SymbolicFeatureNetwork(nn.Module):
+    def __init__(self, input_shape, output_shape, obs_high=10., **kwargs):
+        super().__init__()
+
+        n_input = int(np.prod(input_shape[:-2]))
+        n_output = output_shape[0]
+
+        self._obs_high = obs_high
+
+        self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, padding=1)
+        self._h2 = nn.Conv2d(32, 64, kernel_size=3)
+        self._h3 = nn.Conv2d(64, 64, kernel_size=3)
+        self._h4 = nn.Linear(64 * 3 * 3, n_output)
+
+        for layer in (self._h1, self._h2, self._h3, self._h4):
+            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+
+    def forward(self, state, action=None):
+        h = state.float().reshape(state.shape[0], -1, *state.shape[-2:]) / self._obs_high
+        h = F.relu(self._h1(h))
+        h = F.relu(self._h2(h))
+        h = F.relu(self._h3(h))
+        return F.relu(self._h4(h.flatten(1)))
+
+
 def get_algorithms():
     """
     Return the DQN variants the script can run.
@@ -124,8 +149,10 @@ def build_approximator_params(alg, args, mdp):
     distributional_algorithms = [CategoricalDQN, Rainbow]
     ensemble_algorithms = [AveragedDQN, MaxminDQN]
 
+    feature_network = SymbolicFeatureNetwork if args.observation == 'symbolic' else FeatureNetwork
+
     approximator_params = dict(
-        network=FeatureNetwork if alg in feature_algorithms else Network,
+        network=feature_network if alg in feature_algorithms else Network,
         input_shape=(args.history_length,) + mdp.info.observation_space.shape,
         output_shape=(mdp.info.action_space.n,),
         n_actions=mdp.info.action_space.n,
@@ -134,6 +161,9 @@ def build_approximator_params(alg, args, mdp):
         optimizer=TorchUtils.get_optimizer(args.optimizer, args.learning_rate, eps=args.epsilon,
                                            decay=args.decay),
     )
+
+    if alg not in feature_algorithms:
+        approximator_params['feature_network'] = feature_network
 
     if alg not in distributional_algorithms:
         approximator_params['loss'] = F.smooth_l1_loss
@@ -212,7 +242,7 @@ def experiment(args, seed=None):
     settings = get_settings(args)
 
     # MDP
-    mdp = MiniGridRGB(args.name)
+    mdp = MiniGrid(args.name) if args.observation == 'symbolic' else MiniGridRGB(args.name)
     mdp.seed(seed)
 
     if args.load_path:
@@ -249,7 +279,7 @@ def experiment(args, seed=None):
                     results_dir=get_log_dir(__file__), use_timestamp=True)
     logger.log_experiment_info(alg, mdp, batch_size=args.batch_size, history_length=args.history_length,
                                optimizer=args.optimizer, learning_rate=args.learning_rate,
-                               prioritized=args.prioritized, **settings)
+                               prioritized=args.prioritized, observation=args.observation, **settings)
 
     # Algorithm
     core = Core(agent, mdp, logger=logger)
@@ -283,12 +313,14 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
 
     arg_env = parser.add_argument_group('Environment')
-    arg_env.add_argument("--name", type=str, default='MiniGrid-Empty-5x5-v0',
+    arg_env.add_argument("--name", type=str, default='MiniGrid-DoorKey-5x5-v0',
                          help='Gymnasium ID of the MiniGrid environment.')
+    arg_env.add_argument("--observation", choices=['rgb', 'symbolic'], default='rgb',
+                         help='Observation: grayscale pixels or the symbolic 7x7x3 grid.')
 
     arg_mem = parser.add_argument_group('Replay Memory')
     arg_mem.add_argument("--initial-replay-size", type=int, default=5_000, help='Initial size of the replay memory.')
-    arg_mem.add_argument("--max-replay-size", type=int, default=500_000, help='Max size of the replay memory.')
+    arg_mem.add_argument("--max-replay-size", type=int, default=100_000, help='Max size of the replay memory.')
     arg_mem.add_argument("--prioritized", action='store_true', help='Whether to use prioritized memory or not.')
 
     arg_net = parser.add_argument_group('Deep Q-Network')
@@ -309,15 +341,15 @@ def parse_args():
                               "initialized networks. Defaults to the value of the selected algorithm.")
     arg_alg.add_argument("--batch-size", type=int, default=32, help='Batch size for each fit of the network.')
     arg_alg.add_argument("--history-length", type=int, default=4, help='Number of frames composing a state.')
-    arg_alg.add_argument("--target-update-frequency", type=int, default=10_000,
+    arg_alg.add_argument("--target-update-frequency", type=int, default=1_000,
                          help='Number of collected samples before each update of the target network.')
-    arg_alg.add_argument("--evaluation-frequency", type=int, default=250_000,
+    arg_alg.add_argument("--evaluation-frequency", type=int, default=25_000,
                          help='Number of collected samples before each evaluation. An epoch ends after '
                               'this number of steps')
     arg_alg.add_argument("--train-frequency", type=int, default=4,
                          help='Number of collected samples before each fit of the neural network.')
-    arg_alg.add_argument("--max-steps", type=int, default=5_000_000, help='Total number of collected samples.')
-    arg_alg.add_argument("--final-exploration-frame", type=int, default=1_000_000,
+    arg_alg.add_argument("--max-steps", type=int, default=300_000, help='Total number of collected samples.')
+    arg_alg.add_argument("--final-exploration-frame", type=int, default=100_000,
                          help='Number of collected samples until the exploration rate stops decreasing.')
     arg_alg.add_argument("--initial-exploration-rate", type=float, default=1.,
                          help='Initial value of the exploration rate.')
@@ -326,7 +358,7 @@ def parse_args():
                               'constant.')
     arg_alg.add_argument("--test-exploration-rate", type=float, default=.05,
                          help='Exploration rate used during evaluation.')
-    arg_alg.add_argument("--test-episodes", type=int, default=10,
+    arg_alg.add_argument("--test-episodes", type=int, default=20,
                          help='Number of episodes for each evaluation.')
     arg_alg.add_argument("--alpha-coeff", type=float, default=.6,
                          help='Prioritization exponent for prioritized experience replay.')
@@ -357,7 +389,12 @@ def parse_args():
     arg_utils.add_argument('--seed', type=int, default=None,
                            help='Seed of the experiment. Random when not given.')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.history_length < 2:
+        parser.error('--history-length must be at least 2.')
+
+    return args
 
 
 if __name__ == '__main__':

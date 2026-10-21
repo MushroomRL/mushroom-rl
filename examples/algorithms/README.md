@@ -8,14 +8,14 @@ Split by the three families of `mushroom_rl.algorithms`.
 
 ## [`value/`](value) — value-based methods
 
-| Script                                                         | Algorithm                                          | Environment                              |
-|----------------------------------------------------------------|----------------------------------------------------|------------------------------------------|
-| [`simple_chain_qlearning.py`](value/simple_chain_qlearning.py) | Q-Learning                                         | SimpleChain                              |
-| [`grid_world_sarsa.py`](value/grid_world_sarsa.py)             | SARSA(λ)                                           | GridWorld or Taxi, selected with `--env` |
-| [`puddle_world_sarsa.py`](value/puddle_world_sarsa.py)         | True Online SARSA(λ) with tile coding              | PuddleWorld                              |
-| [`gym_mountain_car_sarsa.py`](value/gym_mountain_car_sarsa.py) | True Online SARSA(λ) with tile coding              | MountainCar                              |
-| [`gym_acrobot_dqn.py`](value/gym_acrobot_dqn.py)               | DQN                                                | Acrobot                                  |
-| [`minigrid_dqn.py`](value/minigrid_dqn.py)                     | DQN and its variants, selected on the command line | MiniGrid, from pixels                    |
+| Script                                                         | Algorithm                                          | Environment                                                                       |
+|----------------------------------------------------------------|----------------------------------------------------|-----------------------------------------------------------------------------------|
+| [`simple_chain_qlearning.py`](value/simple_chain_qlearning.py) | Q-Learning                                         | SimpleChain                                                                       |
+| [`grid_world_sarsa.py`](value/grid_world_sarsa.py)             | SARSA(λ)                                           | GridWorld or Taxi, selected with `--env`                                          |
+| [`puddle_world_sarsa.py`](value/puddle_world_sarsa.py)         | True Online SARSA(λ) with tile coding              | PuddleWorld                                                                       |
+| [`gym_mountain_car_sarsa.py`](value/gym_mountain_car_sarsa.py) | True Online SARSA(λ) with tile coding              | MountainCar                                                                       |
+| [`gym_acrobot_dqn.py`](value/gym_acrobot_dqn.py)               | DQN                                                | Acrobot                                                                           |
+| [`minigrid_dqn.py`](value/minigrid_dqn.py)                     | DQN and its variants, selected on the command line | MiniGrid DoorKey, from pixels or the symbolic grid, selected with `--observation` |
 
 `grid_world_sarsa.py` also computes the optimal return exactly with value iteration, and reports it next to the learned
 one as a reference.
