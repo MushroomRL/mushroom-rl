@@ -4,12 +4,12 @@ from mushroom_rl.features.features import Features
 
 
 class TilesFeatures(Features):
-    def __init__(self, feature_list=None, backend='numpy'):
+    def __init__(self, feature_list=None, *, backend='numpy', **kwargs):
         self._tiles = self._as_list(feature_list)
 
         self._compute_size()
 
-        super().__init__(backend, internal_backend='numpy')
+        super().__init__(feature_list=feature_list, backend=backend, **kwargs)
 
         self._add_save_attr(_tiles='mushroom')
 
@@ -67,3 +67,7 @@ class TilesFeatures(Features):
 
         for tiling in self._tiles:
             self._size += tiling.size
+
+    @property
+    def _internal_backend(self):
+        return 'numpy'

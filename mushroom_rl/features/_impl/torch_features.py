@@ -23,10 +23,10 @@ class TorchFeatures(Features):
         def size(self):
             return sum(phi.size for phi in self._phi)
 
-    def __init__(self, feature_list=None, backend='numpy'):
+    def __init__(self, feature_list=None, *, backend='numpy', **kwargs):
         self._phi = self.TorchFeatureModule(self._as_list(feature_list))
 
-        super().__init__(backend, internal_backend='torch')
+        super().__init__(feature_list=feature_list, backend=backend, **kwargs)
 
         self._add_save_attr(_phi='torch')
 
@@ -45,3 +45,7 @@ class TorchFeatures(Features):
             return y[0]
 
         return y
+
+    @property
+    def _internal_backend(self):
+        return 'torch'

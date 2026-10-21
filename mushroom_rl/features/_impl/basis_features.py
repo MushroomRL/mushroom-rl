@@ -4,10 +4,10 @@ from mushroom_rl.features.features import Features
 
 
 class BasisFeatures(Features):
-    def __init__(self, feature_list=None, backend='numpy'):
+    def __init__(self, feature_list=None, *, backend='numpy', **kwargs):
         self._basis = self._as_list(feature_list)
 
-        super().__init__(backend, internal_backend='numpy')
+        super().__init__(feature_list=feature_list, backend=backend, **kwargs)
 
         self._add_save_attr(_basis='mushroom')
 
@@ -26,3 +26,7 @@ class BasisFeatures(Features):
             return out[0]
 
         return out
+
+    @property
+    def _internal_backend(self):
+        return 'numpy'

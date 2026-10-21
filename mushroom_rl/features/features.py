@@ -30,9 +30,9 @@ class Features(MushroomObject):
         backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``.
 
     """
-    def __new__(cls, feature_list=None, n_outputs=None, function=None, backend='numpy'):
+    def __new__(cls, feature_list=None, *, n_outputs=None, function=None, backend='numpy'):
         if cls is not Features:
-            return MushroomObject.__new__(cls)
+            return super().__new__(cls)
 
         if feature_list is not None:
             if n_outputs is not None or function is not None:
@@ -53,29 +53,29 @@ class Features(MushroomObject):
                 raise ValueError('The feature_list must be a homogeneous list of basis functions, tilings or '
                                  'basis tensors.')
 
-            return MushroomObject.__new__(impl)
+            return super().__new__(impl)
         elif n_outputs is not None:
-            return MushroomObject.__new__(FunctionalFeatures)
+            return super().__new__(FunctionalFeatures)
         else:
             raise ValueError('You must specify either a feature_list (basis functions, tilings or basis tensors) or '
                              'the number of outputs (and optionally the functional mapping to use).')
 
-    def __init__(self, backend='numpy', internal_backend='numpy'):
+    def __init__(self, feature_list=None, *, n_outputs=None, function=None, backend='numpy'):
         """
         Constructor.
 
         Args:
-            backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``;
-            internal_backend (str, 'numpy'): the backend the features are computed in, set by the implementation.
-                The raw input is converted into it before computing the features.
+            feature_list ([object, list], None): single object or list of tilings, basis functions or tensor basis;
+            n_outputs (int, None): dimensionality of the feature mapping;
+            function (object, None): a callable function to be used as feature mapping;
+            backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``.
 
         """
         assert backend in ["numpy", "torch"], f"{backend} backend currently not supported in the features class."
 
         self._backend = backend
-        self._internal_backend = internal_backend
 
-        self._add_save_attr(_backend='primitive', _internal_backend='primitive')
+        self._add_save_attr(_backend='primitive')
 
     def __call__(self, *x):
         """
@@ -182,6 +182,16 @@ class Features(MushroomObject):
     @staticmethod
     def _as_list(feature_list):
         return feature_list if isinstance(feature_list, list) else [feature_list]
+
+    @property
+    def _internal_backend(self):
+        """
+        Returns:
+            The backend the features are computed in. The raw input is converted into it before computing the
+            features.
+
+        """
+        raise NotImplementedError
 
 
 from ._impl import BasisFeatures, TilesFeatures, TorchFeatures, FunctionalFeatures  # noqa: E402
