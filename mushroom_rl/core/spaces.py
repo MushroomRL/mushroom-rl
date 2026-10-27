@@ -86,7 +86,7 @@ class Box(MushroomObject):
     def data_type(self):
         return self._data_type
 
-    def _post_load(self):
+    def _post_load(self, device):
         self._shape = self._low.shape
 
 

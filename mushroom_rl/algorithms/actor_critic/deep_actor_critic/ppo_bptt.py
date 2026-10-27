@@ -236,6 +236,6 @@ class PPO_BPTT(OnPolicyDeepAC):
                 loss.backward()
                 self._optimizer.step()
 
-    def _post_load(self):
+    def _post_load(self, device):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))

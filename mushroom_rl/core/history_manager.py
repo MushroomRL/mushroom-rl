@@ -746,7 +746,7 @@ class HistoryManager(MushroomObject):
 
         return stacked
 
-    def _post_load(self):
+    def _post_load(self, device):
         self._last_windows = dict()
 
     @staticmethod

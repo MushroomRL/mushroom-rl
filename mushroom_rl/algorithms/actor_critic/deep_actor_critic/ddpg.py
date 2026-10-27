@@ -145,6 +145,6 @@ class DDPG(DeepAC):
 
         return q
 
-    def _post_load(self):
+    def _post_load(self, device):
         self._actor_approximator = self.policy._approximator
         self.overwrite_actor_parameters(self._actor_approximator.parameters())

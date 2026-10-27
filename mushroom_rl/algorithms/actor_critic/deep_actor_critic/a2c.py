@@ -78,5 +78,5 @@ class A2C(DeepAC):
 
         return gradient_loss + self._entropy_coeff() * entropy_loss
 
-    def _post_load(self):
+    def _post_load(self, device):
         self.overwrite_actor_parameters(self.policy.parameters())

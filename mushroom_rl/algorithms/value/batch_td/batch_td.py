@@ -37,5 +37,5 @@ class BatchTD(Agent):
         )
         self._add_logger_attr('approximator', group='critic')
 
-    def _post_load(self):
+    def _post_load(self, device):
         self.policy.set_q(self.approximator)

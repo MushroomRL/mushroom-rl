@@ -170,7 +170,7 @@ class SAC(DeepAC):
 
         return q
 
-    def _post_load(self):
+    def _post_load(self, device):
         self.overwrite_actor_parameters(self.policy.parameters())
         self._update_alpha_optimizer_parameters()
 

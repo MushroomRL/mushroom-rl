@@ -108,7 +108,7 @@ class TorchApproximator(Approximator):
             _trainer='mushroom',
         )
 
-    def _post_load(self):
+    def _post_load(self, device):
         n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
@@ -417,8 +417,8 @@ class TorchEnsemble(Ensemble):
             for m in self._models:
                 m._dirty = False
 
-    def _post_load(self):
-        super()._post_load()
+    def _post_load(self, device):
+        super()._post_load(device)
 
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         for m in self._models:

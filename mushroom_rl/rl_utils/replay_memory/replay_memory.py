@@ -233,6 +233,6 @@ class ReplayMemory(MushroomObject):
                 mask = mask | ((anchor_idxs - ds.write_head) % self._max_size < self._history_manager.max_reach)
         return mask
 
-    def _post_load(self):
+    def _post_load(self, device):
         if self._dataset is None:
             self.reset()

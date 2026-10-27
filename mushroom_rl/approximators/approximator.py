@@ -142,7 +142,7 @@ class Ensemble(Approximator):
             _parse_output='none'
         )
 
-    def _post_load(self):
+    def _post_load(self, device):
         n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 

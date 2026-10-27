@@ -181,7 +181,7 @@ class Parameter(MushroomObject):
     def _value_serialization_method(self, value):
         return self._backend.get_backend_serialization() if self._is_array(value) else 'primitive'
 
-    def _post_load(self):
+    def _post_load(self, device):
         if '_updates_enabled' not in self._save_attributes:
             self._updates_enabled = True
             self._add_save_attr(_updates_enabled='primitive')
