@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
-from mushroom_rl.utils.torch_utils import TorchUtils
-
 
 class NoisyNetwork(nn.Module):
     """
@@ -58,8 +56,8 @@ class NoisyNetwork(nn.Module):
                 nn.init.constant_(self.sigma_bias, bound_sigma)
 
         def forward(self, input):
-            eps_output = torch.rand(self.mu_weight.shape[0], 1, device=TorchUtils.get_device())
-            eps_input = torch.rand(1, self.mu_weight.shape[1], device=TorchUtils.get_device())
+            eps_output = torch.rand(self.mu_weight.shape[0], 1, device=self.mu_weight.device)
+            eps_input = torch.rand(1, self.mu_weight.shape[1], device=self.mu_weight.device)
 
             eps_dot = torch.matmul(self._noise(eps_output), self._noise(eps_input))
             weight = self.mu_weight + self.sigma_weight * eps_dot

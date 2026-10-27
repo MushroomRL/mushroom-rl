@@ -41,7 +41,8 @@ class RainbowNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta, device=TorchUtils.get_device())
+        self.register_buffer('_a_values', torch.arange(self._v_min, self._v_max + eps, delta,
+                                                       device=TorchUtils.get_device()), persistent=False)
 
         self._pv = NoisyNetwork.NoisyLinear(n_features, n_atoms, sigma_coeff)
         self._pa = nn.ModuleList([NoisyNetwork.NoisyLinear(n_features, n_atoms, sigma_coeff)

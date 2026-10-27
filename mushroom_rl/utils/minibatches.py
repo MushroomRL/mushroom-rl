@@ -37,14 +37,14 @@ def minibatch_generator(batch_size, *dataset_vectors):
                        for vector in dataset_vectors]
     size = len(dataset_vectors[0])
     num_batches = minibatch_number(size, batch_size)
-    indexes = torch.randperm(size).to(TorchUtils.get_device())
+    indexes = _indexes_per_vector(torch.randperm(size), dataset_vectors)
     batches = [(i * batch_size, min(size, (i + 1) * batch_size))
                for i in range(0, num_batches)]
 
     for (batch_start, batch_end) in batches:
         batch = []
         for i in range(len(dataset_vectors)):
-            batch.append(dataset_vectors[i][indexes[batch_start:batch_end]])
+            batch.append(dataset_vectors[i][indexes[i][batch_start:batch_end]])
         yield batch
 
 
@@ -67,10 +67,30 @@ def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
     num_batches = minibatch_number(size, batch_size)
     batches = [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(num_batches)]
 
-    all_indexes = [torch.randperm(size).to(TorchUtils.get_device()) for _ in range(n_models)]
+    all_indexes = [_indexes_per_vector(torch.randperm(size), dataset_vectors) for _ in range(n_models)]
 
     for batch_start, batch_end in batches:
         yield [
-            torch.stack([dataset_vectors[j][all_indexes[m][batch_start:batch_end]] for m in range(n_models)])
+            torch.stack([dataset_vectors[j][all_indexes[m][j][batch_start:batch_end]] for m in range(n_models)])
             for j in range(len(dataset_vectors))
         ]
+
+
+def _indexes_per_vector(indexes, dataset_vectors):
+    """
+    Place a permutation on the device of every vector it indexes: a tensor is indexed on its own device, any other
+    vector on the default one.
+
+    Args:
+        indexes (torch.Tensor): the permutation, on the CPU;
+        dataset_vectors (list): the vectors to index.
+
+    Returns:
+        A list holding, for every vector, the permutation placed on the device the vector is indexed on.
+
+    """
+    devices = [vector.device if isinstance(vector, torch.Tensor) else TorchUtils.get_device()
+               for vector in dataset_vectors]
+    placed = {device: indexes.to(device) for device in set(devices)}
+
+    return [placed[device] for device in devices]

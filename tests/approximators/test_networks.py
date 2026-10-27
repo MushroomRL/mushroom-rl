@@ -555,3 +555,16 @@ def test_recurrent_network_multi_layer():
     expected_q = np.array([1.0538795, 0.7622827, -0.9266093], dtype=np.float32)
     assert q.shape == (batch,)
     assert np.allclose(q.detach().numpy(), expected_q, atol=1e-5)
+
+
+def test_distributional_networks_support_is_a_non_persistent_buffer():
+    for net in (CategoricalNetwork((4,), (3,), ActorNetwork, n_atoms=5, v_min=-2.0, v_max=2.0, n_features=16),
+                RainbowNetwork((4,), (3,), ActorNetwork, n_atoms=5, v_min=-2.0, v_max=2.0, n_features=16,
+                               sigma_coeff=0.5)):
+        assert '_a_values' in dict(net.named_buffers())
+        assert '_a_values' not in net.state_dict()
+        assert torch.equal(net._a_values, torch.tensor([-2., -1., 0., 1., 2.]))
+
+        if torch.cuda.is_available():
+            net.to('cuda')
+            assert net._a_values.device.type == 'cuda'
