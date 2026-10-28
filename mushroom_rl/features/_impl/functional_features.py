@@ -2,11 +2,11 @@ from mushroom_rl.features.features import Features
 
 
 class FunctionalFeatures(Features):
-    def __init__(self, feature_list=None, *, n_outputs=None, function=None, backend='numpy'):
+    def __init__(self, feature_list=None, *, n_outputs=None, function=None, backend='numpy', device=None):
         self._n_outputs = n_outputs
         self._function = function
 
-        super().__init__(n_outputs=n_outputs, function=function, backend=backend)
+        super().__init__(n_outputs=n_outputs, function=function, backend=backend, device=device)
 
         self._add_save_attr(_n_outputs='primitive', _function='pickle')
 
@@ -24,4 +24,4 @@ class FunctionalFeatures(Features):
 
     @property
     def _internal_backend(self):
-        return self._backend
+        return self.backend_name

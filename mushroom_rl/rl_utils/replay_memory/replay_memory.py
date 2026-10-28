@@ -30,8 +30,8 @@ class ReplayMemory(MushroomObject):
                 keyword arguments. When ``False`` these streams are not returned.
 
         """
-        assert agent_info.backend in ["numpy", "torch"], \
-            f"{agent_info.backend} backend currently not supported in the replay memory class."
+        assert agent_info.backend_name in ["numpy", "torch"], \
+            f"{agent_info.backend_name} backend currently not supported in the replay memory class."
         assert initial_size >= n_steps_return, \
             f"The initial size {initial_size} is smaller than the {n_steps_return} steps of the n-step return."
 
@@ -160,7 +160,7 @@ class ReplayMemory(MushroomObject):
             The sampled buffer indices.
 
         """
-        backend = self._dataset.array_backend
+        backend = self._dataset.backend
         size = len(self._dataset)
         if self._history_manager.max_reach == 0 and self._n_steps_return == 1:
             return backend.randint(0, size, (n_samples,), device=self._agent_info.device)
@@ -189,7 +189,7 @@ class ReplayMemory(MushroomObject):
         if self._history_manager.max_reach == 0 and self._n_steps_return == 1:
             return None
 
-        backend = self._dataset.array_backend
+        backend = self._dataset.backend
         size = len(self._dataset)
         full = self._dataset.full
         history_reserve = self._history_manager.max_reach if full else 0
@@ -219,7 +219,7 @@ class ReplayMemory(MushroomObject):
             The boolean mask (True = excluded from sampling) for the given anchors.
 
         """
-        backend = self._dataset.array_backend
+        backend = self._dataset.backend
         mask = backend.zeros(len(anchor_idxs), dtype=bool, device=self._agent_info.device)
         ds = self._dataset
         if self._n_steps_return > 1:

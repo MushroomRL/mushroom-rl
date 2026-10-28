@@ -10,15 +10,16 @@ class AbstractGaussianTorchDistribution(Distribution):
 
     """
 
-    def __init__(self, context_shape=None):
+    def __init__(self, context_shape=None, device=None):
         """
         Constructor.
 
         Args:
-            context_shape (Tuple): shape of the context variable.
+            context_shape (Tuple): shape of the context variable;
+            device (str, None): device the distribution parameters are stored on, or ``None`` for the default one.
 
         """
-        super().__init__(context_shape)
+        super().__init__(context_shape, 'torch', device)
 
     def distribution(self, context=None):
         mu, chol_sigma = self._get_mean_and_chol(context)
@@ -61,11 +62,11 @@ class AbstractGaussianTorchDistribution(Distribution):
 
 
 class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
-    def __init__(self, mu, sigma):
-        self._mu = torch.nn.Parameter(mu)
-        self._log_sigma = torch.nn.Parameter(torch.log(sigma))
+    def __init__(self, mu, sigma, device=None):
+        super().__init__(device=device)
 
-        super().__init__()
+        self._mu = torch.nn.Parameter(mu.to(self._device))
+        self._log_sigma = torch.nn.Parameter(torch.log(sigma.to(self._device)))
 
         self._add_save_attr(
             _mu='torch',
@@ -73,7 +74,7 @@ class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
         )
 
     def get_parameters(self):
-        rho = torch.empty(self.parameters_size)
+        rho = torch.empty(self.parameters_size, device=self._device)
         n_dims = len(self._mu)
 
         rho[:n_dims] = self._mu
@@ -98,13 +99,13 @@ class DiagonalGaussianTorchDistribution(AbstractGaussianTorchDistribution):
 
 
 class CholeskyGaussianTorchDistribution(AbstractGaussianTorchDistribution):
-    def __init__(self, mu, sigma):
-        chol_sigma = torch.linalg.cholesky(sigma)
+    def __init__(self, mu, sigma, device=None):
+        super().__init__(device=device)
 
-        self._mu = torch.nn.Parameter(mu)
+        chol_sigma = torch.linalg.cholesky(sigma.to(self._device))
+
+        self._mu = torch.nn.Parameter(mu.to(self._device))
         self._chol_sigma = torch.nn.Parameter(chol_sigma)
-
-        super().__init__()
 
         self._add_save_attr(
             _mu='torch',
@@ -112,7 +113,7 @@ class CholeskyGaussianTorchDistribution(AbstractGaussianTorchDistribution):
         )
 
     def get_parameters(self):
-        rho = torch.empty(self.parameters_size)
+        rho = torch.empty(self.parameters_size, device=self._device)
         n_dims = len(self._mu)
         tril_indices = torch.tril_indices(row=n_dims, col=n_dims)
 

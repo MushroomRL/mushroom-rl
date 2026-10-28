@@ -15,10 +15,10 @@ class RudinPPO(PPO):
 
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
                  ent_coeff=0.0, critic_fit_params=None, clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
-                 history_length=1, action_history_length=0):
+                 history_length=1, action_history_length=0, device=None):
         super().__init__(mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo,
                          lam, ent_coeff, critic_fit_params, history_length=history_length,
-                         action_history_length=action_history_length)
+                         action_history_length=action_history_length, device=device)
 
         self._clip_grad_norm = clip_grad_norm
         self._schedule = schedule

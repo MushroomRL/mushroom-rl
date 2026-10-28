@@ -205,7 +205,7 @@ def test_from_array_list_backend():
     dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                  backend='list', gamma=0.9)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
     assert len(dataset) == 6
     assert dataset._dataset_info.state_shape == (2,)
@@ -248,7 +248,7 @@ def test_from_array_list_backend_ragged():
     dataset = Dataset.from_array(states, actions, rewards, states, absorbings, lasts,
                                  backend='list', gamma=0.9)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 1
     assert dataset._dataset_info.state_shape == (1,)
     assert dataset._dataset_info.action_shape == ()
@@ -620,7 +620,7 @@ class CudaCountingVecEnv(VectorizedEnvironment):
 
 class StateTrackingPolicy(StatefulPolicy):
     def __init__(self):
-        super().__init__((1,))
+        super().__init__((1,), backend='numpy')
 
     def reset_vectorized(self, start_mask):
         self._policy_state = np.zeros((len(start_mask), 1))
@@ -707,7 +707,7 @@ class ZeroPolicy(Policy):
 
 class StatelessFitCollectingAgent(Agent):
     def __init__(self, mdp_info):
-        super().__init__(mdp_info, ZeroPolicy(), backend='numpy')
+        super().__init__(mdp_info, ZeroPolicy('numpy'), backend='numpy')
         self.fits = list()
 
     def fit(self, dataset):

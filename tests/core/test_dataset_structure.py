@@ -170,7 +170,7 @@ def test_list_backend_flat_block_segments_on_the_boundary():
 
     flat = dataset.flatten()
 
-    assert flat.array_backend.get_backend_name() == 'list'
+    assert flat.backend.get_backend_name() == 'list'
     assert flat.parse()[5] == [False, True, False, True]
     assert flat.n_episodes == 1
     assert np.array_equal(flat.compute_J(), np.array([10.]))

@@ -42,7 +42,8 @@ class AbstractCategoricalDQN(AbstractDQN):
         self._v_min = v_min
         self._v_max = v_max
         self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=TorchUtils.get_device())
+        self._a_values = torch.arange(v_min, v_max + eps, self._delta,
+                                      device=TorchUtils.get_device(params.get('device')))
 
         approximator_params = dict(approximator_params)
         approximator_params.update(loss=categorical_loss)
@@ -79,8 +80,8 @@ class AbstractCategoricalDQN(AbstractDQN):
         low_b = torch.floor(b).long()
         upp_b = torch.ceil(b).long()
 
-        m = torch.zeros(len(reward), self._n_atoms, device=TorchUtils.get_device())
-        rows = torch.arange(len(m), device=TorchUtils.get_device())
+        m = torch.zeros(len(reward), self._n_atoms, device=self._info.device)
+        rows = torch.arange(len(m), device=self._info.device)
         for i in range(self._n_atoms):
             low_b[:, i][(upp_b[:, i] > 0) & (low_b[:, i] == upp_b[:, i])] -= 1
             upp_b[:, i][(low_b[:, i] < (self._n_atoms - 1)) & (low_b[:, i] == upp_b[:, i])] += 1

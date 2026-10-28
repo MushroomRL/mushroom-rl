@@ -65,7 +65,7 @@ class CodedLayout(EpisodeLayout):
             A layout with the rows of this layout followed by the rows of ``other``, with their boundary codes.
 
         """
-        result = CodedLayout.from_container(self._boundary + other._rows(), self._array_backend.get_backend_name(),
+        result = CodedLayout.from_container(self._boundary + other._rows(), self.backend_name,
                                             self._resized(len(self) + len(other)), self._device, self._n_envs)
         result._n_joins = self._n_joins + other._n_joins
         return result
@@ -102,7 +102,7 @@ class CodedLayout(EpisodeLayout):
 
         """
         return CodedLayout.from_container(self._boundary.get_view(index, copy=True),
-                                          self._array_backend.get_backend_name(), self._shape, self._device,
+                                          self.backend_name, self._shape, self._device,
                                           self._n_envs)
 
     def column(self):
@@ -119,7 +119,7 @@ class CodedLayout(EpisodeLayout):
             The stored boundary codes as an array.
 
         """
-        return self._array_backend.as_array(self._boundary.column(), device=self._device)
+        return self._backend.as_array(self._boundary.column(), device=self._device)
 
     def segment_ends(self, last):
         """
@@ -270,7 +270,7 @@ class CodedLayout(EpisodeLayout):
         new_codes[new_start[unlinked]] = codes[starts[unlinked]] & int(self.Boundary.BREAK)
         heads = new_start[(block == 0) & is_head]
         tails = new_row[ends[(block == n_blocks - 1) & is_tail]]
-        layout = CodedLayout.from_array(new_codes, self._array_backend.get_backend_name(), device, open_heads=heads,
+        layout = CodedLayout.from_array(new_codes, self.backend_name, device, open_heads=heads,
                                         open_tails=tails)
         layout._first = self._first
 
@@ -291,7 +291,7 @@ class CodedLayout(EpisodeLayout):
         target = ArrayBackend.get_array_backend(backend)
         column = target.zeros(len(self), dtype=target.to_backend_dtype('int8'), device=device)
         column[:] = ArrayBackend.convert(self._boundary.column(), to=backend,
-                                         backend=self._array_backend, device=device)
+                                         backend=self._backend, device=device)
         layout = CodedLayout.from_array(column, backend, device)
         return self._converted_state(layout, backend, device)
 
@@ -349,7 +349,7 @@ class CodedLayout(EpisodeLayout):
 
     def _joined(self, other, stitched, glued, last):
         n = len(self)
-        return CodedLayout.from_container(self._boundary + other._rows(), self._array_backend.get_backend_name(),
+        return CodedLayout.from_container(self._boundary + other._rows(), self.backend_name,
                                           self._resized(n + len(other)), self._device,
                                           self._n_envs)._marked(n, stitched, glued)
 
@@ -368,14 +368,14 @@ class CodedLayout(EpisodeLayout):
                                                else self.Boundary.CONTINUING)
         if self._n_joins > 0:
             layout = CodedLayout.from_array(layout.array() & int(self.Boundary.BREAK),
-                                            self._array_backend.get_backend_name(), self._device)
+                                            self.backend_name, self._device)
         return layout
 
     def _follow_previous(self, rows):
         return self.array()[rows] & int(self.Boundary.BREAK) == 0
 
     def _coded_from_array(self, boundary, open_heads=None, open_tails=None):
-        return CodedLayout.from_array(boundary, self._array_backend.get_backend_name(), self._device,
+        return CodedLayout.from_array(boundary, self.backend_name, self._device,
                                       open_heads=open_heads, open_tails=open_tails)
 
     def _code(self, row):

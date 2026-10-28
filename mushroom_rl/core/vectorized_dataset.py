@@ -15,15 +15,15 @@ class VectorizedDataset(Dataset):
     def __init__(self, dataset_info, n_steps=None, n_episodes=None, core_counts_episodes=False):
         super().__init__(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
-        env_backend = self._dataset_info.env_array_backend
+        env_backend = self._dataset_info.env_backend
         mask_shape = self._base_shape if self._base_shape is not None else ()
-        self._mask_data = Container.create(dataset_info.env_backend, [mask_shape],
+        self._mask_data = Container.create(dataset_info.env_backend_name, [mask_shape],
                                            [env_backend.to_backend_dtype(bool)],
                                            dataset_info.env_device, self._data.n_envs)
         self._tail_open = env_backend.zeros(self._data.n_envs, dtype=bool, device=dataset_info.env_device)
         self._consumed = False
         self._mask_shared = False
-        self._history_state = GridHistoryState(self._data.n_envs, dataset_info.agent_backend,
+        self._history_state = GridHistoryState(self._data.n_envs, dataset_info.agent_backend_name,
                                                dataset_info.agent_device)
 
     def __add__(self, other):
@@ -41,7 +41,7 @@ class VectorizedDataset(Dataset):
         result._layout = self._layout.join_rows(other._layout)
         result._mask_data = self._mask_data + other._mask_data
         result._history_state = self._history_state.copy()
-        result._tail_open = self._dataset_info.env_array_backend.copy(self._tail_open)
+        result._tail_open = self._dataset_info.env_backend.copy(self._tail_open)
         result._consumed = True
 
         return result
@@ -86,9 +86,8 @@ class VectorizedDataset(Dataset):
         """
         self._store_step(step)
         self._mask_data.append(mask)
-        if self._dataset_info.env_backend == 'list':
-            self._layout.append(self._dataset_info.env_array_backend.zeros(self._data.n_envs,
-                                                                           dtype=self._boundary_dtype()))
+        if self._dataset_info.env_backend_name == 'list':
+            self._layout.append(self._dataset_info.env_backend.zeros(self._data.n_envs, dtype=self._boundary_dtype()))
         else:
             self._layout.append(int(EpisodeLayout.Boundary.NONE))
         self._extras.append_step(info)
@@ -119,7 +118,7 @@ class VectorizedDataset(Dataset):
         """
         assert n_steps is None or n_steps >= self._data.n_envs, \
             f"Cannot split off {n_steps} steps from {self._data.n_envs} environments."
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         mask = self.mask
         active = backend.where(mask.reshape(-1))[0]
         n_steps = len(active) if n_steps is None else n_steps
@@ -169,7 +168,7 @@ class VectorizedDataset(Dataset):
             The number of steps kept.
 
         """
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         if keep_leftovers:
             row_active = backend.sum(self.mask, dim=1)
             n_carry = int(row_active.sum().item())
@@ -217,7 +216,7 @@ class VectorizedDataset(Dataset):
         dataset = self._view_rows(index, copy, self._layout.view(index))
         dataset._mask_data = self._mask_data.get_view(index, copy)
         dataset._mask_shared = not copy
-        dataset._tail_open = self._dataset_info.env_array_backend.copy(self._tail_open)
+        dataset._tail_open = self._dataset_info.env_backend.copy(self._tail_open)
         dataset._consumed = self._consumed
         return dataset
 
@@ -245,27 +244,27 @@ class VectorizedDataset(Dataset):
         Boolean mask marking, for every stored step, which environments were active.
 
         """
-        return self._dataset_info.env_array_backend.convert_mask(self._mask_data.column(),
-                                                                 device=self._dataset_info.env_device)
+        return self._dataset_info.env_backend.convert_mask(self._mask_data.column(),
+                                                           device=self._dataset_info.env_device)
 
     def _create_layout(self, dataset_info, n_steps, n_envs):
         boundary_shape = self._base_shape if self._base_shape is not None else ()
-        return CodedLayout(dataset_info.env_backend, boundary_shape, dataset_info.env_device, n_envs)
+        return CodedLayout(dataset_info.env_backend_name, boundary_shape, dataset_info.env_device, n_envs)
 
     def _allocate_mask(self, mask):
         rows = Container.from_array([mask], device=self._dataset_info.env_device,
-                                    backend=self._dataset_info.env_backend)
+                                    backend=self._dataset_info.env_backend_name)
         capacity = self._data.capacity
         if capacity is None:
             return rows
-        container = Container.create(self._dataset_info.env_backend, [(capacity,) + tuple(mask.shape[1:])],
-                                     [self._dataset_info.env_array_backend.to_backend_dtype(bool)],
+        container = Container.create(self._dataset_info.env_backend_name, [(capacity,) + tuple(mask.shape[1:])],
+                                     [self._dataset_info.env_backend.to_backend_dtype(bool)],
                                      self._dataset_info.env_device, self._data.n_envs)
         container.append_batch(rows)
         return container
 
     def _mark_heads(self, consumed_mask):
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
         active = backend.sum(consumed_mask, dim=0) > 0
         if bool(active.any()):
@@ -293,8 +292,8 @@ class VectorizedDataset(Dataset):
             return Dataset(self._dataset_info.flat(), n_steps=0)
 
         mask = self.mask
-        env_backend = self._dataset_info.env_array_backend
-        agent_backend = self._dataset_info.agent_array_backend
+        env_backend = self._dataset_info.env_backend
+        agent_backend = self._dataset_info.agent_backend
         device = self._dataset_info.env_device
 
         states = env_backend.pack_padded_sequence(self.state, mask)
@@ -322,7 +321,7 @@ class VectorizedDataset(Dataset):
         if self.is_stateful:
             policy_mask = agent_backend.convert_mask(mask, backend=env_backend, device=self._dataset_info.agent_device)
             policy_state, policy_next_state = self.policy_state, self.policy_next_state
-            if self._dataset_info.env_backend == 'list':
+            if self._dataset_info.env_backend_name == 'list':
                 agent_device = self._dataset_info.agent_device
                 policy_state = agent_backend.from_list(policy_state, device=agent_device)
                 policy_next_state = agent_backend.from_list(policy_next_state, device=agent_device)
@@ -331,14 +330,14 @@ class VectorizedDataset(Dataset):
 
         flat_extras = self._extras.flatten(mask)
 
-        layout = CodedLayout.from_array(boundary, env_backend.get_backend_name(), device, open_heads=open_heads,
+        layout = CodedLayout.from_array(boundary, self._dataset_info.env_backend_name, device, open_heads=open_heads,
                                         open_tails=open_tails)
         flat = Dataset._from_components(states, actions, rewards, next_states, absorbings, lasts, layout,
                                         policy_state=policy_state, policy_next_state=policy_next_state,
                                         extras=flat_extras, horizon=self._dataset_info.horizon,
                                         gamma=self._dataset_info.gamma,
-                                        backend=env_backend.get_backend_name(),
-                                        policy_backend=agent_backend.get_backend_name(),
+                                        backend=self._dataset_info.env_backend_name,
+                                        policy_backend=self._dataset_info.agent_backend_name,
                                         device=device,
                                         agent_device=self._dataset_info.agent_device)
         positions, is_episode_start = flat._segment_starts(flat._last_array())
@@ -348,7 +347,7 @@ class VectorizedDataset(Dataset):
 
     def _add_all_save_attr(self):
         super()._add_all_save_attr()
-        serialization = self._dataset_info.env_array_backend.get_backend_serialization() \
+        serialization = self._dataset_info.env_backend.get_backend_serialization() \
             if self._dataset_info is not None else 'pickle'
         self._add_save_attr(
             _mask_data='mushroom',

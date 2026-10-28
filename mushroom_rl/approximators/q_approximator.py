@@ -58,9 +58,8 @@ class QApproximatorSimple(QApproximator):
         params['input_shape'] = input_shape
         params['output_shape'] = output_shape
         model = approximator(**params)
-        backend = getattr(model, '_backend', None)
         super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=backend.get_backend_name() if backend is not None else 'numpy')
+                         backend=getattr(model, 'backend_name', 'numpy'), device=getattr(model, 'device', None))
         self._n_actions = n_actions
         self._models = [model]
         self._add_save_attr(
@@ -197,9 +196,9 @@ class QApproximatorAction(QApproximator):
             params['input_shape'] = input_shape
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
-        backend = getattr(self._models[0], '_backend', None)
         super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=backend.get_backend_name() if backend is not None else 'numpy')
+                         backend=getattr(self._models[0], 'backend_name', 'numpy'),
+                         device=getattr(self._models[0], 'device', None))
         self._add_save_attr(
             _n_actions='primitive',
             _models=self._get_serialization_method(approximator)
@@ -349,9 +348,6 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
         Ensemble.__init__(self, QApproximator, n_models, prediction=prediction,
                           approximator=approximator, n_actions=n_actions,
                           input_shape=input_shape, output_shape=output_shape, **params)
-        backend = getattr(self._models[0], '_backend', None)
-        if backend is not None:
-            self._backend = backend
         self._n_actions = n_actions
         self._add_save_attr(_n_actions='primitive')
 

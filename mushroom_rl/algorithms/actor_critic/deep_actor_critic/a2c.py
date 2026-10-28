@@ -18,7 +18,8 @@ class A2C(DeepAC):
     """
 
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 ent_coeff, max_grad_norm=None, critic_fit_params=None, history_length=1, action_history_length=0):
+                 ent_coeff, max_grad_norm=None, critic_fit_params=None, history_length=1, action_history_length=0,
+                 device=None):
         """
         Constructor.
 
@@ -31,12 +32,13 @@ class A2C(DeepAC):
                 unless specified otherwise in actor_optimizer;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
-            action_history_length (int, 0): number of previous actions fed to the actor and critic.
+            action_history_length (int, 0): number of previous actions fed to the actor and critic;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._entropy_coeff = Parameter.make(ent_coeff, backend='torch')
+        self._entropy_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
         self._V = TorchApproximator(**critic_params)
 
@@ -46,7 +48,7 @@ class A2C(DeepAC):
             actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters(), history_length=history_length,
-                         action_history_length=action_history_length)
+                         action_history_length=action_history_length, device=device)
 
         self._add_save_attr(
             _critic_fit_params='pickle',

@@ -23,6 +23,8 @@ class QuantileHuberLoss:
         return (tau[:-1] + tau[1:]) / 2
 
     def __call__(self, input, target, reduction='mean'):
+        if self._tau_hat.device != input.device:
+            self._tau_hat = self._tau_hat.to(input.device)
         tau = self._tau_hat.repeat(input.shape[0], 1)
 
         target = target.t().unsqueeze(-1).repeat(1, 1, tau.shape[-1])

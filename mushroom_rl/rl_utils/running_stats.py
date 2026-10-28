@@ -1,8 +1,8 @@
 from collections import deque
-from mushroom_rl.core import MushroomObject, ArrayBackend
+from mushroom_rl.core import MushroomBackendObject
 
 
-class RunningStandardization(MushroomObject):
+class RunningStandardization(MushroomBackendObject):
     """
     Compute a running standardization of values according to Welford's online algorithm.
 
@@ -29,19 +29,16 @@ class RunningStandardization(MushroomObject):
         assert 0. < alpha < 1.
         self._alpha = alpha
 
-        self._array_backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
+        super().__init__(backend, device)
 
         self.reset()
 
         self._add_save_attr(
             _shape='primitive',
             _alpha='primitive',
-            _array_backend='pickle',
-            _device='primitive',
             _n='primitive',
-            _m=self._array_backend.get_backend_serialization(),
-            _s=self._array_backend.get_backend_serialization()
+            _m=self._backend.get_backend_serialization(),
+            _s=self._backend.get_backend_serialization()
         )
 
     def reset(self):
@@ -50,8 +47,8 @@ class RunningStandardization(MushroomObject):
 
         """
         self._n = 1
-        self._m = self._array_backend.zeros(*self._shape, device=self._device)
-        self._s = self._array_backend.ones(*self._shape, device=self._device)
+        self._m = self._backend.zeros(*self._shape, device=self._device)
+        self._s = self._backend.ones(*self._shape, device=self._device)
 
     def update_stats(self, value):
         """
@@ -61,7 +58,7 @@ class RunningStandardization(MushroomObject):
             value (Array): current data value to use for the update.
 
         """
-        value = self._array_backend.atleast_2d(value)
+        value = self._backend.atleast_2d(value)
         batch_size = len(value)
         batch_mean = value.mean(0)
         batch_m2 = ((value - batch_mean) ** 2).sum(0)
@@ -79,7 +76,7 @@ class RunningStandardization(MushroomObject):
             The estimated mean value.
 
         """
-        return self._array_backend.squeeze(self._m)
+        return self._backend.squeeze(self._m)
 
     @property
     def std(self):
@@ -88,10 +85,10 @@ class RunningStandardization(MushroomObject):
             The estimated standard deviation value.
 
         """
-        return self._array_backend.squeeze(self._array_backend.sqrt(self._s / self._n))
+        return self._backend.squeeze(self._backend.sqrt(self._s / self._n))
 
 
-class RunningExpWeightedAverage(MushroomObject):
+class RunningExpWeightedAverage(MushroomBackendObject):
     """
     Compute an exponentially weighted moving average.
 
@@ -112,16 +109,13 @@ class RunningExpWeightedAverage(MushroomObject):
 
         self._shape = shape
         self._alpha = alpha
-        self._array_backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
+        super().__init__(backend, device)
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _alpha='primitive',
-            _array_backend="pickle",
-            _device='primitive',
-            _avg_value=self._array_backend.get_backend_serialization(),
+            _avg_value=self._backend.get_backend_serialization(),
         )
 
     def reset(self, init_value=None):
@@ -133,10 +127,10 @@ class RunningExpWeightedAverage(MushroomObject):
 
         """
         if init_value is None:
-            self._avg_value = self._array_backend.zeros(1, *self._shape, device=self._device)
+            self._avg_value = self._backend.zeros(1, *self._shape, device=self._device)
         else:
-            init_value = self._array_backend.convert(init_value, device=self._device)
-            self._avg_value = self._array_backend.atleast_2d(init_value)
+            init_value = self._backend.convert(init_value, device=self._device)
+            self._avg_value = self._backend.atleast_2d(init_value)
 
     def update_stats(self, value):
         """
@@ -146,7 +140,7 @@ class RunningExpWeightedAverage(MushroomObject):
             value (Array): current data value to use for the update.
 
         """
-        value = self._array_backend.atleast_2d(value)
+        value = self._backend.atleast_2d(value)
         batch_size = len(value)
         for i in range(batch_size):
             self._avg_value = (1. - self._alpha) * self._avg_value + self._alpha * value[i]
@@ -161,7 +155,7 @@ class RunningExpWeightedAverage(MushroomObject):
         return self._avg_value
 
 
-class RunningAveragedWindow(MushroomObject):
+class RunningAveragedWindow(MushroomBackendObject):
     """
     Compute the running average using a window of fixed size.
 
@@ -182,16 +176,13 @@ class RunningAveragedWindow(MushroomObject):
 
         self._shape = shape
         self._window_size = window_size
-        self._array_backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
+        super().__init__(backend, device)
         self.reset(init_value)
 
         self._add_save_attr(
             _shape='primitive',
             _window_size='primitive',
-            _array_backend='pickle',
-            _device='primitive',
-            _avg_buffer='primitive',
+            _avg_buffer='torch' if self._backend.get_backend_serialization() == 'torch' else 'primitive',
         )
 
     def reset(self, init_value=None):
@@ -203,10 +194,10 @@ class RunningAveragedWindow(MushroomObject):
 
         """
         if init_value is None:
-            self._avg_buffer = deque(self._array_backend.zeros(1, *self._shape, device=self._device),
+            self._avg_buffer = deque(self._backend.zeros(1, *self._shape, device=self._device),
                                      maxlen=self._window_size)
         else:
-            self._avg_buffer = deque([self._array_backend.convert(init_value, device=self._device)],
+            self._avg_buffer = deque([self._backend.convert(init_value, device=self._device)],
                                      maxlen=self._window_size)
 
     def update_stats(self, value):
@@ -217,7 +208,7 @@ class RunningAveragedWindow(MushroomObject):
             value (np.ndarray): current data value to use for the update.
 
         """
-        value = self._array_backend.atleast_2d(value)
+        value = self._backend.atleast_2d(value)
         batch_size = len(value)
         for i in range(batch_size):
             self._avg_buffer.append(value[i])
@@ -229,4 +220,4 @@ class RunningAveragedWindow(MushroomObject):
             The estimated mean value.
 
         """
-        return self._array_backend.convert(self._avg_buffer, device=self._device).mean(0)
+        return self._backend.convert(self._avg_buffer, device=self._device).mean(0)

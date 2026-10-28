@@ -17,15 +17,15 @@ class TDPolicy(Policy):
             backend (str, 'numpy'): name of the array backend used by the policy.
 
         """
+        super().__init__(backend)
+
         self._approximator = None
         self._n_actions = None
         self._predict_params = dict()
-        self._backend = ArrayBackend.get_array_backend(backend)
 
         self._add_save_attr(_approximator='mushroom!',
                             _n_actions='primitive',
-                            _predict_params='pickle',
-                            _backend='primitive')
+                            _predict_params='pickle')
 
     def set_q(self, approximator):
         """
@@ -123,7 +123,7 @@ class EpsGreedy(TDPolicy):
             probability of performing a random actions in the current step.
 
         """
-        self._epsilon = Parameter.make(epsilon, backend=self._backend.get_backend_name())
+        self._epsilon = Parameter.make(epsilon, backend=self.backend_name)
 
     def update(self, *args):
         """
@@ -192,7 +192,7 @@ class Boltzmann(TDPolicy):
             beta ((float, Parameter)): the inverse of the temperature distribution.
 
         """
-        self._beta = Parameter.make(beta, backend=self._backend.get_backend_name())
+        self._beta = Parameter.make(beta, backend=self.backend_name)
 
     def update(self, *args):
         """

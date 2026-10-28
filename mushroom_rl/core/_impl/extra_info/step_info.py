@@ -2,10 +2,10 @@ import numbers
 from copy import deepcopy
 
 from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 
-class StepInfo(MushroomObject):
+class StepInfo(MushroomBackendObject):
     """
     Container for the step information an environment returns, turning it into a flat dictionary of arrays on
     demand.
@@ -24,10 +24,10 @@ class StepInfo(MushroomObject):
                 ``n_envs > 1``.
 
         """
+        super().__init__(backend, device)
+
         self._n_envs = n_envs
         self._vectorized = n_envs > 1 if vectorized is None else vectorized
-        self._array_backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
 
         self._layout = None
         self._records = []
@@ -39,7 +39,7 @@ class StepInfo(MushroomObject):
         self._shape_mapping = {}
         self._parsed = {}
         self._n_parsed = 0
-        self._target_backend = None
+        self._target_backend_name = None
         self._target_device = None
         self._source = None
         self._mask = None
@@ -78,14 +78,14 @@ class StepInfo(MushroomObject):
         if self._can_take_pending(other):
             if other._parsed or other._n_parsed:
                 self._consolidate()
-                self._parsed = self._concatenate_dictionary(self._parsed, other._parsed, self._array_backend,
-                                                            other._array_backend, self._n_parsed, other._n_parsed)
+                self._parsed = self._concatenate_dictionary(self._parsed, other._parsed, self._backend,
+                                                            other._backend, self._n_parsed, other._n_parsed)
                 self._n_parsed += other._n_parsed
             self._take_pending(other)
         else:
             own = self.parse()
             theirs = other.parse()
-            self._parsed = self._concatenate_dictionary(own, theirs, self._array_backend, other._array_backend,
+            self._parsed = self._concatenate_dictionary(own, theirs, self._backend, other._backend,
                                                         self._n_parsed, other._n_parsed)
             self._n_parsed += other._n_parsed
 
@@ -137,16 +137,16 @@ class StepInfo(MushroomObject):
         self._consolidate()
 
         if to is None:
-            if self._target_backend is not None:
-                self._parsed = self._convert_parsed(self._target_backend, self._target_device)
-                self._array_backend = ArrayBackend.get_array_backend(self._target_backend)
+            if self._target_backend_name is not None:
+                self._parsed = self._convert_parsed(self._target_backend_name, self._target_device)
+                self._backend = ArrayBackend.get_array_backend(self._target_backend_name)
                 self._device = self._target_device
-                self._target_backend = None
+                self._target_backend_name = None
                 self._target_device = None
 
             return self._parsed
 
-        if to == self._array_backend.get_backend_name():
+        if to == self.backend_name:
             return self._parsed
 
         return self._convert_parsed(to, None)
@@ -164,12 +164,13 @@ class StepInfo(MushroomObject):
 
         """
         info = self.copy()
+        device = ArrayBackend.get_array_backend(backend).check_device(device)
 
-        if backend != self._array_backend.get_backend_name() or device != self._device:
-            info._target_backend = backend
+        if backend != self.backend_name or device != self._device:
+            info._target_backend_name = backend
             info._target_device = device
         else:
-            info._target_backend = None
+            info._target_backend_name = None
             info._target_device = None
 
         return info
@@ -189,10 +190,11 @@ class StepInfo(MushroomObject):
         """
         assert self._vectorized
 
-        backend = self._array_backend.get_backend_name() if self._target_backend is None else self._target_backend
-        device = self._device if self._target_backend is None else self._target_device
+        backend_name = self.backend_name if self._target_backend_name is None \
+            else self._target_backend_name
+        device = self._device if self._target_backend_name is None else self._target_device
 
-        info = StepInfo(1, backend, device)
+        info = StepInfo(1, backend_name, device)
         info._source = self.copy()
         info._mask = mask
 
@@ -215,20 +217,20 @@ class StepInfo(MushroomObject):
 
         data = self.parse()
 
-        info = StepInfo(self._n_envs, self._array_backend.get_backend_name(), self._device,
+        info = StepInfo(self._n_envs, self.backend_name, self._device,
                         vectorized=self._vectorized)
         info._key_mapping = self._key_mapping.copy()
         info._flat_keys = self._flat_keys.copy()
         info._shape_mapping = self._shape_mapping.copy()
 
-        if self._array_backend.get_backend_name() == 'list':
+        if self.backend_name == 'list':
             info._parsed = {key: self._select_list(value, index, copy) for key, value in data.items()}
         elif not copy:
             info._parsed = {key: value[index, ...] for key, value in data.items()}
         else:
             for key, value in data.items():
                 value = value[index, ...]
-                info._parsed[key] = self._array_backend.empty(value.shape, self._device)
+                info._parsed[key] = self._backend.empty(value.shape, self._device)
                 info._parsed[key][:] = value
 
         info._n_parsed = self._selection_length(index, info._parsed)
@@ -241,7 +243,7 @@ class StepInfo(MushroomObject):
             A new StepInfo holding the same content, sharing the stored arrays.
 
         """
-        info = StepInfo(self._n_envs, self._array_backend.get_backend_name(), self._device,
+        info = StepInfo(self._n_envs, self.backend_name, self._device,
                         vectorized=self._vectorized)
         info._layout = self._layout
         info._records = self._records.copy()
@@ -253,7 +255,7 @@ class StepInfo(MushroomObject):
         info._shape_mapping = self._shape_mapping.copy()
         info._parsed = self._parsed.copy()
         info._n_parsed = self._n_parsed
-        info._target_backend = self._target_backend
+        info._target_backend_name = self._target_backend_name
         info._target_device = self._target_device
         info._source = self._source
         info._mask = self._mask
@@ -319,26 +321,29 @@ class StepInfo(MushroomObject):
 
         return steps
 
+    def _post_load(self, device):
+        if self._target_backend_name is not None:
+            target = ArrayBackend.get_array_backend(self._target_backend_name)
+            self._target_device = target.check_device(device if target.supports_devices() else None)
+
     def _add_all_save_attr(self):
         self._add_save_attr(
             _n_envs='primitive',
             _vectorized='primitive',
-            _array_backend='primitive',
-            _device='primitive',
             _layout='primitive',
-            _records='primitive',
-            _columns='primitive',
+            _records='torch',
+            _columns='torch',
             _column_rows='primitive',
             _pending_steps='primitive',
             _key_mapping='primitive',
             _flat_keys='primitive',
             _shape_mapping='primitive',
-            _parsed='primitive',
+            _parsed='torch',
             _n_parsed='primitive',
-            _target_backend='primitive',
-            _target_device='primitive',
+            _target_backend_name='primitive',
+            _target_device='none',
             _source='mushroom',
-            _mask='primitive'
+            _mask='torch'
         )
 
     def _drop_columns_before(self, dropped):
@@ -374,9 +379,9 @@ class StepInfo(MushroomObject):
             Whether the rows the other object has not parsed yet can be taken over as they are.
 
         """
-        return (self._array_backend is other._array_backend
+        return (self._backend is other._backend
                 and self._device == other._device
-                and self._target_backend == other._target_backend
+                and self._target_backend_name == other._target_backend_name
                 and self._target_device == other._target_device
                 and (self._layout is None or other._layout is None or self._layout == other._layout))
 
@@ -427,12 +432,12 @@ class StepInfo(MushroomObject):
             self._shape_mapping = {**source._shape_mapping, **self._shape_mapping}
 
             if mask is None:
-                self._parsed = {key: self._array_backend.flatten(value) for key, value in data.items()}
+                self._parsed = {key: self._backend.flatten(value) for key, value in data.items()}
                 self._n_parsed = source.n_steps * source.n_envs
             else:
-                mask = ArrayBackend.convert_mask(mask, to=self._array_backend.get_backend_name(),
-                                                 device=self._array_backend.check_device(self._device))
-                self._parsed = {key: self._array_backend.pack_padded_sequence(value, mask)
+                mask = ArrayBackend.convert_mask(mask, to=self.backend_name,
+                                                 device=self._backend.check_device(self._device))
+                self._parsed = {key: self._backend.pack_padded_sequence(value, mask)
                                 for key, value in data.items()}
                 self._n_parsed = int(ArrayBackend.get_array_backend_from(mask).sum(mask))
 
@@ -450,8 +455,7 @@ class StepInfo(MushroomObject):
             total = n_parsed + self._pending_steps
             size = (total, self._n_envs) if self._vectorized else (total,)
 
-            output = {key: self._array_backend.full(size + self._shape_mapping[key],
-                                                    self._array_backend.none(), self._device)
+            output = {key: self._backend.full(size + self._shape_mapping[key], self._backend.none(), self._device)
                       for key in self._key_mapping}
 
             for key in output:
@@ -481,7 +485,7 @@ class StepInfo(MushroomObject):
         """
         device = ArrayBackend.get_array_backend(to).check_device(device)
 
-        return {key: ArrayBackend.convert(value, to=to, backend=self._array_backend, device=device)
+        return {key: ArrayBackend.convert(value, to=to, backend=self._backend, device=device)
                 for key, value in self._parsed.items()}
 
     def _parsed_steps(self):
@@ -494,7 +498,7 @@ class StepInfo(MushroomObject):
                 self._register_keys(env_data, True)
 
     def _fill_from_records(self, output, offset):
-        none_value = self._array_backend.none()
+        none_value = self._backend.none()
         for step, step_data in enumerate(self._records):
             index = offset + step
             for key, key_path in self._key_mapping.items():
@@ -503,7 +507,7 @@ class StepInfo(MushroomObject):
                     output[key][index][env] = none_value if value is None else value
 
     def _fill_from_columns(self, output, offset):
-        none_value = self._array_backend.none()
+        none_value = self._backend.none()
         for key, values in self._columns.items():
             rows = self._column_rows[key]
             for value, row in zip(values, rows):
@@ -592,7 +596,7 @@ class StepInfo(MushroomObject):
         if isinstance(value, numbers.Number) or value is None:
             self._shape_mapping[key] = ()
         else:
-            shape = self._array_backend.shape(value)
+            shape = self._backend.shape(value)
             self._shape_mapping[key] = shape[1:] if not single_env else shape
 
     def _find_element_by_key_path(self, source, key_path):
@@ -684,7 +688,7 @@ class StepInfo(MushroomObject):
 
         """
         if selected:
-            return self._array_backend.shape(next(iter(selected.values())))[0]
+            return self._backend.shape(next(iter(selected.values())))[0]
         if isinstance(index, slice):
             return len(range(*index.indices(self._n_parsed)))
         if isinstance(index, int):

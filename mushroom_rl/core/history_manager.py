@@ -1,11 +1,11 @@
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.array_backend import ArrayBackend
 
 from mushroom_rl.core._impl.layout import EpisodeLayout
 from mushroom_rl.core._impl.history_state import HistoryContext
 
 
-class HistoryManager(MushroomObject):
+class HistoryManager(MushroomBackendObject):
     """
     Object in charge of assembling the per-timestep context fed to the policy: the observation is preprocessed and
     then stacked with the most recent entries of one or more streams.
@@ -55,8 +55,8 @@ class HistoryManager(MushroomObject):
                 MDP and action spaces, are wired up by :meth:`default_streams`.
 
         """
-        self._agent_backend = ArrayBackend.get_array_backend(agent_info.backend)
-        self._device = agent_info.device
+        super().__init__(agent_info.backend_name, agent_info.device)
+
         self._stream_specs = dict()
         self._preprocessors = list(preprocessors) if preprocessors else list()
         self._buffers = None
@@ -65,8 +65,6 @@ class HistoryManager(MushroomObject):
         self._n_envs = None
 
         self._add_save_attr(
-            _agent_backend='primitive',
-            _device='primitive',
             _stream_specs='primitive',
             _preprocessors='mushroom',
             _buffers='none',
@@ -136,7 +134,7 @@ class HistoryManager(MushroomObject):
             NotImplementedError: if the agent backend is ``'list'``.
 
         """
-        if self._agent_backend.get_backend_name() == 'list':
+        if self.backend_name == 'list':
             raise NotImplementedError("History stacking is not currently supported with the list agent backend.")
         assert length > 1 or offset > 0, "A stream of length 1 at offset 0 returns the current entry unchanged. " \
                                          "Leave it unregistered instead."
@@ -144,7 +142,7 @@ class HistoryManager(MushroomObject):
                             "than the ones its window holds, plus the current one."
 
         self._stream_specs[name] = dict(length=length, shape=tuple(shape),
-                                        dtype=self._agent_backend.to_backend_dtype(dtype), offset=offset, **options)
+                                        dtype=self._backend.to_backend_dtype(dtype), offset=offset, **options)
 
     def add_preprocessor(self, preprocessor):
         """
@@ -152,14 +150,13 @@ class HistoryManager(MushroomObject):
         applied in the order they are added.
 
         Args:
-            preprocessor (Preprocessor): the preprocessor to apply to the observations, operating either in the agent
-                backend or in any backend.
+            preprocessor (Preprocessor): the preprocessor to apply to the observations, operating in the agent backend.
 
         """
-        backend = self._agent_backend.get_backend_name()
-        assert preprocessor.backend in (None, backend), \
-            f"The preprocessor operates on '{preprocessor.backend}' arrays, but the observations reaching it are " \
-            f"in the agent backend '{backend}'. Build it with backend='{backend}'."
+        backend_name = self.backend_name
+        assert preprocessor.backend_name == backend_name, \
+            f"The preprocessor operates on '{preprocessor.backend_name}' arrays, but the observations reaching it " \
+            f"are in the agent backend '{backend_name}'. Build it with backend='{backend_name}'."
 
         self._preprocessors.append(preprocessor)
 
@@ -228,7 +225,7 @@ class HistoryManager(MushroomObject):
             dataset (Dataset): the dataset whose observations update the statistics.
 
         """
-        state = self._agent_backend.convert(dataset.state, device=self._device)
+        state = self._backend.convert(dataset.state, device=self._device)
         for i, p in enumerate(self._preprocessors, 1):
             p.update(state)
             if i < len(self._preprocessors):
@@ -249,10 +246,10 @@ class HistoryManager(MushroomObject):
 
         """
         if 'obs_history' in self._stream_specs:
-            states, last = self._agent_backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
+            states, last = self._backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
             state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
         else:
-            state = self.preprocess(self._agent_backend.convert(dataset.state, device=self._device))
+            state = self.preprocess(self._backend.convert(dataset.state, device=self._device))
 
         return self._convert_output(to, state)
 
@@ -271,10 +268,10 @@ class HistoryManager(MushroomObject):
             collapses to the raw value.
 
         """
-        states = self._agent_backend.convert(dataset.get_init_states(), device=self._device)
+        states = self._backend.convert(dataset.get_init_states(), device=self._device)
 
         if 'obs_history' in self._stream_specs:
-            last = self._agent_backend.ones(len(states), dtype=bool, device=self._device)
+            last = self._backend.ones(len(states), dtype=bool, device=self._device)
             state = self.build_history('obs_history', states, last)
         else:
             state = self.preprocess(states)
@@ -298,21 +295,21 @@ class HistoryManager(MushroomObject):
 
         """
         if dataset.is_circular:
-            dataset = dataset.to_backend(self._agent_backend.get_backend_name(), device=self._device)
+            dataset = dataset.to_backend(self.backend_name, device=self._device)
             if anchor_idxs is None:
-                anchor_idxs = self._agent_backend.arange(0, len(dataset), device=self._device)
+                anchor_idxs = self._backend.arange(0, len(dataset), device=self._device)
             state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor_idxs, self._agent_backend,
+                                                                dataset.last, anchor_idxs, self._backend,
                                                                 dataset=dataset)
             return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs],
                                         next_state, dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
-            to=self._agent_backend.get_backend_name(), device=self._device)
+            to=self.backend_name, device=self._device)
 
         if 'obs_history' in self._stream_specs:
             state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
-            next_state = self._next_obs_history(state, next_states, self._agent_backend)
+            next_state = self._next_obs_history(state, next_states, self._backend)
         else:
             state, next_state = self.preprocess(states), self.preprocess(next_states)
 
@@ -349,17 +346,17 @@ class HistoryManager(MushroomObject):
             NotImplementedError: if the agent backend is ``'list'``.
 
         """
-        if self._agent_backend.get_backend_name() == 'list':
+        if self.backend_name == 'list':
             raise NotImplementedError("n-step parsing is not currently supported with the list agent backend.")
         if dataset.is_circular:
-            dataset = dataset.to_backend(self._agent_backend.get_backend_name(), device=self._device)
+            dataset = dataset.to_backend(self.backend_name, device=self._device)
             if anchor_idxs is None:
-                anchor_idxs = self._agent_backend.arange(0, len(dataset), device=self._device)
+                anchor_idxs = self._backend.arange(0, len(dataset), device=self._device)
             reduced_reward, anchor, endpoint = self.build_nstep_return(dataset.reward, dataset.absorbing,
                                                                        dataset.last, anchor_idxs, gamma,
                                                                        n_steps_return, dataset=dataset)
             state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor, self._agent_backend,
+                                                                dataset.last, anchor, self._backend,
                                                                 next_anchor_idxs=endpoint, dataset=dataset)
             extra['endpoint'] = endpoint
             extra['anchor'] = anchor
@@ -367,14 +364,14 @@ class HistoryManager(MushroomObject):
                                         dataset.absorbing[endpoint], dataset.last[endpoint], extra)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
-            to=self._agent_backend.get_backend_name(), device=self._device)
+            to=self.backend_name, device=self._device)
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
                                                                    n_steps_return)
 
         if 'obs_history' in self._stream_specs:
             windows = self.build_history('obs_history', states, last, attachment=dataset.history_state)
             state = windows[anchor]
-            next_state = self._next_obs_history(windows[endpoint], next_states[endpoint], self._agent_backend)
+            next_state = self._next_obs_history(windows[endpoint], next_states[endpoint], self._backend)
         else:
             state = self.preprocess(states[anchor])
             next_state = self.preprocess(next_states[endpoint])
@@ -409,7 +406,7 @@ class HistoryManager(MushroomObject):
             when it is 1.
 
         """
-        backend = backend or self._agent_backend
+        backend = backend or self._backend
         size = buffer.shape[0]
         if anchor_idxs is not None:
             return self._build_history_at(name, buffer, last, anchor_idxs, backend, dataset)
@@ -469,7 +466,7 @@ class HistoryManager(MushroomObject):
             The tuple ``(reward, anchor, endpoint)`` of the kept transitions.
 
         """
-        backend = backend or self._agent_backend
+        backend = backend or self._backend
         size = len(reward)
         if anchor_idxs is not None:
             positions, reached = self._walk_forward(dataset, last, anchor_idxs, n_steps_return - 1)
@@ -519,7 +516,7 @@ class HistoryManager(MushroomObject):
             For each transition, whether its n-step return is well-defined, as kept by :meth:`build_nstep_return`.
 
         """
-        backend = backend or self._agent_backend
+        backend = backend or self._backend
         if anchor_idxs is None:
             anchor_idxs = backend.arange(0, len(last), device=backend.get_device(last))
         positions, reached = self._walk_forward(dataset, last, anchor_idxs, n_steps_return - 1)
@@ -539,16 +536,15 @@ class HistoryManager(MushroomObject):
         for name, window in self._last_windows.items():
             spec = self._stream_specs[name]
             if spec['length'] == 1:
-                window = self._agent_backend.expand_dims(window, axis)
+                window = self._backend.expand_dims(window, axis)
             head = (slice(None),) * axis
             if spec['offset'] == 0:
                 before_last[name] = window[head + (slice(None, -1),)]
                 before_next[name] = window[head + (slice(1, None),)]
             elif name == 'action_history':
                 before_last[name] = window
-                newest = self._agent_backend.expand_dims(self._last_action, axis)
-                before_next[name] = self._agent_backend.concatenate([window[head + (slice(1, None),)], newest],
-                                                                    dim=axis)
+                newest = self._backend.expand_dims(self._last_action, axis)
+                before_next[name] = self._backend.concatenate([window[head + (slice(1, None),)], newest], dim=axis)
         return HistoryContext(before_next, before_last) if len(before_next) > 0 else None
 
     @classmethod
@@ -632,10 +628,10 @@ class HistoryManager(MushroomObject):
         the caller. Returns them untouched when no backend is requested or it is the agent's own.
 
         """
-        if to is None or to == self._agent_backend.get_backend_name():
+        if to is None or to == self.backend_name:
             return arrays[0] if len(arrays) == 1 else arrays
 
-        return ArrayBackend.get_array_backend(to).convert(*arrays, backend=self._agent_backend)
+        return ArrayBackend.get_array_backend(to).convert(*arrays, backend=self._backend)
 
     def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, extra):
         """
@@ -652,8 +648,8 @@ class HistoryManager(MushroomObject):
         self._buffers = dict()
         for name, spec in self._stream_specs.items():
             if spec['length'] > 1:
-                self._buffers[name] = self._agent_backend.zeros(*lead, spec['length'] - 1, *spec['shape'],
-                                                                dtype=spec['dtype'], device=self._device)
+                self._buffers[name] = self._backend.zeros(*lead, spec['length'] - 1, *spec['shape'],
+                                                          dtype=spec['dtype'], device=self._device)
         self._last_action = None
 
     def _zero_buffers(self):
@@ -662,11 +658,11 @@ class HistoryManager(MushroomObject):
         self._last_action = None
 
     def _zero_buffers_vectorized(self, mask):
-        mask = self._agent_backend.convert_mask(mask, device=self._device)
+        mask = self._backend.convert_mask(mask, device=self._device)
         for buffer in self._buffers.values():
             buffer[mask] = 0
         if self._last_action is not None:
-            if self._agent_backend.get_backend_name() == 'list':
+            if self.backend_name == 'list':
                 self._last_action = [None if reset else action for action, reset in zip(self._last_action, mask)]
             else:
                 self._last_action[mask] = 0
@@ -730,18 +726,18 @@ class HistoryManager(MushroomObject):
             return value
         spec = self._stream_specs[name]
         if self._n_envs is not None:
-            return self._agent_backend.zeros(self._n_envs, *spec['shape'], dtype=spec['dtype'], device=self._device)
-        return self._agent_backend.zeros(*spec['shape'], dtype=spec['dtype'], device=self._device)
+            return self._backend.zeros(self._n_envs, *spec['shape'], dtype=spec['dtype'], device=self._device)
+        return self._backend.zeros(*spec['shape'], dtype=spec['dtype'], device=self._device)
 
     def _append(self, name, value):
         buffer = self._buffers[name]
         if self._n_envs is not None:
-            stacked = self._agent_backend.concatenate([buffer, value[:, None]], dim=1)
+            stacked = self._backend.concatenate([buffer, value[:, None]], dim=1)
             buffer[:] = stacked[:, 1:]
         else:
-            stacked = self._agent_backend.concatenate([buffer, value[None]], dim=0)
+            stacked = self._backend.concatenate([buffer, value[None]], dim=0)
             if isinstance(stacked, list):
-                stacked = self._agent_backend.copy(stacked)
+                stacked = self._backend.copy(stacked)
             buffer[:] = stacked[1:]
 
         return stacked

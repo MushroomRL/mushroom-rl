@@ -1,9 +1,10 @@
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 from ._impl.extra_info import StepInfo, EpisodeInfo
 
 
-class ExtraInfo(MushroomObject):
+class ExtraInfo(MushroomBackendObject):
     """
     Container for everything a dataset stores beside the transitions: the step information, the episode
     information and the per-episode policy parameters.
@@ -23,24 +24,22 @@ class ExtraInfo(MushroomObject):
             theta_device (str, None): device the policy parameters are placed on.
 
         """
+        super().__init__(backend, device)
+
         self._n_envs = n_envs
-        self._backend = backend
-        self._device = device
         self._vectorized = n_envs > 1 if vectorized is None else vectorized
-        self._theta_backend = theta_backend if theta_backend is not None else backend
-        self._theta_device = theta_device
+        self._theta_backend_name = theta_backend if theta_backend is not None else backend
+        self._theta_device = ArrayBackend.get_array_backend(self._theta_backend_name).check_device(theta_device)
 
         self._step_info = StepInfo(n_envs, backend, device, vectorized=self._vectorized)
         self._episode_info = EpisodeInfo(n_envs, backend, device, vectorized=self._vectorized)
-        self._theta = EpisodeInfo(n_envs, self._theta_backend, self._theta_device, vectorized=self._vectorized)
+        self._theta = EpisodeInfo(n_envs, self._theta_backend_name, self._theta_device, vectorized=self._vectorized)
 
         self._add_save_attr(
             _n_envs='primitive',
-            _backend='primitive',
-            _device='primitive',
             _vectorized='primitive',
-            _theta_backend='primitive',
-            _theta_device='primitive',
+            _theta_backend_name='primitive',
+            _theta_device='none',
             _step_info='mushroom',
             _episode_info='mushroom',
             _theta='mushroom'
@@ -195,8 +194,8 @@ class ExtraInfo(MushroomObject):
             A single-environment ExtraInfo.
 
         """
-        extras = ExtraInfo(1, self._backend, self._device, vectorized=False,
-                           theta_backend=self._theta_backend, theta_device=self._theta_device)
+        extras = ExtraInfo(1, self.backend_name, self._device, vectorized=False,
+                           theta_backend=self._theta_backend_name, theta_device=self._theta_device)
         extras._step_info = self._step_info.flatten(mask)
         extras._episode_info = self._episode_info.flatten()
         extras._theta = self._theta.flatten()
@@ -225,8 +224,8 @@ class ExtraInfo(MushroomObject):
             A new ExtraInfo holding no content, shaped like this one.
 
         """
-        return ExtraInfo(self._n_envs, self._backend, self._device, vectorized=self._vectorized,
-                         theta_backend=self._theta_backend, theta_device=self._theta_device)
+        return ExtraInfo(self._n_envs, self.backend_name, self._device, vectorized=self._vectorized,
+                         theta_backend=self._theta_backend_name, theta_device=self._theta_device)
 
     def copy(self):
         """
@@ -259,3 +258,7 @@ class ExtraInfo(MushroomObject):
 
         """
         return self._theta.episodes
+
+    def _post_load(self, device):
+        theta_backend = ArrayBackend.get_array_backend(self._theta_backend_name)
+        self._theta_device = theta_backend.check_device(device if theta_backend.supports_devices() else None)

@@ -15,7 +15,7 @@ class AbstractDQN(Agent):
 
     def __init__(self, mdp_info, policy, approximator, approximator_params, batch_size, target_update_frequency,
                  replay_memory=None, initial_replay_size=500, max_replay_size=5000, fit_params=None,
-                 predict_params=None, clip_reward=False, history_length=1):
+                 predict_params=None, clip_reward=False, history_length=1, device=None):
         """
         Constructor.
 
@@ -32,16 +32,15 @@ class AbstractDQN(Agent):
             fit_params (dict, None): parameters of the fitting algorithm of the approximator;
             predict_params (dict, None): parameters for the prediction with the approximator;
             clip_reward (bool, False): whether to clip the reward or not;
-            history_length (int, 1): number of consecutive observation stacked as policy input.
+            history_length (int, 1): number of consecutive observation stacked as policy input;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
-        super().__init__(mdp_info, policy, backend='torch', history_length=history_length)
+        super().__init__(mdp_info, policy, backend='torch', device=device, history_length=history_length)
 
-        assert policy._backend == self._agent_backend, \
-            f"The policy uses the '{policy._backend.get_backend_name()}' backend, but DQN-based agents " \
-            f"run on the '{self._agent_backend.get_backend_name()}' backend. Build the policy with " \
-            f"backend='{self._agent_backend.get_backend_name()}', e.g. " \
-            f"EpsGreedy(epsilon, backend='{self._agent_backend.get_backend_name()}')."
+        assert policy.backend_name == 'torch', \
+            f"DQN-based agents require a torch policy, got a '{policy.backend_name}' one. " \
+            f"Build it with backend='torch'."
 
         self._fit_params = dict()
         self._predict_params = dict()
@@ -52,7 +51,7 @@ class AbstractDQN(Agent):
         if predict_params is not None:
             self._predict_params.update(predict_params)
 
-        self._batch_size = Parameter.make(batch_size, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
         self._clip_reward = clip_reward
         self._target_update_frequency = target_update_frequency
 

@@ -25,13 +25,13 @@ class RingLayout(StreamLayout):
         self._max_size = max_size
         self._write_head = 0
         self._full = False
-        self._ring_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
+        self._ring_tails = self._backend.zeros(0, dtype=int, device=self._device)
 
         self._add_save_attr(
             _max_size='primitive',
             _write_head='primitive',
             _full='primitive',
-            _ring_tails=self._array_backend.get_backend_serialization()
+            _ring_tails=self._backend.get_backend_serialization()
         )
 
     def append_rows(self, other):
@@ -55,7 +55,7 @@ class RingLayout(StreamLayout):
             ValueError: if the dataset continues a number of episodes different from the number left open.
 
         """
-        no_rows = self._array_backend.zeros(0, dtype=int, device=self._device)
+        no_rows = self._backend.zeros(0, dtype=int, device=self._device)
         to_close = no_rows
         pairs = no_rows, no_rows
         if self.size > 0:
@@ -79,7 +79,7 @@ class RingLayout(StreamLayout):
             A :class:`LinkedRingLayout` holding the same buffer state.
 
         """
-        layout = LinkedRingLayout(self._array_backend.get_backend_name(), self._max_size, self._device)
+        layout = LinkedRingLayout(self.backend_name, self._max_size, self._device)
         layout._n_rows, layout._head = self._n_rows, self._head
         layout._write_head, layout._full, layout._ring_tails = self._write_head, self._full, self._ring_tails
         layout._prev_links, layout._next_links = layout._contiguous_links(last)
@@ -97,7 +97,7 @@ class RingLayout(StreamLayout):
             episodes occupy consecutive positions.
 
         """
-        return self._array_backend.zeros(0, dtype=int, device=self._device)
+        return self._backend.zeros(0, dtype=int, device=self._device)
 
     def advance(self, n):
         """
@@ -126,7 +126,7 @@ class RingLayout(StreamLayout):
             The positions of the open episode ends linked to their continuation.
 
         """
-        return self._array_backend.zeros(0, dtype=int, device=self._device)
+        return self._backend.zeros(0, dtype=int, device=self._device)
 
     def set_tails(self, tails, positions):
         """
@@ -238,7 +238,7 @@ class RingLayout(StreamLayout):
 
     def standalone_view(self, index, last):
         if isinstance(index, slice) and index.step in (None, 1):
-            backend = self._array_backend
+            backend = self._backend
             rows = backend.arange(0, len(self), device=self._device)[index]
             return self.episodes_view(rows, last)
         return super().standalone_view(index, last)
@@ -255,7 +255,7 @@ class RingLayout(StreamLayout):
             The buffer positions of the stored rows in that order, and the boundary code of each of them.
 
         """
-        backend = self._array_backend
+        backend = self._backend
         rows = backend.arange(0, self.size, device=self._device)
         order = (rows + self._write_head) % self._max_size if self._full else rows
         starts = self.row_starts(last)[order]
@@ -326,7 +326,7 @@ class RingLayout(StreamLayout):
         super()._clear_rows()
         self._write_head = 0
         self._full = False
-        self._ring_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
+        self._ring_tails = self._backend.zeros(0, dtype=int, device=self._device)
 
     def _follow_previous(self, rows):
         return self._age(rows) > 0

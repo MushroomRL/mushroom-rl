@@ -1,10 +1,10 @@
 from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 from .step_info import StepInfo
 
 
-class EpisodeInfo(MushroomObject):
+class EpisodeInfo(MushroomBackendObject):
     """
     Container for one entry per episode and per environment, such as the information an environment reports
     when it resets or the policy parameters an episodic agent draws. The entries of every environment are kept
@@ -23,24 +23,22 @@ class EpisodeInfo(MushroomObject):
                 one. If None, it defaults to ``n_envs > 1``.
 
         """
+        super().__init__(backend, device)
+
         self._n_envs = n_envs
         self._vectorized = n_envs > 1 if vectorized is None else vectorized
-        self._backend = backend
-        self._device = device
         self._blocks = self._initial_blocks()
         self._parsed = None
-        self._target_backend = None
+        self._target_backend_name = None
         self._target_device = None
 
         self._add_save_attr(
             _n_envs='primitive',
             _vectorized='primitive',
-            _backend='primitive',
-            _device='primitive',
-            _blocks='pickle',
+            _blocks='torch' if self._backend.get_backend_serialization() == 'torch' else 'pickle',
             _parsed='none',
-            _target_backend='primitive',
-            _target_device='primitive'
+            _target_backend_name='primitive',
+            _target_device='none'
         )
 
     def __add__(self, other):
@@ -108,12 +106,12 @@ class EpisodeInfo(MushroomObject):
 
         """
         if self._parsed is None:
-            info = StepInfo(1, self._backend, self._device, vectorized=False)
+            info = StepInfo(1, self.backend_name, self._device, vectorized=False)
             for entry in self._flat_entries():
                 info.append(entry)
 
-            if self._target_backend is not None:
-                info = info.to_backend(self._target_backend, self._target_device)
+            if self._target_backend_name is not None:
+                info = info.to_backend(self._target_backend_name, self._target_device)
 
             self._parsed = info.parse()
 
@@ -132,12 +130,13 @@ class EpisodeInfo(MushroomObject):
 
         """
         info = self.copy()
+        device = ArrayBackend.get_array_backend(backend).check_device(device)
 
-        if backend != self._backend or device != self._device:
-            info._target_backend = backend
+        if backend != self.backend_name or device != self._device:
+            info._target_backend_name = backend
             info._target_device = device
         else:
-            info._target_backend = None
+            info._target_backend_name = None
             info._target_device = None
 
         return info
@@ -148,8 +147,8 @@ class EpisodeInfo(MushroomObject):
             A single-environment EpisodeInfo holding the episodes of every environment, one after the other.
 
         """
-        info = EpisodeInfo(1, self._backend, self._device, vectorized=False)
-        info._target_backend = self._target_backend
+        info = EpisodeInfo(1, self.backend_name, self._device, vectorized=False)
+        info._target_backend_name = self._target_backend_name
         info._target_device = self._target_device
         info._blocks = [block.copy() for block in self._blocks if block]
 
@@ -161,7 +160,7 @@ class EpisodeInfo(MushroomObject):
             A new EpisodeInfo holding no episodes, shaped like this one.
 
         """
-        return EpisodeInfo(self.n_envs, self._backend, self._device, vectorized=self._vectorized)
+        return EpisodeInfo(self.n_envs, self.backend_name, self._device, vectorized=self._vectorized)
 
     def copy(self):
         """
@@ -171,7 +170,7 @@ class EpisodeInfo(MushroomObject):
         """
         info = self.empty()
         info._blocks = [block.copy() for block in self._blocks]
-        info._target_backend = self._target_backend
+        info._target_backend_name = self._target_backend_name
         info._target_device = self._target_device
 
         return info
@@ -201,6 +200,11 @@ class EpisodeInfo(MushroomObject):
     @property
     def n_envs(self):
         return self._n_envs
+
+    def _post_load(self, device):
+        if self._target_backend_name is not None:
+            target = ArrayBackend.get_array_backend(self._target_backend_name)
+            self._target_device = target.check_device(device if target.supports_devices() else None)
 
     def _initial_blocks(self):
         """

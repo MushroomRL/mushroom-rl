@@ -19,7 +19,7 @@ class TRPO(OnPolicyDeepAC):
 
     def __init__(self, mdp_info, policy, critic_params, ent_coeff=0., max_kl=.001, lam=1.,
                  n_epochs_line_search=10, n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10,
-                 critic_fit_params=None, backend='torch', history_length=1, action_history_length=0):
+                 critic_fit_params=None, backend='torch', history_length=1, action_history_length=0, device=None):
         """
         Constructor.
 
@@ -35,26 +35,27 @@ class TRPO(OnPolicyDeepAC):
             cg_residual_tol ([float, Parameter], 1e-10): conjugate gradient residual tolerance;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
-            action_history_length (int, 0): number of previous actions fed to the actor and critic.
+            action_history_length (int, 0): number of previous actions fed to the actor and critic;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict(n_epochs=5) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_line_search = Parameter.make(n_epochs_line_search, backend='torch')
-        self._n_epochs_cg = Parameter.make(n_epochs_cg, backend='torch')
-        self._cg_damping = Parameter.make(cg_damping, backend='torch')
-        self._cg_residual_tol = Parameter.make(cg_residual_tol, backend='torch')
+        self._n_epochs_line_search = Parameter.make(n_epochs_line_search, backend='torch', device=device)
+        self._n_epochs_cg = Parameter.make(n_epochs_cg, backend='torch', device=device)
+        self._cg_damping = Parameter.make(cg_damping, backend='torch', device=device)
+        self._cg_residual_tol = Parameter.make(cg_residual_tol, backend='torch', device=device)
 
-        self._max_kl = Parameter.make(max_kl, backend='torch')
-        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
+        self._max_kl = Parameter.make(max_kl, backend='torch', device=device)
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
-        self._lambda = Parameter.make(lam, backend='torch')
+        self._lambda = Parameter.make(lam, backend='torch', device=device)
 
         self._V = TorchApproximator(**critic_params)
 
         self._old_policy = None
 
-        super().__init__(mdp_info, policy, backend=backend, history_length=history_length,
+        super().__init__(mdp_info, policy, backend=backend, device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
         self._add_save_attr(

@@ -30,7 +30,7 @@ class ProMP(HasWeights, StatefulPolicy):
         """
         assert sigma is None or (len(sigma.shape) == 2 and sigma.shape[0] == sigma.shape[1])
 
-        super().__init__(policy_state_shape=(1,))
+        super().__init__(policy_state_shape=(1,), backend='numpy')
 
         self._approximator = mu
         self._phi = phi

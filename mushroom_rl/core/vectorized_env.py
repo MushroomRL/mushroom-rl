@@ -1,5 +1,4 @@
 from mushroom_rl.core.environment import Environment
-from mushroom_rl.core.array_backend import ArrayBackend
 
 
 class VectorizedEnvironment(Environment):
@@ -24,7 +23,7 @@ class VectorizedEnvironment(Environment):
             The initial state of the default environment, and its episode info dictionary.
 
         """
-        arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        arraybackend = self._mdp_info.backend
         env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
@@ -51,7 +50,7 @@ class VectorizedEnvironment(Environment):
             info dictionary.
 
         """
-        arraybackend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        arraybackend = self._mdp_info.backend
         env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
@@ -64,7 +63,7 @@ class VectorizedEnvironment(Environment):
                 self._default_env_info(step_infos))
 
     def render(self, record=False):
-        array_backend = ArrayBackend.get_array_backend(self._mdp_info.backend)
+        array_backend = self._mdp_info.backend
         env_mask = array_backend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 

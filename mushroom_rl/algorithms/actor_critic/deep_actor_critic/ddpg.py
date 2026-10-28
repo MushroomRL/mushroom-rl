@@ -18,7 +18,7 @@ class DDPG(DeepAC):
                  actor_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, tau, policy_delay=1,
                  critic_fit_params=None, actor_predict_params=None, critic_predict_params=None,
-                 history_length=1):
+                 history_length=1, device=None):
         """
         Constructor.
 
@@ -45,7 +45,8 @@ class DDPG(DeepAC):
                 actor approximator;
             critic_predict_params (dict, None): parameters for the prediction with the
                 critic approximator;
-            history_length (int, 1): number of consecutive observations stacked as policy input.
+            history_length (int, 1): number of consecutive observations stacked as policy input;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
@@ -67,11 +68,12 @@ class DDPG(DeepAC):
 
         policy_parameters = self._actor_approximator.parameters()
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length,
+                         device=device)
 
-        self._batch_size = Parameter.make(batch_size, backend='torch')
-        self._tau = Parameter.make(tau, backend='torch')
-        self._policy_delay = Parameter.make(policy_delay, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
+        self._tau = Parameter.make(tau, backend='torch', device=device)
+        self._policy_delay = Parameter.make(policy_delay, backend='torch', device=device)
         self._fit_count = 0
 
         self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size,

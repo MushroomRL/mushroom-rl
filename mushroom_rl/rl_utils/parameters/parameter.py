@@ -1,11 +1,11 @@
 import math
 
-from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.approximators.table import Table
 
 
-class Parameter(MushroomObject):
+class Parameter(MushroomBackendObject):
     """
     This class implements function to manage parameters, such as learning rate.
     It also allows to have a single parameter for each state of state-action
@@ -28,10 +28,10 @@ class Parameter(MushroomObject):
                 is used.
 
         """
+        super().__init__(backend, device)
+
         self._shape = shape
         self._log_full = log_full
-        self._backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
         self._initial_value = self._to_backend(value)
         self._updates_enabled = True
 
@@ -39,8 +39,6 @@ class Parameter(MushroomObject):
             _initial_value=self._value_serialization_method(self._initial_value),
             _shape='primitive',
             _log_full='primitive',
-            _backend='primitive',
-            _device='none',
             _updates_enabled='primitive',
         )
 
@@ -108,7 +106,7 @@ class Parameter(MushroomObject):
 
         """
         self._backend = ArrayBackend.get_array_backend(backend)
-        self._device = device
+        self._device = self._backend.check_device(device)
         self._initial_value = self._to_backend(self._initial_value)
 
         self._add_save_attr(_initial_value=self._value_serialization_method(self._initial_value))
@@ -159,7 +157,7 @@ class Parameter(MushroomObject):
 
     def _to_backend(self, array):
         if self._is_array(array):
-            return ArrayBackend.convert(array, to=self._backend.get_backend_name(),
+            return ArrayBackend.convert(array, to=self.backend_name,
                                         device=self._backend.check_device(self._device))
         else:
             return array

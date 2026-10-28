@@ -446,3 +446,9 @@ def test_convert_mask():
 
     assert isinstance(ArrayBackend.convert_mask(numpy_mask, to='list'), np.ndarray)
     assert np.array_equal(ListBackend.convert_to_backend_mask(TorchBackend, torch_mask), numpy_mask)
+
+
+def test_supports_devices():
+    assert NumpyBackend.supports_devices() is False
+    assert ListBackend.supports_devices() is False
+    assert TorchBackend.supports_devices() is True
