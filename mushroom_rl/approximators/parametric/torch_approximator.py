@@ -92,11 +92,11 @@ class TorchApproximator(Approximator):
             self._optimizer = optimizer['class'](self.network.parameters(), **optimizer['params'])
         else:
             self._optimizer = None
-        self._loss = loss
         self._last_loss = None
         self._dirty = False
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
+        self._trainer.to(self._device)
 
         self._add_save_attr(
             _parse_output='none',
@@ -104,7 +104,6 @@ class TorchApproximator(Approximator):
             _kwargs_ndims='primitive',
             network='torch',
             _optimizer='torch',
-            _loss='pickle',
             _last_loss='none',
             _trainer='mushroom',
         )
@@ -116,6 +115,7 @@ class TorchApproximator(Approximator):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+        self._trainer.to(self._device)
 
     def _pad_inputs(self, args, kwargs):
         n_declared = len(self._input_ndims)
@@ -242,6 +242,15 @@ class TorchApproximator(Approximator):
 
         """
         return self.network.parameters()
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the fit method.
+
+        """
+        return self._trainer.loss
 
     @property
     def loss_fit(self):
@@ -405,6 +414,7 @@ class TorchEnsemble(Ensemble):
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss,
                                      self._store_loss, quiet)
+        self._trainer.to(self._device)
 
         self._add_save_attr(
             _randomness='primitive',
@@ -427,6 +437,7 @@ class TorchEnsemble(Ensemble):
             m._dirty = True
         self._sync_params()
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+        self._trainer.to(self._device)
 
     def _parse_single_output(self, out, prediction, compute_variance):
         return self._aggregate(out.squeeze(1), prediction, compute_variance)
@@ -640,6 +651,15 @@ class TorchEnsemble(Ensemble):
 
         """
         return self._models[0].network
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the fit method.
+
+        """
+        return self._trainer.loss
 
     @property
     def loss_fit(self):

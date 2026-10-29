@@ -31,6 +31,21 @@ class TorchTrainer(MushroomObject):
         self._compute_val_loss_fn = compute_val_loss_fn
         self._store_loss_fn = store_loss_fn
 
+    def to(self, device):
+        """
+        Move the trainer to the given device. The loss function is moved only if it supports it.
+
+        Args:
+            device (str): the device to move the trainer to.
+
+        Returns:
+            The trainer itself.
+
+        """
+        if hasattr(self._loss_fn, 'to'):
+            self._loss_fn.to(device)
+        return self
+
     def fit(self, args, n_epochs, weights, epsilon, patience, validation_split, network_kwargs):
         check_loss, n_epochs, use_weights, train_args, val_args = self._setup(
             args, n_epochs, weights, epsilon, validation_split)
@@ -110,3 +125,12 @@ class TorchTrainer(MushroomObject):
         loss = self._loss_fn(y_hat, *y, reduction='none')
         loss = loss @ weights
         return loss / weights.sum()
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the trainer.
+
+        """
+        return self._loss_fn

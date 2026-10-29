@@ -5,7 +5,6 @@ import torch
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import CategoricalNetwork
-from mushroom_rl.utils.torch_utils import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
@@ -38,15 +37,18 @@ class AbstractCategoricalDQN(AbstractDQN):
             v_max (float): maximum value of value-function.
 
         """
+        approximator_params = dict(approximator_params)
+        approximator_params.update(loss=categorical_loss)
+
+        super().__init__(mdp_info, policy, TorchApproximator, approximator_params=approximator_params, **params)
+
         self._n_atoms = n_atoms
         self._v_min = v_min
         self._v_max = v_max
         self._delta = (v_max - v_min) / (n_atoms - 1)
-        self._a_values = torch.arange(v_min, v_max + eps, self._delta,
-                                      device=TorchUtils.get_device(params.get('device')))
+        self._a_values = torch.arange(v_min, v_max + eps, self._delta, device=self._info.device)
 
-        approximator_params = dict(approximator_params)
-        approximator_params.update(loss=categorical_loss)
+        self._fit_params['get_distribution'] = True
 
         self._add_save_attr(
             _n_atoms='primitive',
@@ -55,10 +57,6 @@ class AbstractCategoricalDQN(AbstractDQN):
             _delta='primitive',
             _a_values='torch'
         )
-
-        super().__init__(mdp_info, policy, TorchApproximator, approximator_params=approximator_params, **params)
-
-        self._fit_params['get_distribution'] = True
 
     def _categorical_projection(self, reward, gamma, p_next):
         """
