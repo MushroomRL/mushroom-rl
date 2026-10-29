@@ -223,20 +223,19 @@ class CodedLayout(EpisodeLayout):
         """
         codes = self.array()
         backend = ArrayBackend.get_array_backend_from(codes)
-        device = self._device
         n = len(self)
 
         is_start = codes > 0
         is_start[0] = True
         starts = backend.where(is_start)[0]
-        ends = backend.concatenate([starts[1:] - 1, backend.zeros(1, dtype=int, device=device) + n - 1])
+        ends = backend.concatenate([starts[1:] - 1, backend.zeros(1, dtype=int, device=self._device) + n - 1])
         lengths = ends - starts + 1
         block = backend.cumsum((codes[starts] & int(self.Boundary.BLOCK_START) > 0) * 1)
         is_head = codes[starts] & int(self.Boundary.CONTINUING) > 0
         is_tail = ~(last[ends] > 0)
         n_chunks, n_blocks = len(starts), int(block[-1]) + 1
 
-        pred = backend.zeros(n_chunks, dtype=int, device=device) - 1
+        pred = backend.zeros(n_chunks, dtype=int, device=self._device) - 1
         for k in range(1, n_blocks):
             heads = backend.where((block == k) & is_head)[0]
             tails = backend.where((block == k - 1) & is_tail)[0]
@@ -246,31 +245,31 @@ class CodedLayout(EpisodeLayout):
             pred[heads] = tails[:len(heads)]
         has_pred = pred >= 0
 
-        offset = backend.zeros(n_chunks, dtype=int, device=device)
-        root = backend.arange(0, n_chunks, device=device)
+        offset = backend.zeros(n_chunks, dtype=int, device=self._device)
+        root = backend.arange(0, n_chunks, device=self._device)
         for k in range(1, n_blocks):
             linked = backend.where((block == k) & has_pred)[0]
             offset[linked] = offset[pred[linked]] + lengths[pred[linked]]
             root[linked] = root[pred[linked]]
-        has_succ = backend.zeros(n_chunks, dtype=bool, device=device)
+        has_succ = backend.zeros(n_chunks, dtype=bool, device=self._device)
         has_succ[pred[has_pred]] = True
         chain_ends = backend.where(~has_succ)[0]
-        total = backend.zeros(n_chunks, dtype=int, device=device)
+        total = backend.zeros(n_chunks, dtype=int, device=self._device)
         total[root[chain_ends]] = offset[chain_ends] + lengths[chain_ends]
-        total = backend.where(has_pred, backend.zeros(n_chunks, dtype=int, device=device), total)
+        total = backend.where(has_pred, backend.zeros(n_chunks, dtype=int, device=self._device), total)
         new_start = (backend.cumsum(total) - total)[root] + offset
 
         chunk_of_row = backend.cumsum(is_start * 1) - 1
-        new_row = new_start[chunk_of_row] + backend.arange(0, n, device=device) - starts[chunk_of_row]
-        order = backend.zeros(n, dtype=int, device=device)
-        order[new_row] = backend.arange(0, n, device=device)
+        new_row = new_start[chunk_of_row] + backend.arange(0, n, device=self._device) - starts[chunk_of_row]
+        order = backend.zeros(n, dtype=int, device=self._device)
+        order[new_row] = backend.arange(0, n, device=self._device)
 
-        new_codes = backend.zeros(n, dtype=self.dtype, device=device)
+        new_codes = backend.zeros(n, dtype=self.dtype, device=self._device)
         unlinked = backend.where(~has_pred)[0]
         new_codes[new_start[unlinked]] = codes[starts[unlinked]] & int(self.Boundary.BREAK)
         heads = new_start[(block == 0) & is_head]
         tails = new_row[ends[(block == n_blocks - 1) & is_tail]]
-        layout = CodedLayout.from_array(new_codes, self.backend_name, device, open_heads=heads,
+        layout = CodedLayout.from_array(new_codes, self.backend_name, self._device, open_heads=heads,
                                         open_tails=tails)
         layout._first = self._first
 

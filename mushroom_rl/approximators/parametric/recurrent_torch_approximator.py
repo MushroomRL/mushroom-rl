@@ -1,6 +1,6 @@
 import torch
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators.approximator import Ensemble
 from mushroom_rl.approximators.parametric.torch_approximator import TorchApproximator
 

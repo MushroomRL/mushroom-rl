@@ -125,14 +125,14 @@ class DatasetInfo(MushroomObject):
 
         """
         backend_name = agent_info.backend_name
-        array_backend = ArrayBackend.get_array_backend(backend_name)
+        backend = ArrayBackend.get_array_backend(backend_name)
         device = agent_info.device
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
-        state_dtype = array_backend.to_backend_dtype(mdp_info.observation_space.data_type)
+        state_dtype = backend.to_backend_dtype(mdp_info.observation_space.data_type)
         action_shape = mdp_info.action_space.shape
-        action_dtype = array_backend.to_backend_dtype(mdp_info.action_space.data_type)
+        action_dtype = backend.to_backend_dtype(mdp_info.action_space.data_type)
         policy_state_shape = agent_info.policy_state_shape if store_policy_state else None
 
         return DatasetInfo(backend_name, backend_name, device, device, horizon, gamma, state_shape, state_dtype,

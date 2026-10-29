@@ -233,7 +233,7 @@ class Environment(object):
             The bounded variable.
 
         """
-        array_backend = self.info.backend
-        return array_backend.maximum(min_value, array_backend.minimum(x, max_value))
+        backend = self.info.backend
+        return backend.maximum(min_value, backend.minimum(x, max_value))
 
     _registered_envs = dict()

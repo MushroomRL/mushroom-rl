@@ -1,7 +1,6 @@
 import math
 
-from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
+from mushroom_rl.core import ArrayBackend, MushroomBackendObject
 from mushroom_rl.approximators.table import Table
 
 

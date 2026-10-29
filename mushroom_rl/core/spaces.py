@@ -46,12 +46,12 @@ class Box(MushroomObject):
 
         self._data_type = data_type
 
-        arr_backend = ArrayBackend.get_array_backend_from(self._low)
-        assert arr_backend == ArrayBackend.get_array_backend_from(self._high)
+        backend = ArrayBackend.get_array_backend_from(self._low)
+        assert backend == ArrayBackend.get_array_backend_from(self._high)
 
         self._add_save_attr(
-            _low=arr_backend.get_backend_serialization(),
-            _high=arr_backend.get_backend_serialization(),
+            _low=backend.get_backend_serialization(),
+            _high=backend.get_backend_serialization(),
             _data_type='primitive'
         )
 

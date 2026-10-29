@@ -1,4 +1,4 @@
-from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
+from mushroom_rl.core import MushroomBackendObject
 
 
 class Distribution(MushroomBackendObject):

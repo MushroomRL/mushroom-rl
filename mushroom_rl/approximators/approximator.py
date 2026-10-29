@@ -1,7 +1,6 @@
 from sklearn.exceptions import NotFittedError
 
-from mushroom_rl.core.mushroom_object import MushroomObject
-from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
+from mushroom_rl.core import MushroomObject, MushroomBackendObject
 
 
 class Approximator(MushroomBackendObject):

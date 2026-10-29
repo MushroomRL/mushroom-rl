@@ -123,9 +123,8 @@ class EpisodeLayout(MushroomBackendObject):
         if isinstance(index, slice) and index.step in (None, 1):
             layout = self._standalone_slice(index, last)
         else:
-            array_backend = self._backend
             starts = self.row_starts(last)[index]
-            boundary = array_backend.zeros(len(starts), dtype=self.dtype, device=self._device)
+            boundary = self._backend.zeros(len(starts), dtype=self.dtype, device=self._device)
             boundary[:] = int(self.Boundary.CONTINUING)
             boundary[starts] = int(self.Boundary.FRESH)
             layout = self._coded_from_array(boundary)
@@ -146,8 +145,7 @@ class EpisodeLayout(MushroomBackendObject):
             The layout of the selected rows, continuing no episode and leaving none open.
 
         """
-        array_backend = self._backend
-        boundary_code = array_backend.zeros(len(rows), dtype=self.dtype, device=self._device)
+        boundary_code = self._backend.zeros(len(rows), dtype=self.dtype, device=self._device)
         boundary_code[:] = int(self.Boundary.CONTINUING)
         boundary_code[self.row_starts(last)[rows]] = int(self.Boundary.FRESH)
         linked = (rows[1:] == rows[:-1] + 1) & self._follow_previous(rows[1:])

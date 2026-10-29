@@ -1,7 +1,6 @@
 import torch.nn as nn
 
-from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
+from mushroom_rl.core import ArrayBackend, MushroomBackendObject
 from mushroom_rl.features.basis import BasisFunction
 from mushroom_rl.features.tiles import AbstractTiles
 

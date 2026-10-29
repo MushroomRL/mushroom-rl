@@ -83,7 +83,6 @@ class HistoryState(MushroomBackendObject):
             The entries of the selected rows, keyed by their position in the view.
 
         """
-        backend = self._backend
         if len(self) == 0:
             return self._wrap(self._positions, dict())
         if isinstance(index, slice):
@@ -91,12 +90,12 @@ class HistoryState(MushroomBackendObject):
             if step == 1:
                 keep = (self._positions >= start) & (self._positions < stop)
                 return self._select(keep, self._positions[keep] - start)
-            index = backend.arange(start, stop, step, device=self._device)
+            index = self._backend.arange(start, stop, step, device=self._device)
         index = self._rows(index)
-        if index.dtype == backend.to_backend_dtype(bool):
-            index = backend.where(index)[0]
-        inverse = backend.zeros(n_rows, dtype=int, device=self._device) - 1
-        inverse[index] = backend.arange(0, len(index), device=self._device)
+        if index.dtype == self._backend.to_backend_dtype(bool):
+            index = self._backend.where(index)[0]
+        inverse = self._backend.zeros(n_rows, dtype=int, device=self._device) - 1
+        inverse[index] = self._backend.arange(0, len(index), device=self._device)
         new_positions = inverse[self._positions]
         keep = new_positions >= 0
         return self._select(keep, new_positions[keep])
@@ -113,10 +112,9 @@ class HistoryState(MushroomBackendObject):
             A new HistoryState holding the entries of every other row, at unchanged positions.
 
         """
-        backend = self._backend
         if len(self) == 0 or len(rows) == 0:
             return self._wrap(self._positions, dict(self._windows))
-        dropped = backend.zeros(n_rows, dtype=bool, device=self._device)
+        dropped = self._backend.zeros(n_rows, dtype=bool, device=self._device)
         dropped[self._rows(rows)] = True
         keep = ~dropped[self._positions]
         return self._select(keep, self._positions[keep])
@@ -138,7 +136,6 @@ class HistoryState(MushroomBackendObject):
             AssertionError: if the two datasets hold entries for different streams.
 
         """
-        backend = self._backend
         other_positions = other._positions
         other_windows = other._windows
         if stitched and len(other) > 0:
@@ -146,15 +143,15 @@ class HistoryState(MushroomBackendObject):
             other_positions = other_positions[keep]
             other_windows = {name: window[keep] for name, window in other_windows.items()}
         if len(other_positions) == 0:
-            return self._wrap(backend.copy(self._positions), dict(self._windows))
+            return self._wrap(self._backend.copy(self._positions), dict(self._windows))
         if len(self) == 0:
             return self._wrap(other_positions + n_rows, other_windows)
         assert self._windows.keys() == other_windows.keys(), \
             "The concatenated datasets hold entries for different streams: " \
             f"{sorted(self._windows)} and {sorted(other_windows)}."
 
-        positions = backend.concatenate_arrays([self._positions, other_positions + n_rows])
-        windows = {name: backend.concatenate_arrays([window, other_windows[name]])
+        positions = self._backend.concatenate_arrays([self._positions, other_positions + n_rows])
+        windows = {name: self._backend.concatenate_arrays([window, other_windows[name]])
                    for name, window in self._windows.items()}
         return self._wrap(positions, windows)
 
@@ -185,12 +182,12 @@ class HistoryState(MushroomBackendObject):
         return HistoryState(backend, device, positions, windows)
 
     @classmethod
-    def from_context(cls, backend, device, history_context):
+    def from_context(cls, backend_name, device, history_context):
         """
         Build the entries of a single-environment dataset whose row 0 continues the most recent step.
 
         Args:
-            backend (str): the agent backend;
+            backend_name (str): the agent backend;
             device (str, None): the agent device;
             history_context (HistoryContext): the stream content around the most recent step.
 
@@ -198,10 +195,10 @@ class HistoryState(MushroomBackendObject):
             The entries: one at row 0, holding the entries preceding the next step.
 
         """
-        array_backend = ArrayBackend.get_array_backend(backend)
-        positions = array_backend.zeros(1, dtype=int, device=device)
-        return cls(backend, device, positions, {name: array_backend.copy(entries)[None] for name, entries in
-                                                history_context.before_next.items()})
+        backend = ArrayBackend.get_array_backend(backend_name)
+        positions = backend.zeros(1, dtype=int, device=device)
+        return cls(backend_name, device, positions, {name: backend.copy(entries)[None] for name, entries in
+                                                     history_context.before_next.items()})
 
     @property
     def positions(self):
@@ -212,9 +209,8 @@ class HistoryState(MushroomBackendObject):
         return self._positions
 
     def _rows(self, rows):
-        backend = self._backend
-        return backend.as_array(ArrayBackend.convert(rows, to=self.backend_name, device=self._device),
-                                device=self._device)
+        return self._backend.as_array(ArrayBackend.convert(rows, to=self.backend_name, device=self._device),
+                                      device=self._device)
 
     def _select(self, keep, positions):
         return self._wrap(positions, {name: window[keep] for name, window in self._windows.items()})
@@ -267,13 +263,12 @@ class GridHistoryState(MushroomBackendObject):
         """
         self._slots = dict()
         if history_context is not None:
-            backend = self._backend
-            leftover = backend.convert_mask(leftover[:self._n_envs], backend=mask_backend, device=self._device)
+            leftover = self._backend.convert_mask(leftover[:self._n_envs], backend=mask_backend, device=self._device)
             for name, before_next in history_context.before_next.items():
                 before_next = before_next[:self._n_envs]
                 before_last = history_context.before_last[name][:self._n_envs]
                 shape = (self._n_envs,) + (1,) * (len(before_next.shape) - 1)
-                self._slots[name] = backend.where(leftover.reshape(shape), before_last, before_next)
+                self._slots[name] = self._backend.where(leftover.reshape(shape), before_last, before_next)
 
     def emit(self, positions, envs, is_episode_start, positions_backend):
         """
@@ -289,11 +284,10 @@ class GridHistoryState(MushroomBackendObject):
             The :class:`HistoryState` of the flat dataset, empty when no window is retained.
 
         """
-        backend = self._backend
         if len(self._slots) > 0:
-            positions = backend.convert_to_backend(positions_backend, positions, self._device)
-            envs = backend.convert_to_backend(positions_backend, envs, self._device)
-            keep = backend.convert_to_backend(positions_backend, ~is_episode_start, self._device)
+            positions = self._backend.convert_to_backend(positions_backend, positions, self._device)
+            envs = self._backend.convert_to_backend(positions_backend, envs, self._device)
+            keep = self._backend.convert_to_backend(positions_backend, ~is_episode_start, self._device)
             positions, envs = positions[keep], envs[keep]
             windows = {name: slot[envs] for name, slot in self._slots.items()}
             return HistoryState(self.backend_name, self._device, positions, windows)

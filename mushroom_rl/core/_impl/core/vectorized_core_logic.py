@@ -5,10 +5,10 @@ from .core_logic import CoreLogic
 
 class VectorizedCoreLogic(CoreLogic):
     def __init__(self, backend, n_envs, device=None):
-        self._array_backend = ArrayBackend.get_array_backend(backend)
+        self._backend = ArrayBackend.get_array_backend(backend)
         self._n_envs = n_envs
         self._device = device
-        self._running_envs = self._array_backend.zeros(n_envs, dtype=bool, device=device)
+        self._running_envs = self._backend.zeros(n_envs, dtype=bool, device=device)
         self._n_active_envs = 0
         self._n_reset_envs = 0
         self._n_completed_episodes = 0
@@ -29,7 +29,7 @@ class VectorizedCoreLogic(CoreLogic):
         first_batch = running_episodes == 0 and terminated_episodes == 0
 
         if first_batch:
-            mask = self._array_backend.ones(self._n_envs, dtype=bool, device=self._device)
+            mask = self._backend.ones(self._n_envs, dtype=bool, device=self._device)
             terminated_episodes = self._n_envs
         else:
             mask = self._running_envs
@@ -50,7 +50,7 @@ class VectorizedCoreLogic(CoreLogic):
             n_continuing = min(missing_steps, n_continuing)
             max_runs = min(missing_steps - n_continuing, max_runs)
 
-        new_mask = self._array_backend.ones(terminated_episodes, dtype=bool, device=self._device)
+        new_mask = self._backend.ones(terminated_episodes, dtype=bool, device=self._device)
         new_mask[max_runs:] = False
 
         if first_batch:
@@ -59,11 +59,11 @@ class VectorizedCoreLogic(CoreLogic):
             mask[last & self._running_envs] = new_mask
 
             if n_continuing < running_episodes:
-                continuing_mask = self._array_backend.ones(running_episodes, dtype=bool, device=self._device)
+                continuing_mask = self._backend.ones(running_episodes, dtype=bool, device=self._device)
                 continuing_mask[n_continuing:] = False
                 mask[~last & self._running_envs] = continuing_mask
 
-        self._running_envs = self._array_backend.copy(mask)
+        self._running_envs = self._backend.copy(mask)
         self._n_active_envs = n_continuing + max_runs
         self._n_reset_envs = max_runs
 
@@ -77,7 +77,7 @@ class VectorizedCoreLogic(CoreLogic):
         selected = initial_states[self._started_counter:self._started_counter + n_reset]
         self._started_counter += n_reset
 
-        return self._array_backend.masked_init(reset_mask, selected, device=self._device)
+        return self._backend.masked_init(reset_mask, selected, device=self._device)
 
     def after_step(self, last):
         self._total_steps_counter += self._n_active_envs
@@ -95,17 +95,17 @@ class VectorizedCoreLogic(CoreLogic):
     def after_fit_vectorized(self, last, n_carry_forward_steps):
         super().after_fit(n_carry_forward_steps)
         if self._n_episodes_per_fit is not None:
-            self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
+            self._running_envs = self._backend.zeros(self._n_envs, dtype=bool, device=self._device)
             self._n_active_envs = 0
             self._n_reset_envs = 0
             self._n_completed_episodes = 0
-            return self._array_backend.ones(self._n_envs, dtype=bool, device=self._device)
+            return self._backend.ones(self._n_envs, dtype=bool, device=self._device)
         else:
             return last
 
     @property
     def converter(self):
-        return self._array_backend
+        return self._backend
 
     @property
     def n_active_envs(self):
@@ -117,7 +117,7 @@ class VectorizedCoreLogic(CoreLogic):
 
     def _reset_counters(self):
         super()._reset_counters()
-        self._running_envs = self._array_backend.zeros(self._n_envs, dtype=bool, device=self._device)
+        self._running_envs = self._backend.zeros(self._n_envs, dtype=bool, device=self._device)
         self._n_active_envs = 0
         self._n_reset_envs = 0
         self._n_completed_episodes = 0

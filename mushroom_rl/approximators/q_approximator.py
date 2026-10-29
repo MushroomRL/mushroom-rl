@@ -1,4 +1,4 @@
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 
 

@@ -271,8 +271,7 @@ class StreamLayout(EpisodeLayout):
         return self._head if row == 0 else int(self.Boundary.NONE)
 
     def _rows(self):
-        array_backend = self._backend
-        codes = array_backend.zeros(self._n_rows, dtype=self.dtype, device=self._device)
+        codes = self._backend.zeros(self._n_rows, dtype=self.dtype, device=self._device)
         if self._n_rows > 0:
             codes[0] = self._head
         return Container.from_array([codes], device=self._device, backend=self.backend_name)

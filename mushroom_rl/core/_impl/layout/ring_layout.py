@@ -238,8 +238,7 @@ class RingLayout(StreamLayout):
 
     def standalone_view(self, index, last):
         if isinstance(index, slice) and index.step in (None, 1):
-            backend = self._backend
-            rows = backend.arange(0, len(self), device=self._device)[index]
+            rows = self._backend.arange(0, len(self), device=self._device)[index]
             return self.episodes_view(rows, last)
         return super().standalone_view(index, last)
 
@@ -255,11 +254,10 @@ class RingLayout(StreamLayout):
             The buffer positions of the stored rows in that order, and the boundary code of each of them.
 
         """
-        backend = self._backend
-        rows = backend.arange(0, self.size, device=self._device)
+        rows = self._backend.arange(0, self.size, device=self._device)
         order = (rows + self._write_head) % self._max_size if self._full else rows
         starts = self.row_starts(last)[order]
-        boundary_code = backend.zeros(len(order), dtype=self.dtype, device=self._device)
+        boundary_code = self._backend.zeros(len(order), dtype=self.dtype, device=self._device)
         boundary_code[starts] = int(self.Boundary.FRESH)
         if len(order) > 0 and not bool(starts[0]):
             boundary_code[0] = int(self.Boundary.CONTINUING)

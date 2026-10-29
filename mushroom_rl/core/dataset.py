@@ -899,6 +899,6 @@ class Dataset(MushroomObject):
         return data[0].dtype if len(data) and hasattr(data[0], 'dtype') else None
 
     @staticmethod
-    def _same_backend(array_backend, stored_device, backend, device):
-        return array_backend.get_backend_name() == backend \
-            and array_backend.check_device(device) == array_backend.check_device(stored_device)
+    def _same_backend(backend, stored_device, backend_name, device):
+        return backend.get_backend_name() == backend_name \
+            and backend.check_device(device) == backend.check_device(stored_device)

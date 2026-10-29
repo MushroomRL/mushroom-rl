@@ -23,12 +23,12 @@ class VectorizedEnvironment(Environment):
             The initial state of the default environment, and its episode info dictionary.
 
         """
-        arraybackend = self._mdp_info.backend
-        env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
+        backend = self._mdp_info.backend
+        env_mask = backend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
         if state is not None:
-            states = arraybackend.zeros(self._n_envs, *arraybackend.shape(state), device=self._mdp_info.device)
+            states = backend.zeros(self._n_envs, *backend.shape(state), device=self._mdp_info.device)
             states[self._default_env] = state
         else:
             states = None
@@ -50,11 +50,11 @@ class VectorizedEnvironment(Environment):
             info dictionary.
 
         """
-        arraybackend = self._mdp_info.backend
-        env_mask = arraybackend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
+        backend = self._mdp_info.backend
+        env_mask = backend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
-        actions = arraybackend.zeros(self._n_envs, *arraybackend.shape(action), device=self._mdp_info.device)
+        actions = backend.zeros(self._n_envs, *backend.shape(action), device=self._mdp_info.device)
         actions[self._default_env] = action
 
         next_states, rewards, absorbings, step_infos = self.step_all(env_mask, actions)
@@ -63,8 +63,8 @@ class VectorizedEnvironment(Environment):
                 self._default_env_info(step_infos))
 
     def render(self, record=False):
-        array_backend = self._mdp_info.backend
-        env_mask = array_backend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
+        backend = self._mdp_info.backend
+        env_mask = backend.zeros(self._n_envs, dtype=bool, device=self._mdp_info.device)
         env_mask[self._default_env] = True
 
         frame = self.render_all(env_mask, record=record)
