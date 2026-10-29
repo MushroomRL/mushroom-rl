@@ -18,7 +18,7 @@ class TorchTrainer(MushroomObject):
         self._store_loss_fn = store_loss_fn
 
         self._add_save_attr(
-            _loss_fn='pickle',
+            _loss_fn='torch',
             quiet='primitive',
             batch_size='primitive',
             n_fit_targets='primitive',
