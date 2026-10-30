@@ -29,7 +29,7 @@ class RandomPolicy(Policy):
     def __init__(self, action_space):
         self._n_actions = action_space.n
 
-        super().__init__()
+        super().__init__('numpy')
 
     def draw_action(self, state):
         return np.random.randint(self._n_actions, size=(len(state), 1))

@@ -53,7 +53,7 @@ class SequenceReplayMemory(ReplayMemory):
             by the history manager, padded to the truncation length, is appended as the trailing element.
 
         """
-        backend = self._dataset.array_backend
+        backend = self._dataset.backend
         h = self._history_manager.history_length
         obs_shape = self._mdp_info.observation_space.shape
         obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
@@ -129,5 +129,5 @@ class SequenceReplayMemory(ReplayMemory):
         """
         positions, valid = self._dataset.walk_back(anchor, self._truncation_length - 1)
         steps = positions[0][valid[0] & ~cut[positions[0]]]
-        return self._dataset.array_backend.as_array(ArrayBackend.convert(steps, to='list')[::-1],
-                                                    device=self._agent_info.device)
+        return self._dataset.backend.as_array(ArrayBackend.convert(steps, to='list')[::-1],
+                                              device=self._agent_info.device)

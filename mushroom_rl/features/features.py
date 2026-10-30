@@ -1,12 +1,11 @@
 import torch.nn as nn
 
-from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import ArrayBackend, MushroomBackendObject
 from mushroom_rl.features.basis import BasisFunction
 from mushroom_rl.features.tiles import AbstractTiles
 
 
-class Features(MushroomObject):
+class Features(MushroomBackendObject):
     """
     Class building the requested type of features. The type is inferred from the elements of ``feature_list``, which
     can be a single object or a list of tilings, basis functions or tensor basis. Different types of features cannot
@@ -27,10 +26,12 @@ class Features(MushroomObject):
         function (object, None): a callable function to be used as feature mapping. Only needed when using a
             functional mapping. The raw input is passed to it as it is, so it must handle both a single 1-D
             input and a 2-D batch;
-        backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``.
+        backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``;
+        device (str, None): device the computed features are placed on, or ``None`` for the default one. Only
+            allowed with the torch backend.
 
     """
-    def __new__(cls, feature_list=None, *, n_outputs=None, function=None, backend='numpy'):
+    def __new__(cls, feature_list=None, *, n_outputs=None, function=None, backend='numpy', device=None):
         if cls is not Features:
             return super().__new__(cls)
 
@@ -60,7 +61,7 @@ class Features(MushroomObject):
             raise ValueError('You must specify either a feature_list (basis functions, tilings or basis tensors) or '
                              'the number of outputs (and optionally the functional mapping to use).')
 
-    def __init__(self, feature_list=None, *, n_outputs=None, function=None, backend='numpy'):
+    def __init__(self, feature_list=None, *, n_outputs=None, function=None, backend='numpy', device=None):
         """
         Constructor.
 
@@ -68,14 +69,14 @@ class Features(MushroomObject):
             feature_list ([object, list], None): single object or list of tilings, basis functions or tensor basis;
             n_outputs (int, None): dimensionality of the feature mapping;
             function (object, None): a callable function to be used as feature mapping;
-            backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``.
+            backend (str, 'numpy'): the backend of the computed features, i.e. ``'numpy'`` or ``'torch'``;
+            device (str, None): device the computed features are placed on, or ``None`` for the default one. Only
+                allowed with the torch backend.
 
         """
         assert backend in ["numpy", "torch"], f"{backend} backend currently not supported in the features class."
 
-        self._backend = backend
-
-        self._add_save_attr(_backend='primitive')
+        super().__init__(backend, device)
 
     def __call__(self, *x):
         """
@@ -92,7 +93,7 @@ class Features(MushroomObject):
         """
         y = self._compute(self._convert_input(x))
 
-        return ArrayBackend.convert(y, to=self._backend)
+        return ArrayBackend.convert(y, to=self.backend_name, device=self._device)
 
     def to_torch_module(self):
         """
@@ -172,7 +173,7 @@ class Features(MushroomObject):
         raise NotImplementedError
 
     def _convert_input(self, args):
-        args = [ArrayBackend.convert(x, to=self._internal_backend) for x in args]
+        args = [ArrayBackend.convert(x, to=self._internal_backend, device=self._internal_device) for x in args]
 
         if len(args) > 1:
             return ArrayBackend.get_array_backend(self._internal_backend).concatenate(args, dim=-1)
@@ -192,6 +193,18 @@ class Features(MushroomObject):
 
         """
         raise NotImplementedError
+
+    @property
+    def _internal_device(self):
+        """
+        Returns:
+            The device the features are computed on: the device of the computed features when they are computed in
+            their own backend, the default device of the internal backend otherwise.
+
+        """
+        device = self._device if self._internal_backend == self.backend_name else None
+
+        return ArrayBackend.get_array_backend(self._internal_backend).check_device(device)
 
 
 from ._impl import BasisFeatures, TilesFeatures, TorchFeatures, FunctionalFeatures  # noqa: E402

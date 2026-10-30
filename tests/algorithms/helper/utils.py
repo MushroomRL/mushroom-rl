@@ -115,7 +115,7 @@ class TestUtils:
         res = this.is_episodic == that.is_episodic
         res &= this.is_stateful == that.is_stateful
         res &= this.policy_state_shape == that.policy_state_shape
-        res &= this.backend == that.backend
+        res &= this.backend_name == that.backend_name
 
         return res
 
@@ -139,8 +139,8 @@ class TestUtils:
         Compare two dataset classes
         """
 
-        res = this.env_backend == that.env_backend
-        res &= this.agent_backend == that.agent_backend
+        res = this.env_backend_name == that.env_backend_name
+        res &= this.agent_backend_name == that.agent_backend_name
         res &= this.env_device == that.env_device
         res &= this.agent_device == that.agent_device
         res &= this.horizon == that.horizon
@@ -161,7 +161,7 @@ class TestUtils:
         """
 
         res = type(this) is type(that)
-        res &= this._dataset_info.env_array_backend == that._dataset_info.env_array_backend
+        res &= this._dataset_info.env_backend == that._dataset_info.env_backend
         res &= cls.eq_dataset_info(this._dataset_info, that._dataset_info)
         res &= len(this) == len(that) and this.capacity == that.capacity
 

@@ -58,14 +58,14 @@ class CircularDataset(Dataset):
         assert not dataset.is_circular, "Cannot append a circular dataset, join it with + or += instead."
         if len(dataset) > self._layout.max_size:
             raise ValueError(f"Cannot write {len(dataset)} rows to a buffer of {self._layout.max_size} rows.")
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
         if len(dataset) == 0:
             nothing = backend.zeros(0, dtype=int, device=device)
             return nothing, nothing, nothing
 
         dataset, order = dataset._glued()
-        dataset = dataset.to_backend(self._dataset_info.env_backend, device=device)
+        dataset = dataset.to_backend(self._dataset_info.env_backend_name, device=device)
         n = len(dataset)
 
         last = dataset._last_array()
@@ -78,7 +78,7 @@ class CircularDataset(Dataset):
         relinked = self._finish_write(start, positions, continues, pairs, dataset._layout.pending_tails(dataset.last))
 
         if order is not None:
-            order = ArrayBackend.convert(order, to=self._dataset_info.env_backend, device=device)
+            order = ArrayBackend.convert(order, to=self._dataset_info.env_backend_name, device=device)
             written = positions
             positions = backend.zeros(n, dtype=int, device=device)
             positions[order] = written
@@ -99,7 +99,7 @@ class CircularDataset(Dataset):
             ValueError: if the previous write left more than one episode open.
 
         """
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
         no_rows = backend.zeros(0, dtype=int, device=device)
         first_row = backend.arange(0, 1, device=device)
@@ -404,7 +404,7 @@ class CircularDataset(Dataset):
 
     def _prepare_write(self, n, heads, inner_break):
         max_size = self._layout.max_size
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
         start = self._layout.write_head
         positions = (backend.arange(0, n, device=device) + start) % max_size
@@ -460,7 +460,7 @@ class CircularDataset(Dataset):
             self._agent_data[start:stop] = dataset._agent_data[rows]
 
     def _time_ordered(self):
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
         order, boundary_code = self._layout.time_order(self._last_array())
         no_rows = backend.zeros(0, dtype=int, device=device)
@@ -469,7 +469,7 @@ class CircularDataset(Dataset):
             row_of = backend.zeros(self._layout.max_size, dtype=int, device=device)
             row_of[order] = backend.arange(0, len(order), device=device)
             tails = row_of[self._layout.ring_tails]
-        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend, device, open_heads=no_rows,
+        layout = CodedLayout.from_array(boundary_code, self._dataset_info.env_backend_name, device, open_heads=no_rows,
                                         open_tails=tails)
         return self._view_rows(order, False, layout)
 
@@ -477,7 +477,7 @@ class CircularDataset(Dataset):
         return self._last_array()
 
     def _create_layout(self, dataset_info, n_steps, n_envs):
-        return RingLayout(dataset_info.env_backend, n_steps, dataset_info.env_device)
+        return RingLayout(dataset_info.env_backend_name, n_steps, dataset_info.env_device)
 
     @classmethod
     def _view_class(cls):

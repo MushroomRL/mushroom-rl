@@ -24,7 +24,7 @@ def _make_manager(history_length=3, obs_shape=(2,)):
 
 class RecordingPolicy(Policy):
     def __init__(self, history_length):
-        super().__init__()
+        super().__init__('numpy')
         self._history_length = history_length
         self.windows = dict()
         self.action_windows = dict()
@@ -839,7 +839,7 @@ def test_add_preprocessor_rejects_a_mismatched_backend():
     assert len(hm.preprocessors) == 1
 
 
-def test_add_preprocessor_accepts_a_backend_agnostic_preprocessor():
+def test_add_preprocessor_accepts_a_default_numpy_preprocessor():
     mdp_info, agent_info = _make_infos(obs_shape=(2,), act_shape=(1,))
     hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
 
@@ -848,7 +848,8 @@ def test_add_preprocessor_accepts_a_backend_agnostic_preprocessor():
             return obs
 
     preprocessor = Identity()
-    assert preprocessor.backend is None
+    assert preprocessor.backend_name == 'numpy'
+    assert preprocessor.device is None
 
     hm.add_preprocessor(preprocessor)
 

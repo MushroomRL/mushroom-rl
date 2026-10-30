@@ -62,8 +62,8 @@ class Dataset(MushroomObject):
 
         info_n_envs = min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs
         vectorized = dataset_info.n_envs > 1
-        self._extras = ExtraInfo(info_n_envs, dataset_info.env_backend, dataset_info.env_device,
-                                 vectorized=vectorized, theta_backend=dataset_info.agent_backend,
+        self._extras = ExtraInfo(info_n_envs, dataset_info.env_backend_name, dataset_info.env_device,
+                                 vectorized=vectorized, theta_backend=dataset_info.agent_backend_name,
                                  theta_device=dataset_info.agent_device)
 
         n_envs = (min(n_episodes, dataset_info.n_envs) if n_episodes else dataset_info.n_envs) if vectorized else None
@@ -71,20 +71,20 @@ class Dataset(MushroomObject):
         self._base_shape = self._compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes)
 
         env_shapes, env_dtypes = self._env_specs(dataset_info, self._base_shape)
-        self._data = Container.create(dataset_info.env_backend, env_shapes, env_dtypes, dataset_info.env_device,
+        self._data = Container.create(dataset_info.env_backend_name, env_shapes, env_dtypes, dataset_info.env_device,
                                       n_envs)
 
         if dataset_info.policy_state_shape is not None:
             policy_shapes, policy_dtypes = self._policy_specs(dataset_info, self._base_shape)
             # the policy state lives in the agent backend, but a list (infinite-horizon) env keeps it growable
-            agent_backend = 'list' if dataset_info.env_backend == 'list' else dataset_info.agent_backend
-            self._agent_data = Container.create(agent_backend, policy_shapes, policy_dtypes,
+            agent_backend_name = 'list' if dataset_info.env_backend_name == 'list' else dataset_info.agent_backend_name
+            self._agent_data = Container.create(agent_backend_name, policy_shapes, policy_dtypes,
                                                 dataset_info.agent_device, n_envs)
         else:
             self._agent_data = None
 
         self._layout = self._create_layout(dataset_info, n_steps, n_envs)
-        self._history_state = HistoryState(dataset_info.agent_backend, dataset_info.agent_device)
+        self._history_state = HistoryState(dataset_info.agent_backend_name, dataset_info.agent_device)
 
         self._add_all_save_attr()
 
@@ -213,7 +213,7 @@ class Dataset(MushroomObject):
         """
         self._layout.clear(self.last)
         if history_context is not None and self._layout.first == EpisodeLayout.Boundary.CONTINUING:
-            self._history_state = HistoryState.from_context(self._dataset_info.agent_backend,
+            self._history_state = HistoryState.from_context(self._dataset_info.agent_backend_name,
                                                             self._dataset_info.agent_device, history_context)
         else:
             self._history_state = self._history_state.clear()
@@ -233,7 +233,7 @@ class Dataset(MushroomObject):
 
         """
         dataset = self._view_rows(index, copy, self._layout.standalone_view(index, self._last_array()))
-        dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
+        dataset._history_state = HistoryState(self._dataset_info.agent_backend_name, self._dataset_info.agent_device)
 
         return dataset
 
@@ -256,7 +256,7 @@ class Dataset(MushroomObject):
 
         """
         if to is None:
-            to = self._dataset_info.env_array_backend.get_backend_name()
+            to = self._dataset_info.env_backend_name
         return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing,
                              self.last_or_boundary, to=to, device=device)
 
@@ -272,9 +272,9 @@ class Dataset(MushroomObject):
             A tuple containing the policy state and policy next state arrays.
 
         """
-        backend = self._dataset_info.agent_array_backend
+        backend = self._dataset_info.agent_backend
         if to is None:
-            to = backend.get_backend_name()
+            to = self._dataset_info.agent_backend_name
         return self._convert(self.policy_state, self.policy_next_state, to=to, backend=backend, device=device)
 
     def to_backend(self, backend, device=None):
@@ -292,8 +292,8 @@ class Dataset(MushroomObject):
             NotImplementedError: if converting to ``'list'`` a dataset holding policy states or history entries.
 
         """
-        if self._same_backend(self._dataset_info.env_array_backend, self._dataset_info.env_device, backend, device) \
-                and self._same_backend(self._dataset_info.agent_array_backend, self._dataset_info.agent_device,
+        if self._same_backend(self._dataset_info.env_backend, self._dataset_info.env_device, backend, device) \
+                and self._same_backend(self._dataset_info.agent_backend, self._dataset_info.agent_device,
                                        backend, device):
             return self
         if backend == 'list' and (self.is_stateful or len(self._history_state) > 0):
@@ -302,7 +302,7 @@ class Dataset(MushroomObject):
         state, action, reward, next_state, absorbing, last = self._convert(
             self.state, self.action, self.reward, self.next_state, self.absorbing, self.last, to=backend, device=device)
         policy_state, policy_next_state = (self._convert(self.policy_state, self.policy_next_state, to=backend,
-                                                         backend=self._dataset_info.agent_array_backend, device=device)
+                                                         backend=self._dataset_info.agent_backend, device=device)
                                            if self.is_stateful else (None, None))
         return Dataset._from_components(state, action, reward, next_state, absorbing, last,
                                         self._layout.to_backend(backend, device),
@@ -378,7 +378,7 @@ class Dataset(MushroomObject):
         """
         assert n_episodes > 0, 'Number of episodes must be greater than zero.'
 
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         last = self._last_array()
         ends = self._segment_ends(last) > 0
         flags = ends * 1
@@ -425,7 +425,7 @@ class Dataset(MushroomObject):
         """
         positions, is_episode_start = self._segment_starts(self._last_array())
         x_0 = [self.state[i] for i in ArrayBackend.convert(positions[is_episode_start], to='list')]
-        return self._dataset_info.env_array_backend.from_list(x_0, device=self._dataset_info.env_device)
+        return self._dataset_info.env_backend.from_list(x_0, device=self._dataset_info.env_device)
 
     def compute_J(self, gamma=1., skip_incomplete=True):
         """
@@ -440,7 +440,7 @@ class Dataset(MushroomObject):
             The cumulative discounted reward of each episode in the dataset.
 
         """
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
 
         last = self._last_array()
@@ -455,7 +455,7 @@ class Dataset(MushroomObject):
             ends_ep, r_ep, last_ep = (backend.expand_dims(array, 0) for array in (ends_ep, r_ep, last_ep))
         if skip_incomplete:
             r_ep = r_ep[last_ep[ends_ep > 0] > 0]
-        if self._dataset_info.env_backend == 'torch':
+        if self._dataset_info.env_backend_name == 'torch':
             js = backend.zeros(r_ep.shape[0], dtype=r_ep.dtype, device=r_ep.device)
         else:
             js = backend.zeros(r_ep.shape[0], dtype=r_ep.dtype)
@@ -481,7 +481,7 @@ class Dataset(MushroomObject):
         J = self.compute_J(gamma)
 
         if len(J) > 0:
-            median = self._dataset_info.env_array_backend.median(J)
+            median = self._dataset_info.env_backend.median(J)
             return dict(min_J=J.min(), max_J=J.max(), mean_J=J.mean(), median_J=median, n_episodes=len(J))
         else:
             return dict(n_episodes=0)
@@ -589,7 +589,7 @@ class Dataset(MushroomObject):
 
         """
         ends = self._segment_ends(self._last_array())
-        if self._dataset_info.env_backend == 'list':
+        if self._dataset_info.env_backend_name == 'list':
             return list(ends)
         return ends
 
@@ -640,7 +640,7 @@ class Dataset(MushroomObject):
             An array with the length of each episode in the dataset.
 
         """
-        backend = self._dataset_info.env_array_backend
+        backend = self._dataset_info.env_backend
         device = self._dataset_info.env_device
 
         last = self._last_array()
@@ -664,8 +664,8 @@ class Dataset(MushroomObject):
         return self.compute_J(self._dataset_info.gamma)
 
     @property
-    def array_backend(self):
-        return self._dataset_info.env_array_backend
+    def backend(self):
+        return self._dataset_info.env_backend
 
     @property
     def is_stateful(self):
@@ -698,13 +698,14 @@ class Dataset(MushroomObject):
     def _agent_rows(self, rows):
         if isinstance(rows, (int, slice)):
             return rows
-        return ArrayBackend.convert(rows, to=self._dataset_info.agent_backend, device=self._dataset_info.agent_device)
+        return ArrayBackend.convert(rows, to=self._dataset_info.agent_backend_name,
+                                    device=self._dataset_info.agent_device)
 
     def _last_array(self):
-        return self._dataset_info.env_array_backend.as_array(self.last, device=self._dataset_info.env_device)
+        return self._dataset_info.env_backend.as_array(self.last, device=self._dataset_info.env_device)
 
     def _boundary_dtype(self):
-        return self._dataset_info.env_array_backend.to_backend_dtype(np.int8)
+        return self._dataset_info.env_backend.to_backend_dtype(np.int8)
 
     def _segment_ends(self, last):
         return self._layout.segment_ends(last)
@@ -730,7 +731,7 @@ class Dataset(MushroomObject):
 
     def _create_layout(self, dataset_info, n_steps, n_envs):
         boundary_shape = self._base_shape if self._base_shape is not None else ()
-        return StreamLayout(dataset_info.env_backend, boundary_shape, dataset_info.env_device, n_envs)
+        return StreamLayout(dataset_info.env_backend_name, boundary_shape, dataset_info.env_device, n_envs)
 
     def _segment_starts(self, last):
         return self._layout.segment_starts(last)
@@ -755,7 +756,7 @@ class Dataset(MushroomObject):
 
     def _view_episodes(self, rows):
         dataset = self._view_rows(rows, False, self._layout.episodes_view(rows, self._last_array()))
-        dataset._history_state = HistoryState(self._dataset_info.agent_backend, self._dataset_info.agent_device)
+        dataset._history_state = HistoryState(self._dataset_info.agent_backend_name, self._dataset_info.agent_device)
         return dataset
 
     def _append_rows(self, other):
@@ -770,7 +771,7 @@ class Dataset(MushroomObject):
             self._agent_data.append(*step[len(self._Field):])
 
     def _convert(self, *arrays, to='numpy', backend=None, device=None):
-        backend = backend if backend is not None else self._dataset_info.env_array_backend
+        backend = backend if backend is not None else self._dataset_info.env_backend
         if to == 'numpy':
             ArrayBackend.get_array_backend(to).check_device(device)
             return backend.arrays_to_numpy(*arrays)
@@ -838,7 +839,7 @@ class Dataset(MushroomObject):
 
     @staticmethod
     def _compute_base_shape(dataset_info, n_steps, n_episodes, core_counts_episodes):
-        if dataset_info.env_backend == 'list':
+        if dataset_info.env_backend_name == 'list':
             return None
 
         if n_steps is not None:
@@ -861,7 +862,7 @@ class Dataset(MushroomObject):
 
     @staticmethod
     def _env_specs(dataset_info, base_shape):
-        backend = dataset_info.env_array_backend
+        backend = dataset_info.env_backend
         base = base_shape if base_shape is not None else ()
         state_shape = base + dataset_info.state_shape
         action_shape = base + dataset_info.action_shape
@@ -877,7 +878,7 @@ class Dataset(MushroomObject):
 
     @staticmethod
     def _policy_specs(dataset_info, base_shape):
-        backend = dataset_info.agent_array_backend
+        backend = dataset_info.agent_backend
         base = base_shape if base_shape is not None else ()
         policy_shape = base + dataset_info.policy_state_shape
 
@@ -898,6 +899,6 @@ class Dataset(MushroomObject):
         return data[0].dtype if len(data) and hasattr(data[0], 'dtype') else None
 
     @staticmethod
-    def _same_backend(array_backend, stored_device, backend, device):
-        return array_backend.get_backend_name() == backend \
-            and array_backend.check_device(device) == array_backend.check_device(stored_device)
+    def _same_backend(backend, stored_device, backend_name, device):
+        return backend.get_backend_name() == backend_name \
+            and backend.check_device(device) == backend.check_device(stored_device)

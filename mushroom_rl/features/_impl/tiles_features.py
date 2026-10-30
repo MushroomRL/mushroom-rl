@@ -59,7 +59,7 @@ class TilesFeatures(Features):
 
         return indexes
 
-    def _post_load(self):
+    def _post_load(self, device):
         self._compute_size()
 
     def _compute_size(self):

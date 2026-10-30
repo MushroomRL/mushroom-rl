@@ -136,7 +136,8 @@ serialized if and only if the ``full_save`` flag is set to true.
 
 To conclude the implementation of our ``MushroomObject`` interface, we might want to implement also the
 ``self._post_load`` method. This method is executed after all the data specified in ``self._add_save_attr`` has been
-loaded into the class. It can be useful to set the variables not saved in the file to a default variable.
+loaded into the class, and receives the device the object is loaded on (``None`` for the default one). It can be
+useful to set the variables not saved in the file to a default variable.
 
 .. literalinclude:: code/serialization.py
    :lines: 44-48

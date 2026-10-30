@@ -21,6 +21,8 @@ class VectorPolicy(HasWeights, Policy):
             n_envs (int): number of environments to be repeated.
 
         """
+        super().__init__('numpy')
+
         self._policy_vector = [deepcopy(policy) for _ in range(n_envs)]
 
         self._add_save_attr(_policy_vector='mushroom')

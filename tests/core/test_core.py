@@ -13,7 +13,7 @@ from mushroom_rl.policy import Policy
 
 class RandomDiscretePolicy(Policy):
     def __init__(self, n):
-        super().__init__()
+        super().__init__('numpy')
         self._n = n
 
     def draw_action(self, state):
@@ -55,7 +55,7 @@ class GreedyDummyPolicy(Policy):
 
 class GreedyDummyAgent(Agent):
     def __init__(self, mdp_info):
-        super().__init__(mdp_info, GreedyDummyPolicy())
+        super().__init__(mdp_info, GreedyDummyPolicy('numpy'))
 
     def fit(self, dataset):
         pass
@@ -240,7 +240,7 @@ class VecRandomPolicy(Policy):
 
 class VecDummyAgent(Agent):
     def __init__(self, mdp_info):
-        super().__init__(mdp_info, VecRandomPolicy(), backend='numpy')
+        super().__init__(mdp_info, VecRandomPolicy('numpy'), backend='numpy')
 
     def fit(self, dataset):
         pass

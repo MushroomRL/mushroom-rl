@@ -67,7 +67,7 @@ class DeepAC(Agent):
     """
 
     def __init__(self, mdp_info, policy, actor_optimizer, parameters, backend='torch', history_length=1,
-                 action_history_length=0):
+                 action_history_length=0, device=None):
         """
         Constructor.
 
@@ -76,7 +76,8 @@ class DeepAC(Agent):
                 algorithm;
             parameters (list): policy parameters to be optimized.
             history_length (int, 1): number of consecutive observations stacked as policy input;
-            action_history_length (int, 0): number of previous actions stacked as policy input.
+            action_history_length (int, 0): number of previous actions stacked as policy input;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         if actor_optimizer is not None:
@@ -92,7 +93,7 @@ class DeepAC(Agent):
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
 
-        super().__init__(mdp_info, policy, backend=backend, history_length=history_length,
+        super().__init__(mdp_info, policy, backend=backend, device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
         self._add_save_attr(
@@ -161,5 +162,5 @@ class DeepAC(Agent):
             weights += (1 - self._tau.get_value()) * target[i].get_weights()
             target[i].set_weights(weights)
 
-    def _post_load(self):
+    def _post_load(self, device):
         raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')

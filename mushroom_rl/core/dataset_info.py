@@ -33,14 +33,14 @@ class DatasetInfo(MushroomObject):
             policy_state_shape (tuple, None): shape of the policy state, or ``None`` if the agent is stateless;
             n_envs (int, 1): number of parallel environments.
 
-        """
-        assert env_backend == "torch" or env_device is None
-        assert agent_backend == "torch" or agent_device is None
+        Raises:
+            ValueError: if a device is given for a backend that does not support devices.
 
-        self.env_backend = env_backend
-        self.agent_backend = agent_backend
-        self.env_device = env_device
-        self.agent_device = agent_device
+        """
+        self.env_backend_name = env_backend
+        self.agent_backend_name = agent_backend
+        self.env_device = self.env_backend.check_device(env_device)
+        self.agent_device = self.agent_backend.check_device(agent_device)
         self.horizon = horizon
         self.gamma = gamma
         self.state_shape = state_shape
@@ -51,8 +51,8 @@ class DatasetInfo(MushroomObject):
         self.n_envs = n_envs
 
         self._add_save_attr(
-            env_backend='primitive',
-            agent_backend='primitive',
+            env_backend_name='primitive',
+            agent_backend_name='primitive',
             env_device='none',
             agent_device='none',
             gamma='primitive',
@@ -71,15 +71,15 @@ class DatasetInfo(MushroomObject):
             A copy of this dataset info describing a single, non-vectorized environment.
 
         """
-        return DatasetInfo(self.env_backend, self.agent_backend, self.env_device, self.agent_device, self.horizon,
-                           self.gamma, self.state_shape, self.state_dtype, self.action_shape, self.action_dtype,
-                           self.policy_state_shape)
+        return DatasetInfo(self.env_backend_name, self.agent_backend_name, self.env_device, self.agent_device,
+                           self.horizon, self.gamma, self.state_shape, self.state_dtype, self.action_shape,
+                           self.action_dtype, self.policy_state_shape)
 
     @staticmethod
     def create_dataset_info(mdp_info, agent_info, n_envs=1):
         """
-        Build the dataset info for on-policy collection: the environment data uses ``mdp_info.backend`` (forced
-        to ``'list'`` for infinite-horizon MDPs) and the agent data uses ``agent_info.backend``.
+        Build the dataset info for on-policy collection: the environment data uses ``mdp_info.backend_name`` (forced
+        to ``'list'`` for infinite-horizon MDPs) and the agent data uses ``agent_info.backend_name``.
 
         Args:
             mdp_info (MDPInfo): information about the MDP;
@@ -90,12 +90,12 @@ class DatasetInfo(MushroomObject):
             The dataset info.
 
         """
-        env_backend = mdp_info.backend
+        env_backend_name = mdp_info.backend_name
         if not np.isfinite(mdp_info.horizon):
-            assert env_backend != 'torch', "Infinite-horizon collection is not supported for the torch backend."
-            assert agent_info.policy_state_shape is None or agent_info.backend != 'torch', \
+            assert env_backend_name != 'torch', "Infinite-horizon collection is not supported for the torch backend."
+            assert agent_info.policy_state_shape is None or agent_info.backend_name != 'torch', \
                 "Infinite-horizon collection is not supported for a stateful torch agent."
-            env_backend = 'list'
+            env_backend_name = 'list'
         env_device = mdp_info.device
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
@@ -106,7 +106,7 @@ class DatasetInfo(MushroomObject):
         policy_state_shape = agent_info.policy_state_shape
         agent_device = agent_info.device
 
-        return DatasetInfo(env_backend, agent_info.backend, env_device, agent_device, horizon, gamma,
+        return DatasetInfo(env_backend_name, agent_info.backend_name, env_device, agent_device, horizon, gamma,
                            state_shape, state_dtype, action_shape, action_dtype, policy_state_shape, n_envs=n_envs)
 
     @staticmethod
@@ -124,32 +124,36 @@ class DatasetInfo(MushroomObject):
             The dataset info.
 
         """
-        backend = agent_info.backend
-        array_backend = ArrayBackend.get_array_backend(backend)
+        backend_name = agent_info.backend_name
+        backend = ArrayBackend.get_array_backend(backend_name)
         device = agent_info.device
         horizon = mdp_info.horizon
         gamma = mdp_info.gamma
         state_shape = mdp_info.observation_space.shape
-        state_dtype = array_backend.to_backend_dtype(mdp_info.observation_space.data_type)
+        state_dtype = backend.to_backend_dtype(mdp_info.observation_space.data_type)
         action_shape = mdp_info.action_space.shape
-        action_dtype = array_backend.to_backend_dtype(mdp_info.action_space.data_type)
+        action_dtype = backend.to_backend_dtype(mdp_info.action_space.data_type)
         policy_state_shape = agent_info.policy_state_shape if store_policy_state else None
 
-        return DatasetInfo(backend, backend, device, device, horizon, gamma, state_shape, state_dtype,
+        return DatasetInfo(backend_name, backend_name, device, device, horizon, gamma, state_shape, state_dtype,
                            action_shape, action_dtype, policy_state_shape)
 
     @property
-    def env_array_backend(self):
+    def env_backend(self):
         """
         The :class:`ArrayBackend` of the environment data.
 
         """
-        return ArrayBackend.get_array_backend(self.env_backend)
+        return ArrayBackend.get_array_backend(self.env_backend_name)
 
     @property
-    def agent_array_backend(self):
+    def agent_backend(self):
         """
         The :class:`ArrayBackend` of the agent (policy state) data.
 
         """
-        return ArrayBackend.get_array_backend(self.agent_backend)
+        return ArrayBackend.get_array_backend(self.agent_backend_name)
+
+    def _post_load(self, device):
+        self.env_device = self.env_backend.check_device(device if self.env_backend.supports_devices() else None)
+        self.agent_device = self.agent_backend.check_device(device if self.agent_backend.supports_devices() else None)

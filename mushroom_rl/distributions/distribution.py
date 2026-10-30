@@ -1,17 +1,27 @@
-from mushroom_rl.core import MushroomObject
+from mushroom_rl.core import MushroomBackendObject
 
 
-class Distribution(MushroomObject):
+class Distribution(MushroomBackendObject):
     """
     Interface for Distributions to represent a generic probability distribution.
     Probability distributions are often used by black box optimization algorithms in order to perform exploration in
     parameter space. In the literature, they are also known as high level policies.
 
     """
-    def __init__(self, context_shape=None):
-        self._context_shape = context_shape
+    def __init__(self, context_shape=None, backend='numpy', device=None):
+        """
+        Constructor.
 
-        super().__init__()
+        Args:
+            context_shape (tuple, None): shape of the context variable;
+            backend (str, 'numpy'): name of the array backend of the distribution parameters;
+            device (str, None): device the distribution parameters are stored on, or ``None`` for the default one.
+                Only allowed with the torch backend.
+
+        """
+        super().__init__(backend, device)
+
+        self._context_shape = context_shape
 
         self._add_save_attr(
             _context_shape='primitive'

@@ -24,7 +24,8 @@ class SAC(DeepAC):
 
     def __init__(self, mdp_info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params, batch_size,
                  initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, use_log_alpha_loss=False,
-                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None, history_length=1):
+                 log_std_min=-20, log_std_max=2, target_entropy=None, critic_fit_params=None, history_length=1,
+                 device=None):
         """
         Constructor.
 
@@ -46,14 +47,15 @@ class SAC(DeepAC):
             log_std_max ([float, Parameter]): Max value for the policy log std;
             target_entropy (float, None): target entropy for the policy, if None a default value is computed;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
-            history_length (int, 1): number of consecutive observations stacked as policy input.
+            history_length (int, 1): number of consecutive observations stacked as policy input;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
 
-        self._batch_size = Parameter.make(batch_size, backend='torch')
-        self._warmup_transitions = Parameter.make(warmup_transitions, backend='torch')
-        self._tau = Parameter.make(tau, backend='torch')
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
+        self._warmup_transitions = Parameter.make(warmup_transitions, backend='torch', device=device)
+        self._tau = Parameter.make(tau, backend='torch', device=device)
 
         self._use_log_alpha_loss = use_log_alpha_loss
 
@@ -66,6 +68,10 @@ class SAC(DeepAC):
             assert critic_params['n_models'] == 2
         else:
             critic_params['n_models'] = 2
+
+        critic_params.setdefault('device', device)
+        actor_mu_params.setdefault('device', device)
+        actor_sigma_params.setdefault('device', device)
 
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = TorchApproximator(**critic_params)
@@ -80,13 +86,15 @@ class SAC(DeepAC):
 
         self._init_target(self._critic_approximator, self._target_critic_approximator)
 
-        self._log_alpha = torch.tensor(0., dtype=torch.float32, requires_grad=True)
+        self._log_alpha = torch.tensor(0., dtype=torch.float32, requires_grad=True,
+                                       device=TorchUtils.get_device(device))
 
         self._alpha_optim = optim.Adam([self._log_alpha], lr=lr_alpha)
 
         policy_parameters = chain(actor_mu_approximator.parameters(), actor_sigma_approximator.parameters())
 
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length)
+        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length,
+                         device=device)
 
         self._replay_memory = ReplayMemory(mdp_info, self.info, initial_replay_size, max_replay_size,
                                            history_manager=self.history_manager)
@@ -170,7 +178,7 @@ class SAC(DeepAC):
 
         return q
 
-    def _post_load(self):
+    def _post_load(self, device):
         self.overwrite_actor_parameters(self.policy.parameters())
         self._update_alpha_optimizer_parameters()
 

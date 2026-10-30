@@ -1,4 +1,4 @@
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core import ArrayBackend
 from mushroom_rl.rl_utils.parameters.parameter import VariableParameter
 
 
@@ -37,9 +37,9 @@ class LinearParameter(VariableParameter):
         if self._is_array(coeff):
             assert self._is_array(value) and self._is_array(threshold_value), \
                 'value and threshold_value must be both scalars or both vectors.'
-            array_backend = ArrayBackend.get_array_backend_from(coeff)
-            min_value = array_backend.minimum(value, threshold_value)
-            max_value = array_backend.maximum(value, threshold_value)
+            input_backend = ArrayBackend.get_array_backend_from(coeff)
+            min_value = input_backend.minimum(value, threshold_value)
+            max_value = input_backend.maximum(value, threshold_value)
             super().__init__(value=value, min_value=min_value, max_value=max_value, shape=shape, log_full=log_full,
                              backend=backend, device=device)
         elif coeff >= 0:

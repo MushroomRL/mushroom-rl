@@ -13,15 +13,14 @@ from mushroom_rl.core._impl.core import VectorizedCoreLogic
 
 class DummyPolicy(Policy):
     def __init__(self, action_shape, backend):
+        super().__init__(backend)
         self._dim = action_shape[0]
-        self._backend = backend
-        super().__init__()
 
     def draw_action(self, state):
         shape = (self._dim,) if len(state.shape) == 1 else (state.shape[0], self._dim)
-        if self._backend == 'torch':
+        if self.backend_name == 'torch':
             return torch.randn(*shape)
-        elif self._backend == 'numpy':
+        elif self.backend_name == 'numpy':
             return np.random.randn(*shape)
         else:
             raise NotImplementedError
@@ -39,7 +38,6 @@ class DummyAgent(Agent):
 
 class DummyEpisodicAgent(Agent):
     def __init__(self, mdp_info, backend):
-        self._backend = backend
         policy = DummyPolicy(mdp_info.action_space.shape, backend)
         super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
         self._counter = 0
@@ -51,9 +49,9 @@ class DummyEpisodicAgent(Agent):
         n_envs = len(start_mask)
         current_count = self._counter
         self._counter += 1
-        if self._backend == 'torch':
+        if self.info.backend_name == 'torch':
             return None, torch.ones(n_envs, 2) * current_count
-        elif self._backend == 'numpy':
+        elif self.info.backend_name == 'numpy':
             return None, np.ones((n_envs, 2)) * current_count
         else:
             raise NotImplementedError
@@ -61,22 +59,21 @@ class DummyEpisodicAgent(Agent):
 
 class GreedyDummyPolicy(Policy):
     def __init__(self, action_shape, backend):
+        super().__init__(backend)
         self._dim = action_shape[0]
-        self._backend = backend
-        super().__init__()
 
     def draw_action(self, state):
-        if self._backend == 'torch':
+        if self.backend_name == 'torch':
             return torch.randn(state.shape[0], self._dim)
-        elif self._backend == 'numpy':
+        elif self.backend_name == 'numpy':
             return np.random.randn(state.shape[0], self._dim)
         else:
             raise NotImplementedError
 
     def draw_action_greedy(self, state):
-        if self._backend == 'torch':
+        if self.backend_name == 'torch':
             return torch.ones(state.shape[0], self._dim)
-        elif self._backend == 'numpy':
+        elif self.backend_name == 'numpy':
             return np.ones((state.shape[0], self._dim))
         else:
             raise NotImplementedError
@@ -132,8 +129,7 @@ class DummyVecEnv(VectorizedEnvironment):
         mdp_info = MDPInfo(observation_space, action_space, gamma, horizon, backend=backend, device=device)
 
         if backend == 'torch':
-            self._device = TorchUtils.get_device() if device is None else device
-            self._state = torch.empty(n_envs, state_dim).to(self._device)
+            self._state = torch.empty(n_envs, state_dim).to(mdp_info.device)
         elif backend == 'numpy':
             self._state = np.empty((n_envs, state_dim))
         else:
@@ -144,30 +140,30 @@ class DummyVecEnv(VectorizedEnvironment):
     def reset_all(self, env_mask, state=None):
         if state is not None:
             self._state[env_mask] = state[env_mask]
-        elif self.info.backend == 'torch':
+        elif self.info.backend_name == 'torch':
             self._state[env_mask] = torch.randint(size=(env_mask.sum(), self._state.shape[1]),
-                                                  low=2, high=200).float().to(self._device)
-        elif self.info.backend == 'numpy':
+                                                  low=2, high=200).float().to(self.info.device)
+        elif self.info.backend_name == 'numpy':
             self._state[env_mask] = np.random.randint(size=(env_mask.sum(), self._state.shape[1]),
                                                       low=2, high=200).astype(float)
 
-        next_state = self._state.clone() if self.info.backend == 'torch' else self._state.copy()
+        next_state = self._state.clone() if self.info.backend_name == 'torch' else self._state.copy()
 
         return next_state, [{}] * self._n_envs
 
     def step_all(self, env_mask, action):
         self._state[env_mask] -= 1
 
-        if self.info.backend == 'torch':
-            reward = torch.zeros(self._state.shape[0]).to(self._device)
-        elif self.info.backend == 'numpy':
+        if self.info.backend_name == 'torch':
+            reward = torch.zeros(self._state.shape[0]).to(self.info.device)
+        elif self.info.backend_name == 'numpy':
             reward = np.zeros(self._state.shape[0])
         else:
             raise NotImplementedError
 
         done = (self._state == 0).any(1)
 
-        next_state = self._state.clone() if self.info.backend == 'torch' else self._state.copy()
+        next_state = self._state.clone() if self.info.backend_name == 'torch' else self._state.copy()
 
         return next_state, reward, done & env_mask, [{}] * self._n_envs
 
@@ -198,7 +194,7 @@ def run_exp(env_backend, agent_backend):
         if env_backend == 'torch' else expected_states
     dataset = core.evaluate(initial_states=initial_states)
     assert len(dataset.episodes_length) == 1
-    init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
+    init_states = dataset.backend.to_numpy(dataset.get_init_states())
     assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in expected_states)
 
     print('- learn n_episodes=5 n_episodes_per_fit=1')
@@ -258,7 +254,7 @@ def run_exp_initial_states(env_backend, agent_backend):
 
     assert len(dataset.episodes_length) == 7
 
-    init_states = dataset.array_backend.to_numpy(dataset.get_init_states())
+    init_states = dataset.backend.to_numpy(dataset.get_init_states())
 
     assert len(init_states) == 7
     assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in expected_states)
@@ -274,11 +270,11 @@ def run_exp_greedy(env_backend, agent_backend):
     core = Core(agent, env)
 
     dataset = core.evaluate(n_steps=50, quiet=True, greedy=True)
-    actions = dataset.array_backend.to_numpy(dataset.action)
+    actions = dataset.backend.to_numpy(dataset.action)
     assert np.all(actions == 1.0)
 
     dataset_stochastic = core.evaluate(n_steps=50, quiet=True)
-    actions_stochastic = dataset_stochastic.array_backend.to_numpy(dataset_stochastic.action)
+    actions_stochastic = dataset_stochastic.backend.to_numpy(dataset_stochastic.action)
     assert not np.all(actions_stochastic == 1.0)
 
 
@@ -466,7 +462,7 @@ def test_vectorized_env_info_as_dict_of_arrays():
 
 
 def dict_info_agent(mdp_info):
-    agent = Agent(mdp_info, Policy())
+    agent = Agent(mdp_info, Policy('numpy'))
     agent.draw_action = lambda state: np.zeros(1) if state.ndim == 1 else np.zeros((state.shape[0], 1))
     agent.fit = lambda dataset: None
 

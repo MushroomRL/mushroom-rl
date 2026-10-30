@@ -97,13 +97,15 @@ class MushroomObject(object):
         self._save_pickle(zip_file, 'config', config_data, folder=folder)
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path, device=None):
         """
         Load and deserialize the agent from the given location on disk.
 
         Args:
             path (Path, string): Relative or absolute path to the agents save
-                location.
+                location;
+            device (str, None): device the loaded object and all its sub-objects are placed on, or ``None`` for
+                the default one.
 
         Returns:
             The loaded agent.
@@ -114,12 +116,25 @@ class MushroomObject(object):
             raise ValueError("Path to load agent is not valid")
 
         with ZipFile(path, 'r') as zip_file:
-            loaded_object = cls.load_zip(zip_file)
+            loaded_object = cls.load_zip(zip_file, device=device)
 
         return loaded_object
 
     @classmethod
-    def load_zip(cls, zip_file, folder=''):
+    def load_zip(cls, zip_file, folder='', device=None):
+        """
+        Load and deserialize an object from a zip file.
+
+        Args:
+            zip_file (ZipFile): ZipFile the object is loaded from;
+            folder (string, ''): subfolder the object was saved in;
+            device (str, None): device the loaded object and all its sub-objects are placed on, or ``None`` for
+                the default one.
+
+        Returns:
+            The loaded object, or ``None`` if the folder holds no saved object.
+
+        """
         config_path = MushroomObject._append_folder(folder, 'config')
 
         try:
@@ -133,7 +148,7 @@ class MushroomObject(object):
 
         if object_type is list:
             return cls._load_list(zip_file, folder, primitive_dictionary['len'],
-                                  primitive_dictionary['method'])
+                                  primitive_dictionary['method'], device)
         else:
             loaded_object = object_type.__new__(object_type)
             setattr(loaded_object, '_save_attributes', save_attributes)
@@ -150,15 +165,16 @@ class MushroomObject(object):
                     setattr(loaded_object, att, primitive_dictionary[att])
                 elif file_name in zip_file.namelist():
                     load_method = getattr(cls, '_load_{}'.format(method))
-                    att_val = load_method(zip_file, file_name)
+                    att_val = load_method(zip_file, file_name, device)
                     setattr(loaded_object, att, att_val)
                 elif MushroomObject._is_saved_list(zip_file, file_name):
-                    att_val = MushroomObject.load_zip(zip_file, file_name)
+                    att_val = MushroomObject.load_zip(zip_file, file_name, device)
                     setattr(loaded_object, att, att_val)
                 else:
                     setattr(loaded_object, att, None)
 
-            loaded_object._post_load()
+            loaded_object._restore_device(device)
+            loaded_object._post_load(device)
 
             return loaded_object
 
@@ -263,10 +279,24 @@ class MushroomObject(object):
         for attr, label in labels.items():
             self._logger_attributes[attr] = (group, label)
 
-    def _post_load(self):
+    def _post_load(self, device):
         """
         This method can be overwritten to implement logic that is executed
         after the loading of the agent.
+
+        Args:
+            device (str, None): device the object is loaded on, or ``None`` for the default one.
+
+        """
+        pass
+
+    def _restore_device(self, device):
+        """
+        Set the device of a freshly loaded object, before ``_post_load`` is called. Objects holding no device do
+        nothing.
+
+        Args:
+            device (str, None): device the object is loaded on, or ``None`` for the default one.
 
         """
         pass
@@ -295,7 +325,7 @@ class MushroomObject(object):
         return MushroomObject._append_folder(name, 'config') in zip_file.namelist()
 
     @staticmethod
-    def _load_list(zip_file, folder, length, method):
+    def _load_list(zip_file, folder, length, method, device=None):
         loaded_list = list()
 
         load_method = getattr(MushroomObject, '_load_{}'.format(method))
@@ -303,39 +333,39 @@ class MushroomObject(object):
         for i in range(length):
             element_name = MushroomObject._append_folder(folder, str(i))
             if MushroomObject._is_saved_list(zip_file, element_name):
-                loaded_list.append(MushroomObject.load_zip(zip_file, element_name))
+                loaded_list.append(MushroomObject.load_zip(zip_file, element_name, device))
             else:
-                loaded_list.append(load_method(zip_file, element_name))
+                loaded_list.append(load_method(zip_file, element_name, device))
 
         return loaded_list
 
     @staticmethod
-    def _load_pickle(zip_file, name):
+    def _load_pickle(zip_file, name, device=None):
         with zip_file.open(name, 'r') as f:
             return pickle.load(f)
 
     @staticmethod
-    def _load_numpy(zip_file, name):
+    def _load_numpy(zip_file, name, device=None):
         with zip_file.open(name, 'r') as f:
             return np.load(f)
 
     @staticmethod
-    def _load_torch(zip_file, name):
+    def _load_torch(zip_file, name, device=None):
         with zip_file.open(name, 'r') as f:
             # modern versions of torch require weights_only to be explicitly set to False
             if 'weights_only' in inspect.signature(torch.load).parameters:
-                return torch.load(f, map_location=TorchUtils.get_device(), weights_only=False)
+                return torch.load(f, map_location=TorchUtils.get_device(device), weights_only=False)
             else:
-                return torch.load(f, map_location=TorchUtils.get_device())
+                return torch.load(f, map_location=TorchUtils.get_device(device))
 
     @staticmethod
-    def _load_json(zip_file, name):
+    def _load_json(zip_file, name, device=None):
         with zip_file.open(name, 'r') as f:
             return json.load(f)
 
     @staticmethod
-    def _load_mushroom(zip_file, name):
-        return MushroomObject.load_zip(zip_file, name)
+    def _load_mushroom(zip_file, name, device=None):
+        return MushroomObject.load_zip(zip_file, name, device)
 
     @staticmethod
     def _save_pickle(zip_file, name, obj, folder, **_):

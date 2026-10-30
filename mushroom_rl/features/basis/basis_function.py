@@ -1,5 +1,4 @@
-from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import ArrayBackend, MushroomObject
 
 
 class BasisFunction(MushroomObject):

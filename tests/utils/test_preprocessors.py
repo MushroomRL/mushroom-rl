@@ -6,7 +6,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy
 
 from mushroom_rl.algorithms.value import DQN
-from mushroom_rl.core import Agent
+from mushroom_rl.core import Agent, MDPInfo
 
 from mushroom_rl.core import Core
 
@@ -91,8 +91,8 @@ def test_normalizing_preprocessor_backend():
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
 
-    mdp_info_torch = deepcopy(mdp.info)
-    mdp_info_torch.backend = 'torch'
+    mdp_info_torch = MDPInfo(mdp.info.observation_space, mdp.info.action_space, mdp.info.gamma, mdp.info.horizon,
+                             mdp.info.dt, backend='torch')
 
     norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     norm_box_torch = MinMaxPreprocessor(mdp_info=mdp_info_torch, clip_obs=5.0, alpha=0.001)

@@ -1,4 +1,3 @@
-import numpy as np
 from mushroom_rl.policy.policy import Policy, HasWeights
 
 
@@ -15,10 +14,12 @@ class DeterministicPolicy(HasWeights, Policy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the action to select
-                in each state.
+            mu (Approximator): the approximator representing the action to select
+                in each state. The policy operates in its backend and on its device.
 
         """
+        super().__init__(mu.backend_name, mu.device)
+
         self._approximator = mu
         self._predict_params = dict()
 
@@ -38,7 +39,7 @@ class DeterministicPolicy(HasWeights, Policy):
     def __call__(self, state, action):
         policy_action = self._approximator.predict(state, **self._predict_params)
 
-        return 1. if np.array_equal(action, policy_action) else 0.
+        return 1. if action.shape == policy_action.shape and (action == policy_action).all() else 0.
 
     def draw_action(self, state):
         return self.draw_action_greedy(state)

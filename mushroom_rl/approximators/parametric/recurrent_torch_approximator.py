@@ -1,6 +1,6 @@
 import torch
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators.approximator import Ensemble
 from mushroom_rl.approximators.parametric.torch_approximator import TorchApproximator
 
@@ -25,7 +25,7 @@ class RecurrentTorchApproximator(TorchApproximator):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 action_history_shape=None, **params):
+                 action_history_shape=None, device=None, **params):
         """
         Constructor.
 
@@ -37,6 +37,7 @@ class RecurrentTorchApproximator(TorchApproximator):
                 :meth:`~mushroom_rl.approximators.parametric.networks.RecurrentNetwork.resolve_output_shape`;
             action_history_shape (tuple, None): the per-timestep shape of the previous-action input, when the
                 network consumes the action history;
+            device (str, None): device the network is stored on, or ``None`` for the default one;
             **params: parameters forwarded to :class:`TorchApproximator` and the network constructor.
 
         """
@@ -44,7 +45,8 @@ class RecurrentTorchApproximator(TorchApproximator):
 
         super().__init__(network, input_shape, output_shape, optimizer=optimizer, loss=loss,
                          batch_size=batch_size, n_fit_targets=n_fit_targets, reinitialize=reinitialize,
-                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, **params)
+                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, device=device,
+                         **params)
 
         self._policy_state_shape = network.compute_policy_state_shape(**params)
 
@@ -120,7 +122,7 @@ class RecurrentTorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
                  batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction='mean', action_history_shape=None, **params):
+                 prediction='mean', action_history_shape=None, device=None, **params):
         """
         Constructor.
 
@@ -128,16 +130,18 @@ class RecurrentTorchEnsemble(Ensemble):
             n_models (int): number of models in the ensemble;
             prediction (str, 'mean'): how to aggregate predictions across models. One of ``'mean'``, ``'min'``,
                 ``'max'``, ``'sum'``, or ``'all'`` to return all predictions;
+            device (str, None): device the networks are stored on, or ``None`` for the default one;
             **params: parameters forwarded to each :class:`RecurrentTorchApproximator`.
 
         """
         output_shape = network.resolve_output_shape(output_shape, **params)
 
-        super().__init__(RecurrentTorchApproximator, n_models, prediction=prediction, backend='torch',
+        super().__init__(RecurrentTorchApproximator, n_models, prediction=prediction,
                          input_shape=input_shape, output_shape=output_shape, network=network,
                          optimizer=optimizer, loss=loss,
                          batch_size=batch_size, n_fit_targets=n_fit_targets, reinitialize=reinitialize,
-                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, **params)
+                         dropout=dropout, quiet=quiet, action_history_shape=action_history_shape, device=device,
+                         **params)
 
     def parameters(self):
         """

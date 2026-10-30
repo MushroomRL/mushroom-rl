@@ -30,6 +30,7 @@ to store it is selected per component through the ``backend`` declared in ``MDPI
    ~mushroom_rl.core.history_manager.HistoryManager
    ~mushroom_rl.core.array_backend.ArrayBackend
    ~mushroom_rl.core.mushroom_object.MushroomObject
+   ~mushroom_rl.core.mushroom_backend_object.MushroomBackendObject
    ~mushroom_rl.core.spaces.Box
    ~mushroom_rl.core.spaces.Discrete
    ~mushroom_rl.core.logger.Logger

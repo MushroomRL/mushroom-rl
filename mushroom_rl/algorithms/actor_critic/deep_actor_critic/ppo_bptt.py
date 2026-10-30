@@ -16,7 +16,8 @@ class PPO_BPTT(OnPolicyDeepAC):
     """
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
                  n_epochs_policy, batch_size, eps_ppo, lam, dim_env_state, ent_coeff=0.0,
-                 critic_fit_params=None, truncation_length=5, history_length=1, action_history_length=0):
+                 critic_fit_params=None, truncation_length=5, history_length=1, action_history_length=0,
+                 device=None):
         """
         Constructor.
 
@@ -40,26 +41,28 @@ class PPO_BPTT(OnPolicyDeepAC):
                 during the fit, so each sequence entry becomes a ``(history_length, *obs_shape)`` stack;
             action_history_length (int, 0): number of previous actions fed to the policy at each timestep; when
                 greater than 0 the agent assembles the previous-action window online and the same window is rebuilt
-                for each sequence timestep during the fit.
+                for each sequence timestep during the fit;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
-        self._batch_size = Parameter.make(batch_size, backend='torch')
-        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch', device=device)
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch', device=device)
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = Parameter.make(lam, backend='torch')
-        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
+        self._lambda = Parameter.make(lam, backend='torch', device=device)
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
+        critic_params.setdefault('device', device)
         self._V = RecurrentTorchApproximator(**critic_params)
 
         self._truncation_length = truncation_length
         self._dim_env_state = dim_env_state
 
-        super().__init__(mdp_info, policy, backend='torch', history_length=history_length,
+        super().__init__(mdp_info, policy, backend='torch', device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
         self._add_save_attr(
@@ -154,7 +157,7 @@ class PPO_BPTT(OnPolicyDeepAC):
 
     def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
                                 prev_actions, last, absorbing):
-        device = TorchUtils.get_device()
+        device = self._info.device
 
         with torch.no_grad():
             # array preallocation
@@ -236,6 +239,6 @@ class PPO_BPTT(OnPolicyDeepAC):
                 loss.backward()
                 self._optimizer.step()
 
-    def _post_load(self):
+    def _post_load(self, device):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))

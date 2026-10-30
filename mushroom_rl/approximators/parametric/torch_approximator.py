@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 from torch.func import stack_module_state, functional_call, vmap, grad
 
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.utils.minibatches import minibatch_generator, ensemble_minibatch_generator
 from mushroom_rl.utils.torch_utils import TorchUtils, TorchTrainer
@@ -28,7 +28,7 @@ class TorchApproximator(Approximator):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 action_history_shape=None, kwargs_shape=None, **params):
+                 action_history_shape=None, kwargs_shape=None, device=None, **params):
         """
         Constructor.
 
@@ -64,11 +64,12 @@ class TorchApproximator(Approximator):
                 network. Declared keyword inputs are batch-padded by ``predict`` exactly like the
                 positional inputs, and each shape is forwarded to the network constructor under the
                 ``{name}_shape`` keyword (e.g. ``action_history`` -> ``action_history_shape``);
+            device (str, None): device the network is stored on, or ``None`` for the default one;
             **params: dictionary of parameters needed to construct the
                 network.
 
         """
-        super().__init__(input_shape=input_shape, output_shape=output_shape, backend='torch')
+        super().__init__(input_shape=input_shape, output_shape=output_shape, backend='torch', device=device)
 
         n_outputs = len(output_shape) if isinstance(output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
@@ -82,7 +83,7 @@ class TorchApproximator(Approximator):
 
         network_shape_kwargs = {f'{name}_shape': shape for name, shape in kwargs_shape.items()}
         self.network = network(input_shape, output_shape, dropout=dropout, **network_shape_kwargs, **params)
-        self.network.to(TorchUtils.get_device())
+        self.network.to(self._device)
 
         if dropout:
             self.network.eval()
@@ -91,11 +92,11 @@ class TorchApproximator(Approximator):
             self._optimizer = optimizer['class'](self.network.parameters(), **optimizer['params'])
         else:
             self._optimizer = None
-        self._loss = loss
         self._last_loss = None
         self._dirty = False
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
+        self._trainer.to(self._device)
 
         self._add_save_attr(
             _parse_output='none',
@@ -103,18 +104,18 @@ class TorchApproximator(Approximator):
             _kwargs_ndims='primitive',
             network='torch',
             _optimizer='torch',
-            _loss='pickle',
             _last_loss='none',
             _trainer='mushroom',
         )
 
-    def _post_load(self):
+    def _post_load(self, device):
         n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+        self._trainer.to(self._device)
 
     def _pad_inputs(self, args, kwargs):
         n_declared = len(self._input_ndims)
@@ -212,7 +213,7 @@ class TorchApproximator(Approximator):
 
     def _compute_batch_loss(self, batch, use_weights, network_kwargs):
         if use_weights:
-            weights = torch.as_tensor(batch[-1], device=TorchUtils.get_device()).float()
+            weights = torch.as_tensor(batch[-1], device=self._device).float()
             batch = batch[:-1]
         else:
             weights = None
@@ -243,6 +244,15 @@ class TorchApproximator(Approximator):
         return self.network.parameters()
 
     @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the fit method.
+
+        """
+        return self._trainer.loss
+
+    @property
     def loss_fit(self):
         """
         Returns:
@@ -271,7 +281,7 @@ class TorchApproximator(Approximator):
             weights (np.ndarray): the set of weights to set.
 
         """
-        TorchUtils.set_weights(self.network.parameters(), weights)
+        TorchUtils.set_weights(self.network.parameters(), weights, device=self._device)
         self._dirty = True
 
     def get_weights(self):
@@ -346,7 +356,7 @@ class TorchEnsemble(Ensemble):
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0,
                  n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
                  prediction='mean', randomness='different', action_history_shape=None,
-                 kwargs_shape=None, **params):
+                 kwargs_shape=None, device=None, **params):
         """
         Constructor.
 
@@ -380,15 +390,16 @@ class TorchEnsemble(Ensemble):
                 network. Declared keyword inputs are batch-padded by ``predict`` exactly like the
                 positional inputs, and each shape is forwarded to the network constructor under the
                 ``{name}_shape`` keyword (e.g. ``action_history`` -> ``action_history_shape``);
+            device (str, None): device the networks are stored on, or ``None`` for the default one;
             **params: dictionary of parameters needed to construct the network.
 
         """
-        super().__init__(TorchApproximator, n_models, prediction=prediction, backend='torch',
+        super().__init__(TorchApproximator, n_models, prediction=prediction,
                          input_shape=input_shape, output_shape=output_shape, network=network,
                          optimizer=optimizer, loss=loss, batch_size=batch_size,
                          n_fit_targets=n_fit_targets, reinitialize=reinitialize,
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape,
-                         kwargs_shape=kwargs_shape, **params)
+                         kwargs_shape=kwargs_shape, device=device, **params)
 
         self._randomness = randomness
         self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
@@ -403,6 +414,7 @@ class TorchEnsemble(Ensemble):
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss,
                                      self._store_loss, quiet)
+        self._trainer.to(self._device)
 
         self._add_save_attr(
             _randomness='primitive',
@@ -417,14 +429,15 @@ class TorchEnsemble(Ensemble):
             for m in self._models:
                 m._dirty = False
 
-    def _post_load(self):
-        super()._post_load()
+    def _post_load(self, device):
+        super()._post_load(device)
 
         self._base_model = deepcopy(self._models[0].network).to('meta').eval()
         for m in self._models:
             m._dirty = True
         self._sync_params()
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+        self._trainer.to(self._device)
 
     def _parse_single_output(self, out, prediction, compute_variance):
         return self._aggregate(out.squeeze(1), prediction, compute_variance)
@@ -462,7 +475,7 @@ class TorchEnsemble(Ensemble):
         self._sync_params()
 
         n_declared = len(self._input_ndims)
-        torch_args = tuple(torch.as_tensor(x, device=TorchUtils.get_device()) for x in args)
+        torch_args = tuple(torch.as_tensor(x, device=self._device) for x in args)
         torch_args = tuple(a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
                            for i, a in enumerate(torch_args))
         for name, ndim in self._kwargs_ndims.items():
@@ -530,7 +543,7 @@ class TorchEnsemble(Ensemble):
         if self._trainer.batch_size > 0:
             batches = ensemble_minibatch_generator(self._trainer.batch_size, n_models, *args)
         else:
-            batches = [[torch.as_tensor(a, device=TorchUtils.get_device()).unsqueeze(0).expand(n_models, *a.shape)
+            batches = [[torch.as_tensor(a, device=self._device).unsqueeze(0).expand(n_models, *a.shape)
                         for a in args]]
 
         loss_current = []
@@ -591,12 +604,12 @@ class TorchEnsemble(Ensemble):
 
     def _compute_val_loss(self, val_args, use_weights, network_kwargs):
         if use_weights:
-            weights = torch.as_tensor(val_args[-1], device=TorchUtils.get_device()).float()
+            weights = torch.as_tensor(val_args[-1], device=self._device).float()
             val_args = val_args[:-1]
         else:
             weights = None
 
-        torch_batch = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in val_args]
+        torch_batch = [torch.as_tensor(x, device=self._device) for x in val_args]
         n_kwargs = len(self._kwargs_ndims)
         x_end = len(torch_batch) - self._trainer.n_fit_targets - n_kwargs
         x_inputs = tuple(torch_batch[:x_end])
@@ -638,6 +651,15 @@ class TorchEnsemble(Ensemble):
 
         """
         return self._models[0].network
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the fit method.
+
+        """
+        return self._trainer.loss
 
     @property
     def loss_fit(self):

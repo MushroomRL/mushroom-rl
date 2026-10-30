@@ -17,7 +17,7 @@ class PPO(OnPolicyDeepAC):
     """
 
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
-                 ent_coeff=0.0, critic_fit_params=None, history_length=1, action_history_length=0):
+                 ent_coeff=0.0, critic_fit_params=None, history_length=1, action_history_length=0, device=None):
         """
         Constructor.
 
@@ -32,23 +32,25 @@ class PPO(OnPolicyDeepAC):
             ent_coeff ([float, Parameter], 1.): coefficient for the entropy regularization term;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
-            action_history_length (int, 0): number of previous actions fed to the actor and critic.
+            action_history_length (int, 0): number of previous actions fed to the actor and critic;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         self._critic_fit_params = dict(n_epochs=10) if critic_fit_params is None else critic_fit_params
 
-        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
-        self._batch_size = Parameter.make(batch_size, backend='torch')
-        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch', device=device)
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch', device=device)
 
         self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
 
-        self._lambda = Parameter.make(lam, backend='torch')
-        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
+        self._lambda = Parameter.make(lam, backend='torch', device=device)
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
+        critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
 
-        super().__init__(mdp_info, policy, backend='torch', history_length=history_length,
+        super().__init__(mdp_info, policy, backend='torch', device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
         self._add_save_attr(
@@ -104,6 +106,6 @@ class PPO(OnPolicyDeepAC):
                 loss.backward()
                 self._optimizer.step()
 
-    def _post_load(self):
+    def _post_load(self, device):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))

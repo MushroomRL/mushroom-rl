@@ -98,6 +98,15 @@ class ArrayBackend(object):
         return None
 
     @staticmethod
+    def supports_devices():
+        """
+        Returns:
+            Whether the arrays of the backend can be placed on a device.
+
+        """
+        return False
+
+    @staticmethod
     def get_device(array):
         """
         Args:
@@ -1285,6 +1294,10 @@ class TorchBackend(ArrayBackend):
     @classmethod
     def check_device(cls, device):
         return TorchUtils.get_device() if device is None else device
+
+    @staticmethod
+    def supports_devices():
+        return True
 
     @staticmethod
     def get_device(array):

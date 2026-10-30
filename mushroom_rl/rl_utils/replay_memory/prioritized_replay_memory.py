@@ -64,7 +64,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         if len(dataset) > 0:
             if p is None:
-                p = self._dataset.array_backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
+                p = self._dataset.backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
 
             start = self._dataset.write_head
             positions, relinked, orphans = self._dataset.append_replay_batch(dataset)
@@ -86,7 +86,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         idxs = np.zeros(n_samples, dtype=int)
-        priorities = self._dataset.array_backend.zeros(n_samples, device=self._agent_info.device)
+        priorities = self._dataset.backend.zeros(n_samples, device=self._agent_info.device)
 
         total_p = self._tree.total_p
         segment = total_p / n_samples
@@ -101,7 +101,7 @@ class PrioritizedReplayMemory(ReplayMemory):
         is_weight = (self.size * priorities / total_p) ** -self._beta()
         is_weight /= is_weight.max()
 
-        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend,
+        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend_name,
                                          device=self._agent_info.device)
         out = self._assemble_batch(data_idxs)
         out += [idxs, is_weight]

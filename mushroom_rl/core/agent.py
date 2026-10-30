@@ -1,27 +1,24 @@
 from mushroom_rl.core.mushroom_object import MushroomObject
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.history_manager import HistoryManager
 
 
-class AgentInfo(MushroomObject):
+class AgentInfo(MushroomBackendObject):
     def __init__(self, is_episodic, policy_state_shape, backend, device=None):
         assert isinstance(is_episodic, bool)
         assert policy_state_shape is None or isinstance(policy_state_shape, tuple)
         assert isinstance(backend, str)
-        assert backend == 'torch' or device is None
+
+        super().__init__(backend, device)
 
         self.is_episodic = is_episodic
         self.is_stateful = policy_state_shape is not None
         self.policy_state_shape = policy_state_shape
-        self.backend = backend
-        self.device = device
 
         self._add_save_attr(
             is_episodic='primitive',
             is_stateful='primitive',
-            policy_state_shape='primitive',
-            backend='primitive',
-            device='primitive'
+            policy_state_shape='primitive'
         )
 
 
@@ -63,8 +60,6 @@ class Agent(MushroomObject):
             device=device
         )
         self.policy = policy
-        self._agent_backend = ArrayBackend.get_array_backend(backend)
-        self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
         if history_manager is not None:
             self._history_manager = history_manager
@@ -82,8 +77,6 @@ class Agent(MushroomObject):
             mdp_info='mushroom',
             _info='mushroom',
             _history_manager='mushroom',
-            _agent_backend='primitive',
-            _env_backend='primitive',
             _core_preprocessors='mushroom',
             _fit_preprocessors='pickle'
         )
@@ -291,6 +284,14 @@ class Agent(MushroomObject):
 
     def _convert_to_agent_backend(self, array):
         return self._agent_backend.convert_to_backend(self._env_backend, array)
+
+    @property
+    def _agent_backend(self):
+        return self._info.backend
+
+    @property
+    def _env_backend(self):
+        return self.mdp_info.backend
 
 
 class HasNextAction:

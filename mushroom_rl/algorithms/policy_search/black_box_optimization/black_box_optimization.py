@@ -12,7 +12,7 @@ class BlackBoxOptimization(Agent):
 
     """
 
-    def __init__(self, mdp_info, distribution, policy, context_builder=None, backend='numpy'):
+    def __init__(self, mdp_info, distribution, policy, context_builder=None, backend='numpy', device=None):
         """
         Constructor.
 
@@ -21,7 +21,8 @@ class BlackBoxOptimization(Agent):
             policy (HasWeights): the policy to use;
             context_builder (ContextBuilder, None): class used to compute the context variables from initial
                 state and the episode_info dictionary;
-            backend (str, 'numpy'): the backend used by the algorithm.
+            backend (str, 'numpy'): the backend used by the algorithm;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         assert (not distribution.is_contextual and context_builder is None) or \
@@ -29,7 +30,7 @@ class BlackBoxOptimization(Agent):
         self.distribution = distribution
         self._context_builder = ContextBuilder() if context_builder is None else context_builder
 
-        super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
+        super().__init__(mdp_info, policy, is_episodic=True, backend=backend, device=device)
 
         self._add_save_attr(
             distribution='mushroom',

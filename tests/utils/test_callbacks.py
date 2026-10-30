@@ -24,7 +24,7 @@ def episode_lengths_from_flags(last_flags):
 class ZeroPolicy(Policy):
     def __init__(self, action_shape):
         self._dim = action_shape[0]
-        super().__init__()
+        super().__init__('numpy')
 
     def draw_action(self, state):
         return np.zeros((state.shape[0], self._dim))
@@ -77,7 +77,7 @@ class RecordFlattenedLast(Callback):
             dataset = dataset.flatten()
         if dataset is None:
             return
-        self._flags += dataset.array_backend.to_numpy(dataset.last).astype(bool).tolist()
+        self._flags += dataset.backend.to_numpy(dataset.last).astype(bool).tolist()
 
     def get(self):
         return self._flags

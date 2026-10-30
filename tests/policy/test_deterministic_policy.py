@@ -1,7 +1,20 @@
 from mushroom_rl.policy import DeterministicPolicy
-from mushroom_rl.approximators.parametric import LinearApproximator
+from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 
 import numpy as np
+import pytest
+import torch
+import torch.nn as nn
+
+
+class LinearNetwork(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+
+        self._h = nn.Linear(input_shape[0], output_shape[0])
+
+    def forward(self, state, **kwargs):
+        return self._h(state.float())
 
 
 def test_deterministic_policy():
@@ -36,3 +49,32 @@ def test_deterministic_policy():
     assert np.allclose(action, a_stored)
 
     assert np.allclose(pi.draw_action_greedy(s_test_1), action)
+
+
+@pytest.mark.parametrize('device', ['cpu', 'cuda'])
+def test_deterministic_policy_torch(device):
+    if device == 'cuda' and not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    torch.manual_seed(42)
+
+    approximator = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,), device=device)
+
+    pi = DeterministicPolicy(approximator)
+
+    assert pi.backend_name == 'torch'
+    assert pi.device == device
+
+    s_test_1 = torch.randn(5, device=device)
+    s_test_2 = torch.randn(5, device=device)
+    a_test = approximator.predict(s_test_1)
+
+    assert pi(s_test_1, a_test) == 1
+    assert pi(s_test_2, a_test) == 0
+
+    action = pi.draw_action(s_test_1)
+
+    assert isinstance(action, torch.Tensor)
+    assert action.device.type == device
+    assert torch.equal(action, a_test)
+    assert torch.equal(pi.draw_action_greedy(s_test_1), action)

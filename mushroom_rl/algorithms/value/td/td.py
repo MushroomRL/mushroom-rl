@@ -49,5 +49,5 @@ class TD(Agent):
         """
         pass
 
-    def _post_load(self):
+    def _post_load(self, device):
         self.policy.set_q(self.Q)
