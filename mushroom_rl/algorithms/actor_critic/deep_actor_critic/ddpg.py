@@ -53,6 +53,9 @@ class DDPG(DeepAC):
         self._actor_predict_params = dict() if actor_predict_params is None else actor_predict_params
         self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
+        critic_params.setdefault('device', device)
+        actor_params.setdefault('device', device)
+
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = TorchApproximator(**critic_params)
         self._target_critic_approximator = TorchApproximator(**target_critic_params)

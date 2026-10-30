@@ -47,6 +47,7 @@ class PPO(OnPolicyDeepAC):
         self._lambda = Parameter.make(lam, backend='torch', device=device)
         self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
+        critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
 
         super().__init__(mdp_info, policy, backend='torch', device=device, history_length=history_length,

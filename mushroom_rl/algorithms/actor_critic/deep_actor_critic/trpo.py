@@ -51,6 +51,7 @@ class TRPO(OnPolicyDeepAC):
 
         self._lambda = Parameter.make(lam, backend='torch', device=device)
 
+        critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
 
         self._old_policy = None

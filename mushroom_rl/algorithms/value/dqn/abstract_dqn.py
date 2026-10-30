@@ -75,6 +75,7 @@ class AbstractDQN(Agent):
 
         self._n_updates = 0
 
+        approximator_params.setdefault('device', device)
         self._initialize_regressors(approximator, approximator_params)
 
         policy.set_q(self.approximator)

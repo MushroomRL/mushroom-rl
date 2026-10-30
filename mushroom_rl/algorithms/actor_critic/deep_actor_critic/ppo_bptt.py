@@ -56,6 +56,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._lambda = Parameter.make(lam, backend='torch', device=device)
         self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
+        critic_params.setdefault('device', device)
         self._V = RecurrentTorchApproximator(**critic_params)
 
         self._truncation_length = truncation_length
