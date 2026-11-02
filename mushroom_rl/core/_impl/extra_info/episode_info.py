@@ -315,7 +315,7 @@ class EpisodeInfo(MushroomBackendObject):
         return entry[row]
 
 
-class ResetEpisodeInfo(EpisodeInfo):
+class EpisodeInfoReset(EpisodeInfo):
     """
     Class for storing the information returned by each environment on reset. It is parsed into a flat dictionary
     of arrays.
@@ -343,10 +343,10 @@ class ResetEpisodeInfo(EpisodeInfo):
         return self._parsed
 
     def _create_instance(self, n_envs, vectorized):
-        return ResetEpisodeInfo(n_envs, self.backend_name, self._device, vectorized=vectorized)
+        return EpisodeInfoReset(n_envs, self.backend_name, self._device, vectorized=vectorized)
 
 
-class ParametersEpisodeInfo(EpisodeInfo):
+class EpisodeInfoParameters(EpisodeInfo):
     """
     Class for storing the policy parameters drawn by an episodic agent at the start of each episode. It is parsed
     into a single array.
@@ -376,4 +376,4 @@ class ParametersEpisodeInfo(EpisodeInfo):
         return self._parsed
 
     def _create_instance(self, n_envs, vectorized):
-        return ParametersEpisodeInfo(n_envs, self.backend_name, self._device, vectorized=vectorized)
+        return EpisodeInfoParameters(n_envs, self.backend_name, self._device, vectorized=vectorized)
