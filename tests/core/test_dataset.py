@@ -364,7 +364,7 @@ def test_dataset_iadd_matches_add_in_place():
     assert np.array_equal(a.reward, reference.reward)
     assert np.array_equal(a.info['idx'], reference.info['idx'])
     assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
-    assert np.array_equal(np.array(a.theta_list), np.array(reference.theta_list))
+    assert np.array_equal(a.theta, reference.theta)
 
 
 def test_dataset_iadd_in_place_when_capacity_available():

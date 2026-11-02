@@ -1,7 +1,7 @@
 from mushroom_rl.core.array_backend import ArrayBackend
 from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
-from ._impl.extra_info import StepInfo, EpisodeInfo
+from ._impl.extra_info import StepInfo, ResetEpisodeInfo, ParametersEpisodeInfo
 
 
 class ExtraInfo(MushroomBackendObject):
@@ -32,8 +32,9 @@ class ExtraInfo(MushroomBackendObject):
         self._theta_device = ArrayBackend.get_array_backend(self._theta_backend_name).check_device(theta_device)
 
         self._step_info = StepInfo(n_envs, backend, device, vectorized=self._vectorized)
-        self._episode_info = EpisodeInfo(n_envs, backend, device, vectorized=self._vectorized)
-        self._theta = EpisodeInfo(n_envs, self._theta_backend_name, self._theta_device, vectorized=self._vectorized)
+        self._episode_info = ResetEpisodeInfo(n_envs, backend, device, vectorized=self._vectorized)
+        self._theta = ParametersEpisodeInfo(n_envs, self._theta_backend_name, self._theta_device,
+                                            vectorized=self._vectorized)
 
         self._add_save_attr(
             _n_envs='primitive',
@@ -253,11 +254,11 @@ class ExtraInfo(MushroomBackendObject):
     def theta(self):
         """
         Returns:
-            The policy parameters, one list of per-episode entries per environment, or a single list of
-            per-episode entries when they are collected from one environment.
+            The policy parameters of every episode, stacked along the first axis, with the environments one after
+            the other; ``None`` when there are none.
 
         """
-        return self._theta.episodes
+        return self._theta.parse()
 
     def _post_load(self, device):
         theta_backend = ArrayBackend.get_array_backend(self._theta_backend_name)

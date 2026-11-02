@@ -6,9 +6,9 @@ from .step_info import StepInfo
 
 class EpisodeInfo(MushroomBackendObject):
     """
-    Container for one entry per episode and per environment, such as the information an environment reports
-    when it resets or the policy parameters an episodic agent draws. The entries of every environment are kept
-    apart, and can be turned into a flat dictionary of arrays when they are dictionaries.
+    Base class for storing data collected once per episode in each environment, such as the information returned
+    on reset or the policy parameters drawn by an episodic agent. The data of each environment is kept separate,
+    and each subclass defines how it is parsed into arrays.
 
     """
     def __init__(self, n_envs, backend, device=None, vectorized=None):
@@ -98,24 +98,13 @@ class EpisodeInfo(MushroomBackendObject):
 
     def parse(self):
         """
-        Turn the appended episodes into a flat dictionary of arrays, one entry per key.
+        Parse the stored entries into arrays.
 
         Returns:
-            A flat dictionary containing an array for every key of the episode information, with the
-            environments one after the other.
+            The parsed entries, with the environments one after the other.
 
         """
-        if self._parsed is None:
-            info = StepInfo(1, self.backend_name, self._device, vectorized=False)
-            for entry in self._flat_entries():
-                info.append(entry)
-
-            if self._target_backend_name is not None:
-                info = info.to_backend(self._target_backend_name, self._target_device)
-
-            self._parsed = info.parse()
-
-        return self._parsed
+        raise NotImplementedError
 
     def to_backend(self, backend, device=None):
         """
@@ -147,7 +136,7 @@ class EpisodeInfo(MushroomBackendObject):
             A single-environment EpisodeInfo holding the episodes of every environment, one after the other.
 
         """
-        info = EpisodeInfo(1, self.backend_name, self._device, vectorized=False)
+        info = self._create_instance(1, vectorized=False)
         info._target_backend_name = self._target_backend_name
         info._target_device = self._target_device
         info._blocks = [block.copy() for block in self._blocks if block]
@@ -160,7 +149,7 @@ class EpisodeInfo(MushroomBackendObject):
             A new EpisodeInfo holding no episodes, shaped like this one.
 
         """
-        return EpisodeInfo(self.n_envs, self.backend_name, self._device, vectorized=self._vectorized)
+        return self._create_instance(self.n_envs, vectorized=self._vectorized)
 
     def copy(self):
         """
@@ -184,20 +173,6 @@ class EpisodeInfo(MushroomBackendObject):
         self._parsed = None
 
     @property
-    def episodes(self):
-        """
-        Returns:
-            The episodes of every environment, one list per environment, or the episodes of the only
-            environment when the entries are not vectorized.
-
-        """
-        if self._vectorized:
-            episodes = self._grouped_entries(self._blocks[0])
-            return [episodes.get(env, []) for env in range(self.n_envs)]
-
-        return self._flat_entries()
-
-    @property
     def n_envs(self):
         return self._n_envs
 
@@ -205,6 +180,18 @@ class EpisodeInfo(MushroomBackendObject):
         if self._target_backend_name is not None:
             target = ArrayBackend.get_array_backend(self._target_backend_name)
             self._target_device = target.check_device(device if target.supports_devices() else None)
+
+    def _create_instance(self, n_envs, vectorized):
+        """
+        Args:
+            n_envs (int): number of parallel environments;
+            vectorized (bool): whether the appended entries cover every environment rather than a single one.
+
+        Returns:
+            A new, empty object of the same class, in the same backend and on the same device as this one.
+
+        """
+        raise NotImplementedError
 
     def _initial_blocks(self):
         """
@@ -326,3 +313,67 @@ class EpisodeInfo(MushroomBackendObject):
             return {key: value[row] for key, value in entry.items()}
 
         return entry[row]
+
+
+class ResetEpisodeInfo(EpisodeInfo):
+    """
+    Class for storing the information returned by each environment on reset. It is parsed into a flat dictionary
+    of arrays.
+
+    """
+    def parse(self):
+        """
+        Turn the appended episodes into a flat dictionary of arrays, one entry per key.
+
+        Returns:
+            A flat dictionary containing an array for every key of the episode information, with the
+            environments one after the other.
+
+        """
+        if self._parsed is None:
+            info = StepInfo(1, self.backend_name, self._device, vectorized=False)
+            for entry in self._flat_entries():
+                info.append(entry)
+
+            if self._target_backend_name is not None:
+                info = info.to_backend(self._target_backend_name, self._target_device)
+
+            self._parsed = info.parse()
+
+        return self._parsed
+
+    def _create_instance(self, n_envs, vectorized):
+        return ResetEpisodeInfo(n_envs, self.backend_name, self._device, vectorized=vectorized)
+
+
+class ParametersEpisodeInfo(EpisodeInfo):
+    """
+    Class for storing the policy parameters drawn by an episodic agent at the start of each episode. It is parsed
+    into a single array.
+
+    """
+    def parse(self):
+        """
+        Stack the stored policy parameters into a single array.
+
+        Returns:
+            The policy parameters of every episode along the first axis, with the environments one after the other,
+            or ``None`` if no parameters are stored.
+
+        """
+        if self._parsed is None:
+            entries = self._flat_entries()
+
+            if len(entries) > 0:
+                if self._target_backend_name is not None:
+                    entries = [ArrayBackend.convert(entry, to=self._target_backend_name, backend=self._backend,
+                                                    device=self._target_device) for entry in entries]
+                    target = ArrayBackend.get_array_backend(self._target_backend_name)
+                    self._parsed = target.from_list(entries, device=self._target_device)
+                else:
+                    self._parsed = self._backend.from_list(entries, device=self._device)
+
+        return self._parsed
+
+    def _create_instance(self, n_envs, vectorized):
+        return ParametersEpisodeInfo(n_envs, self.backend_name, self._device, vectorized=vectorized)

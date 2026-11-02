@@ -217,7 +217,7 @@ def test_step_info_is_dropped():
 
     assert buffer.info == {}
     assert buffer.episode_info == {}
-    assert buffer.theta_list == []
+    assert buffer.theta is None
 
 
 def test_append_episode_info_and_append_theta_raise():

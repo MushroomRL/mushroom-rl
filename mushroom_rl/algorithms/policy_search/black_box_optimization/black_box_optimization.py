@@ -81,7 +81,7 @@ class BlackBoxOptimization(Agent):
 
     def fit(self, dataset):
         Jep = dataset.discounted_return
-        theta = self._agent_backend.from_list(dataset.theta_list)
+        theta = dataset.theta
 
         if self.distribution.is_contextual:
             initial_states = dataset.get_init_states()

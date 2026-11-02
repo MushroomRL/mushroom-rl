@@ -43,7 +43,7 @@ class DummyEpisodicAgent(Agent):
         self._counter = 0
 
     def fit(self, dataset):
-        assert len(dataset.theta_list) == 5
+        assert len(dataset.theta) == 5
 
     def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
         n_envs = len(start_mask)
@@ -224,7 +224,7 @@ def run_exp_episodic(env_backend, agent_backend):
     print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)
     assert len(dataset.episodes_length) == 20
-    assert len(dataset.theta_list) == 20
+    assert len(dataset.theta) == 20
 
     print('- learn n_episodes=25 n_episodes_per_fit=5')
     core.learn(n_episodes=25, n_episodes_per_fit=5)

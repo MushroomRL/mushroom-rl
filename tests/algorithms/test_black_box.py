@@ -93,7 +93,7 @@ def test_black_box_evaluate_greedy_uses_distribution_mean():
     dataset = core.evaluate(n_episodes=3, greedy=True, quiet=True)
 
     expected_theta = distribution.mean()
-    for theta in dataset.theta_list:
+    for theta in dataset.theta:
         assert np.allclose(theta, expected_theta)
 
 
@@ -120,7 +120,7 @@ def test_black_box_evaluate_vectorized_greedy_uses_distribution_mean():
         mdp.close_all()
 
     expected_theta = distribution.mean()
-    for theta in dataset.theta_list:
+    for theta in dataset.theta:
         assert np.allclose(theta, expected_theta)
 
 

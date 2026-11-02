@@ -176,7 +176,7 @@ class TestUtils:
 
         res &= cls._eq_value(this.info, that.info)
         res &= cls._eq_value(this.episode_info, that.episode_info)
-        res &= cls._eq_value(this.theta_list, that.theta_list)
+        res &= cls._eq_value(this.theta, that.theta)
 
         res &= cls._eq_layout(this._layout, that._layout)
         if hasattr(this.history_state, '_slots'):

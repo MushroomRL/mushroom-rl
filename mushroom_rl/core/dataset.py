@@ -622,11 +622,11 @@ class Dataset(MushroomObject):
         return self._extras.parse_episodes()
 
     @property
-    def theta_list(self):
+    def theta(self):
         """
         Returns:
-            The policy parameters, one entry per episode, kept in one list per environment when they are
-            collected from a vectorized environment.
+            The policy parameters of every episode, stacked along the first axis, with the environments one after
+            the other; ``None`` when there are none.
 
         """
         return self._extras.theta
@@ -812,7 +812,10 @@ class Dataset(MushroomObject):
 
         dataset = cls.create_raw_instance()
 
-        dataset._extras = ExtraInfo(1, backend) if extras is None else extras.copy()
+        if extras is None:
+            dataset._extras = ExtraInfo(1, backend, device, theta_backend=policy_backend, theta_device=agent_device)
+        else:
+            dataset._extras = extras.copy()
 
         env_arrays = [states, actions, rewards, next_states, absorbings, lasts]
         dataset._data = Container.from_array(env_arrays, device=device, backend=backend)
