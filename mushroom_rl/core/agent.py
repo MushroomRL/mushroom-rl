@@ -280,10 +280,10 @@ class Agent(MushroomObject):
         return state
 
     def _convert_to_env_backend(self, array):
-        return self._env_backend.convert_to_backend(self._agent_backend, array)
+        return self._env_backend.convert_to_backend(self._agent_backend, array, device=self.mdp_info.device)
 
     def _convert_to_agent_backend(self, array):
-        return self._agent_backend.convert_to_backend(self._env_backend, array)
+        return self._agent_backend.convert_to_backend(self._env_backend, array, device=self._info.device)
 
     @property
     def _agent_backend(self):

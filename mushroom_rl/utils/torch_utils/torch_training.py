@@ -52,6 +52,27 @@ class TorchTrainer(MushroomObject):
         self._run_loop(n_epochs, check_loss, epsilon, patience,
                        train_args, val_args, use_weights, network_kwargs)
 
+    def compute_loss_from_output(self, y_hat, y_targets, weights=None):
+        if isinstance(y_hat, tuple):
+            output_type = y_hat[0].dtype
+        else:
+            output_type = y_hat.dtype
+        y = [yi.to(output_type) for yi in y_targets]
+        if weights is None:
+            return self._loss_fn(y_hat, *y)
+        loss = self._loss_fn(y_hat, *y, reduction='none')
+        loss = loss @ weights
+        return loss / weights.sum()
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the trainer.
+
+        """
+        return self._loss_fn
+
     def _setup(self, args, n_epochs, weights, epsilon, validation_split):
         if epsilon is not None:
             n_epochs = np.inf if n_epochs is None else n_epochs
@@ -113,24 +134,3 @@ class TorchTrainer(MushroomObject):
                         t_epochs.set_postfix(loss=float(np.mean(loss_current)))
 
                     self._store_loss_fn(loss_current)
-
-    def compute_loss_from_output(self, y_hat, y_targets, weights=None):
-        if isinstance(y_hat, tuple):
-            output_type = y_hat[0].dtype
-        else:
-            output_type = y_hat.dtype
-        y = [yi.to(output_type) for yi in y_targets]
-        if weights is None:
-            return self._loss_fn(y_hat, *y)
-        loss = self._loss_fn(y_hat, *y, reduction='none')
-        loss = loss @ weights
-        return loss / weights.sum()
-
-    @property
-    def loss(self):
-        """
-        Returns:
-            The loss function optimized by the trainer.
-
-        """
-        return self._loss_fn

@@ -82,7 +82,7 @@ class SAC(DeepAC):
 
         policy = SquashedGaussianTorchPolicy(actor_mu_approximator, actor_sigma_approximator,
                                              mdp_info.action_space.low, mdp_info.action_space.high,
-                                             log_std_min, log_std_max)
+                                             log_std_min, log_std_max, device=device)
 
         self._init_target(self._critic_approximator, self._target_critic_approximator)
 

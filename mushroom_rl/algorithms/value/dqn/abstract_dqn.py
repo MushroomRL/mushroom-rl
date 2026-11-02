@@ -41,6 +41,9 @@ class AbstractDQN(Agent):
         assert policy.backend_name == 'torch', \
             f"DQN-based agents require a torch policy, got a '{policy.backend_name}' one. " \
             f"Build it with backend='torch'."
+        assert policy.device == self._info.device, \
+            f"DQN-based agents require a policy on the agent device '{self._info.device}', got '{policy.device}'. " \
+            f"Build it with device='{self._info.device}'."
 
         self._fit_params = dict()
         self._predict_params = dict()

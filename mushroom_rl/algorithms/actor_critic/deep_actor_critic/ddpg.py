@@ -67,6 +67,7 @@ class DDPG(DeepAC):
         self._init_target(self._critic_approximator, self._target_critic_approximator)
         self._init_target(self._actor_approximator, self._target_actor_approximator)
 
+        policy_params.setdefault('device', device)
         policy = policy_class(self._actor_approximator, **policy_params)
 
         policy_parameters = self._actor_approximator.parameters()
