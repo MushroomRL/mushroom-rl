@@ -143,6 +143,7 @@ class StepInfo(MushroomBackendObject):
                 self._device = self._target_device
                 self._target_backend_name = None
                 self._target_device = None
+                self._add_all_save_attr()
 
             return self._parsed
 
@@ -196,6 +197,8 @@ class StepInfo(MushroomBackendObject):
 
         info = StepInfo(1, backend_name, device)
         info._source = self.copy()
+        if mask is not None:
+            mask = ArrayBackend.convert_mask(mask, to=backend_name, device=info.device)
         info._mask = mask
 
         return info
@@ -331,19 +334,19 @@ class StepInfo(MushroomBackendObject):
             _n_envs='primitive',
             _vectorized='primitive',
             _layout='primitive',
-            _records='torch',
-            _columns='torch',
+            _records=self._backend.get_container_serialization(),
+            _columns=self._backend.get_container_serialization(),
             _column_rows='primitive',
             _pending_steps='primitive',
             _key_mapping='primitive',
             _flat_keys='primitive',
             _shape_mapping='primitive',
-            _parsed='torch',
+            _parsed=self._backend.get_container_serialization(),
             _n_parsed='primitive',
             _target_backend_name='primitive',
             _target_device='none',
             _source='mushroom',
-            _mask='torch'
+            _mask=self._backend.get_backend_serialization()
         )
 
     def _drop_columns_before(self, dropped):

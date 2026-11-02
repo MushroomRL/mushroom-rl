@@ -36,6 +36,16 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def get_container_serialization():
+        """
+        Returns:
+            The name of the ``MushroomObject`` save method (see ``_add_save_attr``) to use for attributes holding
+            containers (dictionaries, lists, deques) of this backend's arrays, i.e. ``'torch'`` or ``'pickle'``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def get_array_backend(backend_name):
         """
         Args:
@@ -1016,6 +1026,10 @@ class NumpyBackend(ArrayBackend):
     def get_backend_serialization():
         return 'numpy'
 
+    @staticmethod
+    def get_container_serialization():
+        return 'pickle'
+
     @classmethod
     def convert_to_backend(cls, backend, array, device=None):
         cls.check_device(device)
@@ -1289,6 +1303,10 @@ class TorchBackend(ArrayBackend):
 
     @staticmethod
     def get_backend_serialization():
+        return 'torch'
+
+    @staticmethod
+    def get_container_serialization():
         return 'torch'
 
     @classmethod
@@ -1568,6 +1586,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def get_backend_serialization():
         return 'numpy'
+
+    @staticmethod
+    def get_container_serialization():
+        return 'pickle'
 
     @classmethod
     def convert_to_backend(cls, backend, array, device=None):

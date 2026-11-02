@@ -35,7 +35,7 @@ class EpisodeInfo(MushroomBackendObject):
         self._add_save_attr(
             _n_envs='primitive',
             _vectorized='primitive',
-            _blocks='torch' if self._backend.get_backend_serialization() == 'torch' else 'pickle',
+            _blocks=self._backend.get_container_serialization(),
             _parsed='none',
             _target_backend_name='primitive',
             _target_device='none'
@@ -220,6 +220,7 @@ class EpisodeInfo(MushroomBackendObject):
             mask (Array): boolean mask selecting the environments to append for.
 
         """
+        mask = ArrayBackend.convert_mask(mask, to=self.backend_name, device=self._device)
         indices = ArrayBackend.get_array_backend_from(mask).nonzero(mask).reshape(-1)
 
         if len(indices) > 0:

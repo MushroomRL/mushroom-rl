@@ -46,12 +46,9 @@ class HistoryState(MushroomBackendObject):
         self._positions = self._backend.zeros(0, dtype=int, device=device) if positions is None else positions
         self._windows = dict() if windows is None else windows
 
-        # numpy's save method cannot round-trip a dict, torch's can and relocates the device on load
-        dict_serialization = 'torch' if self._backend.get_backend_serialization() == 'torch' else 'pickle'
-
         self._add_save_attr(
             _positions=self._backend.get_backend_serialization(),
-            _windows=dict_serialization
+            _windows=self._backend.get_container_serialization()
         )
 
     def __len__(self):
@@ -241,12 +238,9 @@ class GridHistoryState(MushroomBackendObject):
         self._n_envs = n_envs
         self._slots = dict()
 
-        # numpy's save method cannot round-trip a dict, torch's can and relocates the device on load
-        dict_serialization = 'torch' if self._backend.get_backend_serialization() == 'torch' else 'pickle'
-
         self._add_save_attr(
             _n_envs='primitive',
-            _slots=dict_serialization
+            _slots=self._backend.get_container_serialization()
         )
 
     def reset(self, history_context, leftover, mask_backend):

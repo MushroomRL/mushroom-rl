@@ -182,7 +182,7 @@ class RunningAveragedWindow(MushroomBackendObject):
         self._add_save_attr(
             _shape='primitive',
             _window_size='primitive',
-            _avg_buffer='torch' if self._backend.get_backend_serialization() == 'torch' else 'primitive',
+            _avg_buffer=self._backend.get_container_serialization(),
         )
 
     def reset(self, init_value=None):
