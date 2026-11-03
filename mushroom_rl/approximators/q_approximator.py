@@ -238,13 +238,13 @@ class QApproximatorAction(QApproximator):
         state = self._batch_pad(z[0])[0]
         if len(z) == 2:
             action = self._backend.atleast_2d(z[1])
-            q = self._backend.zeros(state.shape[0])
+            q = self._backend.zeros(state.shape[0], device=self._device)
             for i in range(self._n_actions):
                 mask = (action == i)[:, 0]
                 if mask.any():
                     q[mask] = self._models[i].predict(state[mask], **predict_params).squeeze()
         else:
-            q = self._backend.zeros(state.shape[0], self._n_actions)
+            q = self._backend.zeros(state.shape[0], self._n_actions, device=self._device)
             for i in range(self._n_actions):
                 q[:, i] = self._models[i].predict(state, **predict_params).squeeze()
         return self._backend.squeeze(q)
@@ -305,7 +305,7 @@ class QApproximatorAction(QApproximator):
             return [m.diff(state) for m in self._models]
         a = action[0]
         s = self._models[0].weights_size
-        diff = self._backend.zeros(s * self._n_actions, dtype=float)
+        diff = self._backend.zeros(s * self._n_actions, dtype=float, device=self._device)
         diff[s * a:s * (a + 1)] = self._models[a].diff(state)
         return diff
 

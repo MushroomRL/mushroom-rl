@@ -167,7 +167,7 @@ class StepInfo(MushroomBackendObject):
         info = self.copy()
         device = ArrayBackend.get_array_backend(backend).check_device(device)
 
-        if backend != self.backend_name or device != self._device:
+        if backend != self.backend_name or not self._backend.same_device(device, self._device):
             info._target_backend_name = backend
             info._target_device = device
         else:
@@ -382,10 +382,15 @@ class StepInfo(MushroomBackendObject):
             Whether the rows the other object has not parsed yet can be taken over as they are.
 
         """
+        if self._target_backend_name is None or self._target_backend_name != other._target_backend_name:
+            same_target = self._target_backend_name == other._target_backend_name
+        else:
+            target = ArrayBackend.get_array_backend(self._target_backend_name)
+            same_target = target.same_device(self._target_device, other._target_device)
+
         return (self._backend is other._backend
-                and self._device == other._device
-                and self._target_backend_name == other._target_backend_name
-                and self._target_device == other._target_device
+                and self._backend.same_device(self._device, other._device)
+                and same_target
                 and (self._layout is None or other._layout is None or self._layout == other._layout))
 
     def _take_pending(self, other):

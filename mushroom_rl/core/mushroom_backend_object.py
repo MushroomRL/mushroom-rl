@@ -1,3 +1,4 @@
+import copy
 from collections import deque
 
 import torch
@@ -100,11 +101,14 @@ class MushroomBackendObject(MushroomObject):
             return value
         if isinstance(value, (torch.Tensor, torch.nn.Module)):
             return value.to(device)
-        if isinstance(value, dict):
-            return {key: MushroomBackendObject._move_to_device(item, device) for key, item in value.items()}
-        if isinstance(value, deque):
-            return deque((MushroomBackendObject._move_to_device(item, device) for item in value), maxlen=value.maxlen)
-        if isinstance(value, (list, tuple)):
-            return type(value)(MushroomBackendObject._move_to_device(item, device) for item in value)
+        if isinstance(value, (dict, list, deque)):
+            moved = copy.copy(value)
+            keys = list(moved.keys()) if isinstance(moved, dict) else range(len(moved))
+            for key in keys:
+                moved[key] = MushroomBackendObject._move_to_device(moved[key], device)
+            return moved
+        if isinstance(value, tuple):
+            items = [MushroomBackendObject._move_to_device(item, device) for item in value]
+            return value._make(items) if hasattr(value, '_make') else tuple(items)
 
         return value

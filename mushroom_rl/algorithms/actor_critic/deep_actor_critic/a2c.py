@@ -40,7 +40,8 @@ class A2C(DeepAC):
 
         self._entropy_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
-        critic_params.setdefault('device', device)
+        if device is not None:
+            critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
 
         if 'clipping' not in actor_optimizer and max_grad_norm is not None:

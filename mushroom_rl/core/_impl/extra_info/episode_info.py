@@ -121,7 +121,7 @@ class EpisodeInfo(MushroomBackendObject):
         info = self.copy()
         device = ArrayBackend.get_array_backend(backend).check_device(device)
 
-        if backend != self.backend_name or device != self._device:
+        if backend != self.backend_name or not self._backend.same_device(device, self._device):
             info._target_backend_name = backend
             info._target_device = device
         else:

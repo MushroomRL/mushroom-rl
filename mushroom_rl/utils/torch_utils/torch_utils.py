@@ -304,11 +304,16 @@ class TorchUtils(object):
 
     @staticmethod
     def update_optimizer_parameters(optimizer, new_parameters):
+        state = optimizer.state_dict()
+        optimizer.param_groups[0]['params'] = new_parameters
+        optimizer.load_state_dict(state)
+
+    @staticmethod
+    def replace_optimizer_parameters(optimizer, new_parameters):
         if len(optimizer.state) > 0:
             for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
                 data = optimizer.state[p_old]
                 del optimizer.state[p_old]
-                optimizer.state[p_new] = {key: value.to(p_new.device) if torch.is_tensor(value) else value
-                                          for key, value in data.items()}
+                optimizer.state[p_new] = data
 
         optimizer.param_groups[0]['params'] = new_parameters

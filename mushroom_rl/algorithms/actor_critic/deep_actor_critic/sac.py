@@ -69,9 +69,10 @@ class SAC(DeepAC):
         else:
             critic_params['n_models'] = 2
 
-        critic_params.setdefault('device', device)
-        actor_mu_params.setdefault('device', device)
-        actor_sigma_params.setdefault('device', device)
+        if device is not None:
+            critic_params.setdefault('device', device)
+            actor_mu_params.setdefault('device', device)
+            actor_sigma_params.setdefault('device', device)
 
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = TorchApproximator(**critic_params)

@@ -3,6 +3,7 @@ import torch
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class ePPO(BlackBoxOptimization):
@@ -81,3 +82,6 @@ class ePPO(BlackBoxOptimization):
             context_i = None
 
         return theta_i, context_i, Jep_i, old_dist_i
+
+    def _post_load(self, device):
+        TorchUtils.update_optimizer_parameters(self._optimizer, list(self.distribution.parameters()))

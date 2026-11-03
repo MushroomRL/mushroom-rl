@@ -126,7 +126,7 @@ class DeepAC(Agent):
         """
         self._parameters = list(parameters)
         if self._optimizer is not None:
-            TorchUtils.update_optimizer_parameters(self._optimizer, self._parameters)
+            TorchUtils.replace_optimizer_parameters(self._optimizer, self._parameters)
 
     @property
     def actor_parameters(self):
