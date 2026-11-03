@@ -155,5 +155,5 @@ class DatasetInfo(MushroomObject):
         return ArrayBackend.get_array_backend(self.agent_backend_name)
 
     def _post_load(self, device):
-        self.env_device = self.env_backend.check_device(device if self.env_backend.supports_devices() else None)
-        self.agent_device = self.agent_backend.check_device(device if self.agent_backend.supports_devices() else None)
+        self.env_device = self.env_backend.resolve_device(device)
+        self.agent_device = self.agent_backend.resolve_device(device)

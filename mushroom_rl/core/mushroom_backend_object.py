@@ -57,4 +57,4 @@ class MushroomBackendObject(MushroomObject):
         return self._device
 
     def _restore_device(self, device):
-        self._device = self._backend.check_device(device if self._backend.supports_devices() else None)
+        self._device = self._backend.resolve_device(device)

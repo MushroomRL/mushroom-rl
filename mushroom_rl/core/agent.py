@@ -78,7 +78,7 @@ class Agent(MushroomObject):
             _info='mushroom',
             _history_manager='mushroom',
             _core_preprocessors='mushroom',
-            _fit_preprocessors='pickle'
+            _fit_preprocessors='mushroom'
         )
 
     def fit(self, dataset):
@@ -206,7 +206,7 @@ class Agent(MushroomObject):
         observations of a fit batch, and never to the observations the policy acts on.
 
         Args:
-            preprocessor (object): state preprocessor to be applied to the observations of a fit batch.
+            preprocessor (Preprocessor): state preprocessor to be applied to the observations of a fit batch.
 
         """
         self._fit_preprocessors.append(preprocessor)

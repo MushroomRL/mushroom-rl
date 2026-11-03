@@ -262,4 +262,4 @@ class ExtraInfo(MushroomBackendObject):
 
     def _post_load(self, device):
         theta_backend = ArrayBackend.get_array_backend(self._theta_backend_name)
-        self._theta_device = theta_backend.check_device(device if theta_backend.supports_devices() else None)
+        self._theta_device = theta_backend.resolve_device(device)

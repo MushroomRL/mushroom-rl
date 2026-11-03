@@ -179,7 +179,7 @@ class EpisodeInfo(MushroomBackendObject):
     def _post_load(self, device):
         if self._target_backend_name is not None:
             target = ArrayBackend.get_array_backend(self._target_backend_name)
-            self._target_device = target.check_device(device if target.supports_devices() else None)
+            self._target_device = target.resolve_device(device)
 
     def _create_instance(self, n_envs, vectorized):
         """

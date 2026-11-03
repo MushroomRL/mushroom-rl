@@ -129,6 +129,37 @@ class ArrayBackend(object):
         return None
 
     @classmethod
+    def resolve_device(cls, device):
+        """
+        Resolve the device to be used for a requested one, ignoring the request for the backends that do not
+        support devices.
+
+        Args:
+            device: device requested by the caller, or ``None`` to use the default one.
+
+        Returns:
+            The device to be used, i.e. ``None`` for the backends that do not support devices.
+
+        """
+        return cls.check_device(device if cls.supports_devices() else None)
+
+    @classmethod
+    def same_device(cls, device_a, device_b):
+        """
+        Args:
+            device_a: a device of this backend, or ``None`` for the default one;
+            device_b: another device of this backend, or ``None`` for the default one.
+
+        Returns:
+            Whether the two devices are the same one.
+
+        Raises:
+            ValueError: if a device is not ``None`` and the backend does not support devices.
+
+        """
+        return cls.check_device(device_a) == cls.check_device(device_b)
+
+    @classmethod
     def convert(cls, *arrays, to=None, backend=None, device=None):
         """
         Convert one or more arrays from their current backend to another one.
@@ -1320,6 +1351,13 @@ class TorchBackend(ArrayBackend):
     @staticmethod
     def get_device(array):
         return array.device
+
+    @classmethod
+    def same_device(cls, device_a, device_b):
+        devices = [torch.device(cls.check_device(device)) for device in (device_a, device_b)]
+        devices = [torch.device(device.type, torch.cuda.current_device())
+                   if device.type == 'cuda' and device.index is None else device for device in devices]
+        return devices[0] == devices[1]
 
     @staticmethod
     def convert_to_backend(backend, array, device=None):

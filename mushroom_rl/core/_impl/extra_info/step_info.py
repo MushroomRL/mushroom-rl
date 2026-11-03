@@ -327,7 +327,7 @@ class StepInfo(MushroomBackendObject):
     def _post_load(self, device):
         if self._target_backend_name is not None:
             target = ArrayBackend.get_array_backend(self._target_backend_name)
-            self._target_device = target.check_device(device if target.supports_devices() else None)
+            self._target_device = target.resolve_device(device)
 
     def _add_all_save_attr(self):
         self._add_save_attr(
@@ -438,8 +438,6 @@ class StepInfo(MushroomBackendObject):
                 self._parsed = {key: self._backend.flatten(value) for key, value in data.items()}
                 self._n_parsed = source.n_steps * source.n_envs
             else:
-                mask = ArrayBackend.convert_mask(mask, to=self.backend_name,
-                                                 device=self._backend.check_device(self._device))
                 self._parsed = {key: self._backend.pack_padded_sequence(value, mask)
                                 for key, value in data.items()}
                 self._n_parsed = int(ArrayBackend.get_array_backend_from(mask).sum(mask))

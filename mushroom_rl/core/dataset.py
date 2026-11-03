@@ -903,5 +903,4 @@ class Dataset(MushroomObject):
 
     @staticmethod
     def _same_backend(backend, stored_device, backend_name, device):
-        return backend.get_backend_name() == backend_name \
-            and backend.check_device(device) == backend.check_device(stored_device)
+        return backend.get_backend_name() == backend_name and backend.same_device(device, stored_device)
