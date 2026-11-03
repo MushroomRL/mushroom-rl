@@ -1,3 +1,7 @@
+from collections import deque
+
+import torch
+
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
 
@@ -29,6 +33,34 @@ class MushroomBackendObject(MushroomObject):
             _device='none'
         )
 
+    def to(self, device):
+        """
+        Move the object to another device: the tensors and torch modules saved with the ``'torch'`` method, also
+        inside dictionaries, lists, tuples and deques, and the ``MushroomBackendObject`` attributes saved with the
+        ``'mushroom'`` method. Torch parameters are moved in place, so they keep their identity. Attributes saved only
+        in a full save are not moved.
+
+        Args:
+            device (str, None): the device to move to, or ``None`` for the default one.
+
+        Returns:
+            This object.
+
+        """
+        self._restore_device(device)
+
+        for name, method in self._save_attributes.items():
+            if not method.endswith('!'):
+                value = getattr(self, name, None)
+                if method == 'torch' and self._device is not None:
+                    setattr(self, name, self._move_to_device(value, self._device))
+                elif method == 'mushroom':
+                    for item in value if isinstance(value, list) else [value]:
+                        if isinstance(item, MushroomBackendObject):
+                            item.to(device)
+
+        return self
+
     @property
     def backend(self):
         """
@@ -58,3 +90,19 @@ class MushroomBackendObject(MushroomObject):
 
     def _restore_device(self, device):
         self._device = self._backend.resolve_device(device)
+
+    @staticmethod
+    def _move_to_device(value, device):
+        if isinstance(value, torch.nn.Parameter):
+            value.data = value.data.to(device)
+            return value
+        if isinstance(value, (torch.Tensor, torch.nn.Module)):
+            return value.to(device)
+        if isinstance(value, dict):
+            return {key: MushroomBackendObject._move_to_device(item, device) for key, item in value.items()}
+        if isinstance(value, deque):
+            return deque((MushroomBackendObject._move_to_device(item, device) for item in value), maxlen=value.maxlen)
+        if isinstance(value, (list, tuple)):
+            return type(value)(MushroomBackendObject._move_to_device(item, device) for item in value)
+
+        return value

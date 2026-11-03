@@ -176,7 +176,8 @@ class Agent(MushroomObject):
 
     def add_core_preprocessor(self, preprocessor):
         """
-        Add preprocessor to the core's preprocessor list. The preprocessors are applied in order.
+        Add preprocessor to the core's preprocessor list. The preprocessors are applied in order. When the agent is
+        loaded, they are placed on the device given as ``env_device`` to :meth:`load`.
 
         Args:
             preprocessor (object): state preprocessors to be applied
@@ -210,6 +211,31 @@ class Agent(MushroomObject):
 
         """
         self._fit_preprocessors.append(preprocessor)
+
+    @classmethod
+    def load(cls, path, device=None, env_device=None):
+        """
+        Load and deserialize the agent from the given location on disk.
+
+        Args:
+            path (Path, string): relative or absolute path to the agent save location;
+            device (str, None): device the agent and all its sub-objects are placed on, or ``None`` for the default
+                one;
+            env_device (str, None): device of the environment the agent interacts with, where the information of
+                the environment and the core preprocessors are placed. If ``None``, they are placed on ``device``.
+
+        Returns:
+            The loaded agent.
+
+        """
+        agent = super().load(path, device)
+
+        if env_device is not None:
+            agent.mdp_info.to(env_device)
+            for preprocessor in agent.core_preprocessors:
+                preprocessor.to(env_device)
+
+        return agent
 
     @property
     def core_preprocessors(self):

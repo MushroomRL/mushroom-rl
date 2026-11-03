@@ -345,6 +345,15 @@ class TorchApproximator(Approximator):
 
         return torch.stack(gradients, -1)
 
+    def to(self, device):
+        super().to(device)
+
+        if self._optimizer is not None:
+            TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
+        self._trainer.to(self._device)
+
+        return self
+
 
 class TorchEnsemble(Ensemble):
     """
@@ -723,3 +732,13 @@ class TorchEnsemble(Ensemble):
 
         """
         return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)
+
+    def to(self, device):
+        super().to(device)
+
+        for m in self._models:
+            m._dirty = True
+        self._sync_params()
+        self._trainer.to(self._device)
+
+        return self

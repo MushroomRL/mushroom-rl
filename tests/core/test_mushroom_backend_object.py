@@ -144,3 +144,59 @@ def test_step_info_pending_target_device_follows_the_load_device(tmpdir):
 
         assert loaded._target_device == 'cuda'
         assert loaded.parse()['x'].device.type == 'cuda'
+
+
+def make_agent_with_core_preprocessor(env_device):
+    from mushroom_rl.core import Agent
+    from mushroom_rl.policy import EpsGreedy
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp_info = MDPInfo(Box(np.zeros(2), np.ones(2)), Box(-np.ones(1), np.ones(1)), .99, 10, backend='torch',
+                       device=env_device)
+    agent = Agent(mdp_info, EpsGreedy(.1, backend='torch'), backend='torch')
+    agent.add_core_preprocessor(StandardizationPreprocessor(mdp_info))
+
+    return agent
+
+
+def test_mdp_info_to_changes_the_device():
+    TorchUtils.set_default_device('cpu')
+
+    mdp_info = MDPInfo(Box(np.zeros(2), np.ones(2)), Box(-np.ones(1), np.ones(1)), .99, 10, backend='torch')
+
+    assert mdp_info.to('cpu') is mdp_info
+    assert mdp_info.device == 'cpu'
+
+
+def test_agent_load_without_env_device_uses_the_load_device(tmpdir):
+    from mushroom_rl.core import Agent
+
+    TorchUtils.set_default_device('cpu')
+
+    make_agent_with_core_preprocessor('cpu').save(tmpdir / 'agent.msh')
+    loaded = Agent.load(tmpdir / 'agent.msh')
+
+    assert loaded.mdp_info.device == 'cpu'
+    assert loaded.core_preprocessors[0].device == 'cpu'
+    assert loaded.core_preprocessors[0]._obs_runstand.mean.device.type == 'cpu'
+
+
+def test_agent_load_places_the_environment_parts_on_the_env_device(tmpdir):
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    from mushroom_rl.core import Agent
+
+    TorchUtils.set_default_device('cpu')
+
+    make_agent_with_core_preprocessor('cuda').save(tmpdir / 'agent.msh')
+    loaded = Agent.load(tmpdir / 'agent.msh')
+    loaded_on_env = Agent.load(tmpdir / 'agent.msh', env_device='cuda')
+
+    assert loaded.mdp_info.device == 'cpu'
+    assert loaded.core_preprocessors[0].device == 'cpu'
+
+    assert loaded_on_env.info.device == 'cpu'
+    assert loaded_on_env.mdp_info.device == 'cuda'
+    assert loaded_on_env.core_preprocessors[0].device == 'cuda'
+    assert loaded_on_env.core_preprocessors[0]._obs_runstand.mean.device.type == 'cuda'

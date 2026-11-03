@@ -206,3 +206,18 @@ def test_squashed_gaussian_torch_policy_greedy():
     assert torch.all(action >= torch.as_tensor(min_a)) and torch.all(action <= torch.as_tensor(max_a))
     assert torch.allclose(action, pi.distribution(state).median)
     assert torch.allclose(action, pi.draw_action_greedy(state))
+
+
+def test_gaussian_torch_policy_to_keeps_the_parameters():
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    pi = GaussianTorchPolicy(Network, (3,), (2,), n_features=50, device='cpu')
+    parameters = list(pi.parameters())
+
+    assert pi.to('cuda') is pi
+
+    assert all(old is new for old, new in zip(parameters, pi.parameters()))
+    assert isinstance(pi._log_sigma, torch.nn.Parameter)
+    assert {p.device.type for p in pi.parameters()} == {'cuda'}
+    assert pi.draw_action(torch.ones(3, device='cuda'))[0].device.type == 'cuda'

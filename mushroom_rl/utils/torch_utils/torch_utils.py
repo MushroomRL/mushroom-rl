@@ -308,6 +308,7 @@ class TorchUtils(object):
             for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
                 data = optimizer.state[p_old]
                 del optimizer.state[p_old]
-                optimizer.state[p_new] = data
+                optimizer.state[p_new] = {key: value.to(p_new.device) if torch.is_tensor(value) else value
+                                          for key, value in data.items()}
 
         optimizer.param_groups[0]['params'] = new_parameters

@@ -12,6 +12,9 @@ class COPDAC_Q(Agent):
     "Deterministic Policy Gradient Algorithms"
     Silver D. et al. 2014.
 
+    The deterministic policy ``mu`` is saved separately from the behaviour policy: when the behaviour policy is built
+    on ``mu``, a loaded agent holds two distinct copies of it, and only the agent's one is updated by the fit.
+
     """
 
     def __init__(self, mdp_info, policy, mu, alpha_theta, alpha_omega, alpha_v, value_function_features=None):

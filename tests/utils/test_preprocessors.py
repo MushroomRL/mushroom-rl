@@ -256,3 +256,33 @@ def test_preprocessor_statistics_follow_the_mdp_device():
     assert preprocessor._obs_runstand.mean.device.type == 'cuda'
     assert preprocessor._obs_mean.device.type == 'cuda'
     assert preprocessor(torch.ones(1, 3, device='cuda')).device.type == 'cuda'
+
+
+def test_preprocessors_move_to_another_device():
+    if not torch.cuda.is_available():
+        return
+
+    from mushroom_rl.core.spaces import Box
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100,
+                       backend='torch', device='cpu')
+    obs = torch.tensor([[0.5, 1., 1.5]])
+
+    standardization = StandardizationPreprocessor(mdp_info)
+    standardization.update(obs)
+    min_max = MinMaxPreprocessor(mdp_info)
+    expected = standardization(obs), min_max(obs)
+
+    assert standardization.to('cuda') is standardization
+    assert min_max.to('cuda') is min_max
+
+    assert standardization.device == 'cuda'
+    assert standardization._obs_runstand.mean.device.type == 'cuda'
+    assert min_max.device == 'cuda'
+    assert min_max._obs_runstand.mean.device.type == 'cuda'
+    assert min_max._obs_mask.device.type == 'cuda'
+    assert min_max._obs_mean.device.type == 'cuda'
+    assert min_max._obs_delta.device.type == 'cuda'
+    assert torch.allclose(standardization(obs.cuda()).cpu(), expected[0])
+    assert torch.allclose(min_max(obs.cuda()).cpu(), expected[1])
