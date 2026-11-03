@@ -35,10 +35,8 @@ class MushroomBackendObject(MushroomObject):
 
     def to(self, device):
         """
-        Move the object to another device: the tensors and torch modules saved with the ``'torch'`` method, also
-        inside dictionaries, lists, tuples and deques, and the ``MushroomBackendObject`` attributes saved with the
-        ``'mushroom'`` method. Torch parameters are moved in place, so they keep their identity. Attributes saved only
-        in a full save are not moved.
+        Move the object to another device, together with the backend objects it owns, and rebuild the state that
+        is rebuilt after a load. The objects it only references, owned by another object, are not moved.
 
         Args:
             device (str, None): the device to move to, or ``None`` for the default one.
@@ -58,6 +56,10 @@ class MushroomBackendObject(MushroomObject):
                     for item in value if isinstance(value, list) else [value]:
                         if isinstance(item, MushroomBackendObject):
                             item.to(device)
+                elif method == 'none' and name != '_device':
+                    setattr(self, name, None)
+
+        self._post_load(device)
 
         return self
 

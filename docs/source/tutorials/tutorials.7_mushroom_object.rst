@@ -200,16 +200,17 @@ backend and of the device of its data. Their constructor takes the name of the b
 
 Such an object can be moved to another device at any time with its ``to`` method, which returns the object itself.
 The method uses the information declared with ``self._add_save_attr``, so a custom class gets it without writing
-any code. It moves:
+any code. It:
 
-- the tensors and torch modules of the attributes saved with the **torch** method, also when they are stored in
-  dictionaries, lists, tuples and deques;
-- the ``MushroomBackendObject`` attributes saved with the **mushroom** method, and the lists of them, by calling their
-  own ``to`` method.
+- moves the tensors and torch modules of the attributes saved with the **torch** method, also when they are stored in
+  dictionaries, lists, tuples and deques; torch parameters are moved in place, so they keep their identity;
+- moves the ``MushroomBackendObject`` attributes saved with the **mushroom** method, and the lists of them, by calling
+  their own ``to`` method;
+- sets the attributes saved with the **none** method to ``None`` and calls ``self._post_load`` with the new device, so
+  that the object rebuilds them exactly as it does after a load.
 
-Every other attribute is left untouched. In particular, the attributes whose method ends with '**!**' are not moved:
-they usually reference objects owned by another one, such as the approximator of a TD policy, which is owned by the
-agent. Such objects are moved through their owner.
+The attributes whose method ends with '**!**' are not moved: they usually reference objects owned by another one, such
+as the approximator of a TD policy, which is owned by the agent. Such objects are moved through their owner.
 
 As an example, we move a standardization preprocessor to the GPU. Its running statistics are a nested
 ``MushroomBackendObject``, so they are moved with it:
@@ -224,8 +225,10 @@ As an example, we move a standardization preprocessor to the GPU. Its running st
 
     preprocessor.to('cuda')
 
-A class holding device-dependent data that is not a tensor or a torch module, such as the state of a torch optimizer,
-overrides ``to``, calling ``super().to(device)`` and moving that data itself.
+Therefore, a class storing caches or runtime data that depend on the device declares them with the **none** method
+and rebuilds what it needs in ``self._post_load``, which must be safe to call on an object in use, not only on a freshly
+loaded one. For instance, the torch approximator re-links its optimizer to the network parameters in ``_post_load``,
+which also moves the optimizer state to the new device.
 
 Load on a device
 ----------------

@@ -55,6 +55,22 @@ class Box(MushroomObject):
             _data_type='primitive'
         )
 
+    def to(self, device):
+        """
+        Move the bounds of the space to another device.
+
+        Args:
+            device (str, None): the device to move to, or ``None`` for the default one.
+
+        Returns:
+            This space.
+
+        """
+        backend = ArrayBackend.get_array_backend_from(self._low)
+        self._low, self._high = backend.convert(self._low, self._high, device=backend.resolve_device(device))
+
+        return self
+
     @property
     def low(self):
         """
@@ -111,6 +127,19 @@ class Discrete(MushroomObject):
             n='primitive',
             values='numpy'
         )
+
+    def to(self, device):
+        """
+        Move the space to another device. A discrete space stores no device data, so nothing changes.
+
+        Args:
+            device (str, None): the device to move to, or ``None`` for the default one.
+
+        Returns:
+            This space.
+
+        """
+        return self
 
     @property
     def size(self):

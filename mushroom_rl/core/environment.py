@@ -41,6 +41,14 @@ class MDPInfo(MushroomBackendObject):
             dt='primitive'
         )
 
+    def to(self, device):
+        super().to(device)
+
+        self.observation_space.to(device)
+        self.action_space.to(device)
+
+        return self
+
     @property
     def size(self):
         """
