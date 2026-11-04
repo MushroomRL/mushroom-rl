@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.utils.torch_utils.torch_utils import TorchUtils
 
 
 class TorchTrainer(MushroomObject):
@@ -39,14 +40,14 @@ class TorchTrainer(MushroomObject):
         Move the trainer to the given device. The loss function is moved only if it supports it.
 
         Args:
-            device (str): the device to move the trainer to.
+            device (str, None): the device to move the trainer to, or ``None`` for the default one.
 
         Returns:
             The trainer itself.
 
         """
         if hasattr(self._loss_fn, 'to'):
-            self._loss_fn.to(device)
+            self._loss_fn.to(TorchUtils.get_device(device))
         return self
 
     def fit(self, args, n_epochs, weights, epsilon, patience, validation_split, network_kwargs):
