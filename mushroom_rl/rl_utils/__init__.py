@@ -5,7 +5,7 @@ from .parameters import Parameter, VariableParameter, DecayParameter, LinearPara
     WindowedVarianceDrivenParameter, WindowedVarianceDrivenIncreasingParameter
 from .preprocessors import StandardizationPreprocessor, MinMaxPreprocessor
 from .replay_memory import ReplayMemory, PrioritizedReplayMemory
-from .running_stats import RunningStandardization, RunningAveragedWindow, RunningExpWeightedAverage
+from .running_stats import RunningStatistics, RunningStandardization, RunningAveragedWindow, RunningExpWeightedAverage
 from .value_functions import compute_advantage, compute_advantage_montecarlo, compute_gae
 
 __all__ = [
@@ -14,7 +14,7 @@ __all__ = [
     'Parameter', 'VariableParameter', 'DecayParameter', 'LinearParameter',
     'StandardizationPreprocessor', 'MinMaxPreprocessor',
     'ReplayMemory', 'PrioritizedReplayMemory',
-    'RunningStandardization', 'RunningAveragedWindow', 'RunningExpWeightedAverage',
+    'RunningStatistics', 'RunningStandardization', 'RunningAveragedWindow', 'RunningExpWeightedAverage',
     'compute_advantage', 'compute_advantage_montecarlo', 'compute_gae',
     'VarianceDrivenDecreasingParameter', 'VarianceDrivenIncreasingParameter',
     'WindowedVarianceDrivenParameter', 'WindowedVarianceDrivenIncreasingParameter',

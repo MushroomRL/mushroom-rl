@@ -176,3 +176,70 @@ def test_running_standardization_to_moves_the_statistics():
     assert standardization.std.device.type == 'cuda'
     assert torch.equal(standardization._m.cpu(), m)
     assert torch.equal(standardization._s.cpu(), s)
+
+
+def test_running_stats_read_a_multidimensional_value_as_a_single_sample():
+    standardization = RunningStandardization(shape=(2, 3), backend='numpy')
+    average = RunningExpWeightedAverage(shape=(2, 3), alpha=0.5, backend='numpy')
+    window = RunningAveragedWindow(shape=(2, 3), window_size=5, backend='numpy')
+    samples = np.arange(12.).reshape(2, 2, 3)
+
+    for sample in samples:
+        for statistic in (standardization, average, window):
+            statistic.update_stats(sample)
+
+    assert standardization._n == 3
+    assert np.allclose(standardization.mean, [[2., 2.6666667, 3.3333333], [4., 4.6666667, 5.3333333]])
+    assert np.allclose(standardization.std, [[2.8867513, 3.1446604, 3.4480268], [3.7859389, 4.1499665, 4.5338235]])
+    assert np.allclose(average.mean, [[3., 3.75, 4.5], [5.25, 6., 6.75]])
+    assert len(window._avg_buffer) == 3
+    assert np.allclose(window.mean, [[2., 2.6666667, 3.3333333], [4., 4.6666667, 5.3333333]])
+
+
+def test_running_stats_read_a_batch_like_the_same_single_samples():
+    np.random.seed(3)
+    samples = np.random.randn(4, 2, 3)
+
+    for make in (lambda: RunningStandardization(shape=(2, 3), backend='numpy'),
+                 lambda: RunningExpWeightedAverage(shape=(2, 3), alpha=0.5, backend='numpy'),
+                 lambda: RunningAveragedWindow(shape=(2, 3), window_size=3, backend='numpy')):
+        batched, sequential = make(), make()
+        batched.update_stats(samples)
+        for sample in samples:
+            sequential.update_stats(sample)
+
+        assert np.allclose(batched.mean, sequential.mean)
+
+
+def test_running_stats_mean_has_the_sample_shape():
+    for shape in [(3,), (2, 3)]:
+        standardization = RunningStandardization(shape=shape, backend='numpy')
+        average = RunningExpWeightedAverage(shape=shape, alpha=0.1, backend='numpy')
+        initialized_average = RunningExpWeightedAverage(shape=shape, alpha=0.1, backend='numpy',
+                                                        init_value=np.ones(shape))
+        window = RunningAveragedWindow(shape=shape, window_size=5, backend='numpy')
+
+        for statistic in (standardization, average, initialized_average, window):
+            assert statistic.mean.shape == shape
+            statistic.update_stats(np.ones(shape))
+            assert statistic.mean.shape == shape
+
+
+def test_running_averaged_window_mean_on_the_list_backend():
+    window = RunningAveragedWindow(shape=(2,), window_size=3, backend='list')
+    for i in range(4):
+        window.update_stats([float(i), float(i * 2)])
+
+    assert np.allclose(window.mean, [2., 4.])
+
+
+def test_running_averaged_window_mean_on_cuda():
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    window = RunningAveragedWindow(shape=(2,), window_size=3, backend='torch', device='cuda')
+    for i in range(4):
+        window.update_stats(torch.tensor([float(i), float(i * 2)], device='cuda'))
+
+    assert window.mean.device.type == 'cuda'
+    assert torch.allclose(window.mean.cpu(), torch.tensor([2., 4.]))
