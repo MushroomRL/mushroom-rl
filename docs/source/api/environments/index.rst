@@ -7,8 +7,8 @@ initial state distribution, so that they can also be solved with the dynamic pro
 
 An environment is built either by calling its constructor directly, or by name through
 :meth:`~mushroom_rl.core.Environment.make`, which looks it up in the registry every environment adds itself to with
-the ``register_env`` decorator. Environments standing for a family of tasks accept the task after a ``'.'`` separator, e.g.
-``Environment.make('Gymnasium.Pendulum-v1')``.
+the ``register_env`` decorator. Environments standing for a family of tasks accept the task after a ``'.'``
+separator, e.g. ``Environment.make('Gymnasium.Pendulum-v1')``.
 
 The tables below index every registered environment. The names are the keys :meth:`~mushroom_rl.core.Environment.make`
 accepts. The spaces are the ones the environment reports in ``MDPInfo`` when built with its default arguments; where the
@@ -110,5 +110,5 @@ driven through the vectorized ``Core``. Their constructors require ``num_envs``.
 The Isaac Sim environments are registered only once ``isaacsim_envs`` is imported, which is possible only after
 the simulator has been launched: ``mushroom_rl/environments/__init__.py`` does not import it. After
 ``import mushroom_rl.environments.isaacsim_envs`` they are reachable through
-:meth:`~mushroom_rl.core.Environment.make`, e.g. ``Environment.make('CartPoleIsaac')``. They are vectorized environments:
-they step a batch of simulated copies at once, and are driven through the vectorized ``Core``.
+:meth:`~mushroom_rl.core.Environment.make`, e.g. ``Environment.make('CartPoleIsaac')``. They are vectorized
+environments: they step a batch of simulated copies at once, and are driven through the vectorized ``Core``.
