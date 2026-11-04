@@ -93,15 +93,20 @@ To generate the 3-dimensional LQR problem mentioned in the previous section you 
 
 
 Finally, you can register new environments. Suppose that you have created the environment class ``MyNewEnv``, which
-extends the base ``Environment`` class. You can register the environment as follows:
+extends the base ``Environment`` class. You can register the environment by decorating the class with
+``register_env``:
 
 .. code-block:: python
 
-    MyNewEnv.register()
+    from mushroom_rl.core import Environment, register_env
 
-You can put this line of code after the class declaration, or in the ``__init__.py`` file of your library.
-If you do so, the first time you import the file, you will register the environment. Notice that this registration is
-not saved on disk, thus, you need to register the environment every time the Python interpreter is executed.
+    @register_env
+    class MyNewEnv(Environment):
+        ...
+
+Equivalently, you can call ``MyNewEnv.register()`` after the class declaration. The environment is registered the
+first time the file defining it is imported. Notice that this registration is not saved on disk, thus, you need to
+register the environment every time the Python interpreter is executed.
 
 Creating a new environment
 --------------------------
@@ -124,10 +129,11 @@ wrapper, that can be used to render easily RL environments.
 
 Now, we can create the environment class.
 
-We first extend the environment class and create the constructor:
+We first extend the environment class, registering it with the ``register_env`` decorator as specified in the
+previous section of this tutorial, and create the constructor:
 
 .. literalinclude:: code/room_env.py
-   :lines: 9-34
+   :lines: 9-35
 
 It's important to notice that the superclass constructor needs the information stored in the ``MDPInfo`` structure.
 This structure contains the action and observation space, the discount factor ``gamma``, and the horizon.
@@ -144,7 +150,7 @@ to None. If the initial state is not given, we sample randomly among the valid s
 
 
 .. literalinclude:: code/room_env.py
-   :lines: 36-52
+   :lines: 37-53
 
 Now it's time to implement the step function, that specifies the transition function of the environment, computes the
 reward, and signal absorbing states, i.e. states where every action keeps you in the same state, achieving 0 reward.
@@ -152,7 +158,7 @@ When reaching the absorbing state we cut the trajectory, as their value function
 is needed.
 
 .. literalinclude:: code/room_env.py
-   :lines: 54-87
+   :lines: 55-88
 
 .. warning::
 
@@ -171,14 +177,9 @@ visualization tool for 2D Reinforcement Learning algorithms. The viewer class ha
 simply draw two circles representing the agent and the goal area:
 
 .. literalinclude:: code/room_env.py
-   :lines: 89-102
+   :lines: 90-103
 
 For more information about the viewer, refer to the class documentation.
-
-To conclude our environment, it's also possible to register it as specified in the previous section of this tutorial:
-
-.. literalinclude:: code/room_env.py
-   :lines: 105-106
 
 
 Learning in the toy environment
@@ -191,20 +192,20 @@ We first import all necessary classes and utilities, then we construct the envir
 reproducibility).
 
 .. literalinclude:: code/room_env.py
-   :lines: 108-121
+   :lines: 106-119
 
 We now proceed then to create the agent policy, which is a linear policy using tiles features, similar
 to the one used by the Mountain Car experiment from R. Sutton book.
 
 .. literalinclude:: code/room_env.py
-   :lines: 123-144
+   :lines: 121-142
 
 Finally, using the ``Core`` class we set up an RL experiment. We first evaluate the initial policy for three episodes on the
 environment. Then we learn the task using the algorithm build above for 20000 steps.
 In the end, we evaluate the learned policy for 3 more episodes.
 
 .. literalinclude:: code/room_env.py
-   :lines: 146-
+   :lines: 144-
 
 Environments that step many copies of the same problem in parallel implement a different interface; they are
 covered in :doc:`tutorials.6_vectorized`.

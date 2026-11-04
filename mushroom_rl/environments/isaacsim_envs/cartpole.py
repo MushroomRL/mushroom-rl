@@ -2,11 +2,13 @@ import math
 import torch
 from pathlib import Path
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.isaacsim_env import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType
 from mushroom_rl.utils import TorchUtils
 
 
+@register_env
 class CartPoleIsaac(IsaacSim):
     """
     Cart-pole balancing task simulated with Isaac Sim.

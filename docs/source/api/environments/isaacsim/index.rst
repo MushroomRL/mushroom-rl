@@ -3,8 +3,9 @@ Isaac Sim
 
 The environments simulated with `Isaac Sim <https://developer.nvidia.com/isaac-sim>`_.
 These environments are ``VectorizedEnvironment`` subclasses. Differently from all other environments, they are
-**not** registered with :meth:`~mushroom_rl.core.Environment.make` and must be imported from their module. Isaac Sim
-is not part of the ``all`` extra, and is installed with the ``isaacsim`` one.
+registered with :meth:`~mushroom_rl.core.Environment.make` only once ``mushroom_rl.environments.isaacsim_envs``
+is imported, which requires the simulator to be launched first. Isaac Sim is not part of the ``all`` extra, and is
+installed with the ``isaacsim`` one.
 
 This interface targets **Isaac Sim 6.1**. The simulator is started by
 :class:`~mushroom_rl.utils.isaac_sim.launcher.IsaacLauncher`, documented with the other

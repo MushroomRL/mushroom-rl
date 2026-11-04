@@ -2,7 +2,7 @@ from .array_backend import ArrayBackend
 from .mushroom_object import MushroomObject
 from .mushroom_backend_object import MushroomBackendObject
 from .spaces import Box, Discrete
-from .environment import Environment, MDPInfo
+from .environment import Environment, MDPInfo, register_env
 from .vectorized_env import VectorizedEnvironment
 from .multiprocess_environment import MultiprocessEnvironment
 from .agent import Agent, AgentInfo, HasNextAction
@@ -19,7 +19,7 @@ __all__ = [
     'ArrayBackend',
     'MushroomObject', 'MushroomBackendObject',
     'Box', 'Discrete',
-    'Environment', 'MDPInfo',
+    'Environment', 'MDPInfo', 'register_env',
     'VectorizedEnvironment', 'MultiprocessEnvironment',
     'Agent', 'AgentInfo', 'HasNextAction',
     'Core',

@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.stats import norm
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import Viewer
 
 
+@register_env
 class PuddleWorld(Environment):
     """
     Puddle world as presented in:

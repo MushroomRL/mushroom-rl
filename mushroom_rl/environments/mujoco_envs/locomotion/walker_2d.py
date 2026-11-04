@@ -2,11 +2,13 @@ import numpy as np
 from pathlib import Path
 import mujoco
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 
 
+@register_env
 class Walker2D(MuJoCo):
     """
     MuJoCo simulation of Walker2D task.

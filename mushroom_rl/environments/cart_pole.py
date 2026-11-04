@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
 
+@register_env
 class CartPole(Environment):
     """
     The Inverted Pendulum on a Cart environment as presented in:

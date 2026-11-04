@@ -1,8 +1,10 @@
 import numpy as np
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.grid_world import GridWorld
 
 
+@register_env
 class Taxi(GridWorld):
     """
     The Taxi environment, a grid world where the agent has to reach the goal after picking up as many passengers as

@@ -4,11 +4,12 @@ import warnings
 import gymnasium as gym
 from gymnasium import spaces as gym_spaces
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import ImageViewer
 
 
+@register_env
 class Gymnasium(Environment):
     """
     Interface for Gymnasium environments. It makes it possible to use every

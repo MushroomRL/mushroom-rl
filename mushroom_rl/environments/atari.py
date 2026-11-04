@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 import ale_py
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import ImageViewer
 
@@ -11,6 +11,7 @@ import cv2
 gym.register_envs(ale_py)
 
 
+@register_env
 class Atari(Environment):
     """
     The Atari environment as presented in:

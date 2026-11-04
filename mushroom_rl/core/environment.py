@@ -237,3 +237,20 @@ class Environment(object):
         return backend.maximum(min_value, backend.minimum(x, max_value))
 
     _registered_envs = dict()
+
+
+def register_env(cls):
+    """
+    Class decorator registering an environment in the environment list. A registered environment can be
+    built by name with ``Environment.make``. Registering a name that is already in the list has no effect.
+
+    Args:
+        cls (type): the environment class to register.
+
+    Returns:
+        The class, unchanged.
+
+    """
+    cls.register()
+
+    return cls

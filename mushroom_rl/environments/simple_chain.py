@@ -2,9 +2,11 @@ import math
 
 import numpy as np
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.finite_mdp import FiniteMDP
 
 
+@register_env
 class SimpleChain(FiniteMDP):
     """
     Simple Chain environment.

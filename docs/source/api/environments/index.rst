@@ -7,7 +7,7 @@ initial state distribution, so that they can also be solved with the dynamic pro
 
 An environment is built either by calling its constructor directly, or by name through
 :meth:`~mushroom_rl.core.Environment.make`, which looks it up in the registry every environment adds itself to with
-``register``. Environments standing for a family of tasks accept the task after a ``'.'`` separator, e.g.
+the ``register_env`` decorator. Environments standing for a family of tasks accept the task after a ``'.'`` separator, e.g.
 ``Environment.make('Gymnasium.Pendulum-v1')``.
 
 The tables below index every registered environment. The names are the keys :meth:`~mushroom_rl.core.Environment.make`
@@ -15,7 +15,8 @@ accepts. The spaces are the ones the environment reports in ``MDPInfo`` when bui
 environment stands for a family of tasks they are task dependent, and where it is built from a user-supplied model
 — ``FiniteMDP`` and ``LQR`` —  they follow the size of that model. Environments requiring an extra dependency are
 registered only if that dependency imports successfully, so an environment missing from
-``Environment.list_registered()`` means its extra is not installed.
+``Environment.list_registered()`` means either that its extra is not installed or that its module is not imported,
+as for the Isaac Sim environments described below.
 
 .. toctree::
    :maxdepth: 1
@@ -106,8 +107,8 @@ driven through the vectorized ``Core``. Their constructors require ``num_envs``.
 
 .. rubric:: Isaac Sim
 
-The Isaac Sim environments are **not** registered: ``mushroom_rl/environments/__init__.py`` does not import
-``isaacsim_envs``, so they are not reachable through :meth:`~mushroom_rl.core.Environment.make` and must be
-imported from their module explicitly, e.g.
-``from mushroom_rl.environments.isaacsim_envs.cartpole import CartPoleIsaac``. They are vectorized environments:
+The Isaac Sim environments are registered only once ``isaacsim_envs`` is imported, which is possible only after
+the simulator has been launched: ``mushroom_rl/environments/__init__.py`` does not import it. After
+``import mushroom_rl.environments.isaacsim_envs`` they are reachable through
+:meth:`~mushroom_rl.core.Environment.make`, e.g. ``Environment.make('CartPoleIsaac')``. They are vectorized environments:
 they step a batch of simulated copies at once, and are driven through the vectorized ``Core``.

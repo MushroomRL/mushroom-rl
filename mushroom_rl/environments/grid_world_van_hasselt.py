@@ -1,8 +1,10 @@
 import numpy as np
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.grid_world import GridWorld
 
 
+@register_env
 class GridWorldVanHasselt(GridWorld):
     """
     A variant of the grid world as presented in:

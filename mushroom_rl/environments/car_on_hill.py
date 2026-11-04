@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.utils.viewer import Viewer
 
 
+@register_env
 class CarOnHill(Environment):
     """
     The Car On Hill environment as presented in:

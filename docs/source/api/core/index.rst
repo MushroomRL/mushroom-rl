@@ -21,6 +21,7 @@ to store it is selected per component through the ``backend`` declared in ``MDPI
    ~mushroom_rl.core.agent.Agent
    ~mushroom_rl.core.environment.Environment
    ~mushroom_rl.core.environment.MDPInfo
+   ~mushroom_rl.core.environment.register_env
    ~mushroom_rl.core.vectorized_env.VectorizedEnvironment
    ~mushroom_rl.core.multiprocess_environment.MultiprocessEnvironment
    ~mushroom_rl.core.core.Core

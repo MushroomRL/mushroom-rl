@@ -1,11 +1,12 @@
 import numpy as np
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box, Discrete
 
 from mushroom_rl.utils.viewer import Viewer
 
 
+@register_env
 class RoomToyEnv(Environment):
     def __init__(self, size=5., goal=(2.5, 2.5), goal_radius=0.6):
 
@@ -101,9 +102,6 @@ class RoomToyEnv(Environment):
 
         return frame
 
-
-# Register the class
-RoomToyEnv.register()
 
 if __name__ == '__main__':
     from mushroom_rl.core import Core

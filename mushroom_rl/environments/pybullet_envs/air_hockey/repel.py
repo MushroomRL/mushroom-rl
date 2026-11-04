@@ -1,9 +1,11 @@
 import numpy as np
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.pybullet_envs.air_hockey.single import AirHockeySingleBullet, \
     PyBulletObservationType
 
 
+@register_env
 class AirHockeyRepelBullet(AirHockeySingleBullet):
     """
     Class for the air hockey repel task.

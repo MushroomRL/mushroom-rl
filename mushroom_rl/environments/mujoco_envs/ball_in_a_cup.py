@@ -4,10 +4,12 @@ import numpy as np
 from pathlib import Path
 from copy import deepcopy
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
 
 
+@register_env
 class BallInACup(MuJoCo):
     """
     MuJoCo simulation of Ball In A Cup task, using Barret WAM robot.

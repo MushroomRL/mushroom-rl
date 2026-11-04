@@ -2,11 +2,13 @@ import torch
 import warp as wp
 from pathlib import Path
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 
 
+@register_env
 class Walker2DWarp(MuJoCoWarp):
     """
     Mujoco WARP simulation of Walker2d task based on the Hopper environment.

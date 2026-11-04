@@ -1,7 +1,9 @@
 import numpy as np
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco_envs.air_hockey.single import AirHockeySingle
 
 
+@register_env
 class AirHockeyHit(AirHockeySingle):
     """
     Class for the air hockey hitting task.

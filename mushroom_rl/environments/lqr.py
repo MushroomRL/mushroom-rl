@@ -1,9 +1,10 @@
 import numpy as np
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box
 
 
+@register_env
 class LQR(Environment):
     """
     This class implements a Linear-Quadratic Regulator.

@@ -1,12 +1,14 @@
 import torch
 from pathlib import Path
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
 from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
 
+@register_env
 class A1Isaac(QuadrupedIsaac):
     """
     A learning environment for training the A1 quadruped to walk.

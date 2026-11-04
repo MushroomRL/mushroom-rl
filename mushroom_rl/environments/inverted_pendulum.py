@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.angles import normalize_angle
 from mushroom_rl.utils.viewer import Viewer
 
 
+@register_env
 class InvertedPendulum(Environment):
     """
     The Inverted Pendulum environment (continuous version) as presented in:

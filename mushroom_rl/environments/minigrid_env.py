@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from minigrid.wrappers import RGBImgPartialObsWrapper, ImgObsWrapper
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.core.spaces import Box
 
@@ -41,6 +42,7 @@ class MiniGridBase(Gymnasium):
         raise NotImplementedError
 
 
+@register_env
 class MiniGrid(MiniGridBase):
     """
     Interface for MiniGrid environments using the symbolic 7x7x3 observation.
@@ -70,6 +72,7 @@ class MiniGrid(MiniGridBase):
         return np.ascontiguousarray(obs.transpose(2, 0, 1), dtype=np.uint8)
 
 
+@register_env
 class MiniGridRGB(MiniGridBase):
     """
     Interface for MiniGrid environments using pixel observations.

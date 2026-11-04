@@ -30,7 +30,8 @@ Optional dependencies
 
 The environments built on an external simulator are installed through extras. Each one is optional: the
 corresponding environments register themselves only if their dependency imports successfully, so an environment
-missing from ``Environment.list_registered()`` means its extra is not installed.
+missing from ``Environment.list_registered()`` means either that its extra is not installed or that its module is
+not imported: the Isaac Sim environments register only once ``mushroom_rl.environments.isaacsim_envs`` is imported.
 
 .. csv-table::
    :header: "Extra", "What it enables"

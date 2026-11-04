@@ -3,11 +3,13 @@ from pathlib import Path
 import numpy as np
 import mujoco
 
+from mushroom_rl.core import register_env
 from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.environments.mujoco_envs.manipulation.panda import Panda
 
 
+@register_env
 class Push(Panda):
     """
     Push task with a Panda Robot.

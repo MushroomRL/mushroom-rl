@@ -1,10 +1,12 @@
 import torch
 from pathlib import Path
 
+from mushroom_rl.core import register_env
 from mushroom_rl.environments.isaacsim_envs.honey_badger import HoneyBadgerIsaac
 from mushroom_rl.utils import TorchUtils
 
 
+@register_env
 class SilverBadgerIsaac(HoneyBadgerIsaac):
     """
     A learning environment for training the Silver Badger quadruped to walk.

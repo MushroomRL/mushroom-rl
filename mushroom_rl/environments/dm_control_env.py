@@ -4,11 +4,12 @@ from dm_control import suite
 from dm_control.suite.wrappers import pixels
 
 
-from mushroom_rl.core import Environment, MDPInfo
+from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.utils.viewer import CV2Viewer
 
 
+@register_env
 class DMControl(Environment):
     """
     Interface for dm_control suite Mujoco environments. It makes it possible to
