@@ -181,7 +181,7 @@ class Agent(MushroomObject):
         is not given.
 
         Args:
-            preprocessor (object): state preprocessors to be applied
+            preprocessor (Preprocessor): state preprocessors to be applied
                 to state variables before feeding them to the agent.
 
         """
@@ -305,6 +305,11 @@ class Agent(MushroomObject):
             state = preprocessor(state)
 
         return state
+
+    def _check_device(self, component, name):
+        assert self._agent_backend.same_device(component.device, self._info.device), \
+            f"The {name} must be on the agent device '{self._info.device}', got '{component.device}'. " \
+            f"Build it with device='{self._info.device}'."
 
     def _convert_to_env_backend(self, array):
         return self._env_backend.convert_to_backend(self._agent_backend, array, device=self.mdp_info.device)

@@ -204,8 +204,8 @@ any code. It:
 
 - moves the tensors and torch modules of the attributes saved with the **torch** method, also when they are stored in
   dictionaries, lists, tuples and deques; torch parameters are moved in place, so they keep their identity;
-- moves the ``MushroomBackendObject`` attributes saved with the **mushroom** method, and the lists of them, by calling
-  their own ``to`` method;
+- moves the attributes saved with the **mushroom** method, and the lists of them, by calling their own ``to`` method,
+  when they have one;
 - sets the attributes saved with the **none** method to ``None`` and calls ``self._post_load`` with the new device, so
   that the object rebuilds them exactly as it does after a load.
 

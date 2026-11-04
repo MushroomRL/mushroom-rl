@@ -36,8 +36,8 @@ class MushroomBackendObject(MushroomObject):
 
     def to(self, device):
         """
-        Move the object to another device, together with the backend objects it owns, and rebuild the state that
-        is rebuilt after a load. Every runtime state is wiped. The objects it only references, owned by another
+        Move the object to another device, together with the objects it owns, and rebuild the state that is rebuilt
+        after a load. Every runtime state is wiped. The objects it only references, owned by another
         object, are not moved.
 
         Args:
@@ -56,7 +56,7 @@ class MushroomBackendObject(MushroomObject):
                     setattr(self, name, self._move_to_device(value, self._device))
                 elif method == 'mushroom':
                     for item in value if isinstance(value, list) else [value]:
-                        if isinstance(item, MushroomBackendObject):
+                        if hasattr(item, 'to'):
                             item.to(device)
                 elif method == 'none' and name != '_device':
                     setattr(self, name, None)

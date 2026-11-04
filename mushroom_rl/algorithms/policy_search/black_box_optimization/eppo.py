@@ -34,10 +34,8 @@ class ePPO(BlackBoxOptimization):
         super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch',
                          device=device)
 
-        assert self._agent_backend.same_device(distribution.device, self._info.device), \
-            f"The distribution must be on the agent device '{self._info.device}', got '{distribution.device}'."
-        assert self._agent_backend.same_device(policy.device, self._info.device), \
-            f"The policy must be on the agent device '{self._info.device}', got '{policy.device}'."
+        self._check_device(distribution, 'distribution')
+        self._check_device(policy, 'policy')
 
         self._add_save_attr(
             _optimizer='torch',

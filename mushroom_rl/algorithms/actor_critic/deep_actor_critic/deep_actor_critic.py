@@ -21,8 +21,7 @@ class OnPolicyDeepAC(Agent):
 
         super().__init__(mdp_info, policy, **kwargs)
 
-        assert self._agent_backend.same_device(policy.device, self._info.device), \
-            f"The policy must be on the agent device '{self._info.device}', got '{policy.device}'."
+        self._check_device(policy, 'policy')
 
         self._add_save_attr(_iter='primitive')
 

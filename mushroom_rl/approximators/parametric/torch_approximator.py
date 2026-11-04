@@ -115,7 +115,6 @@ class TorchApproximator(Approximator):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
-        self._trainer.to(self._device)
 
     def _pad_inputs(self, args, kwargs):
         n_declared = len(self._input_ndims)
@@ -436,7 +435,6 @@ class TorchEnsemble(Ensemble):
             m._dirty = True
         self._sync_params()
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
-        self._trainer.to(self._device)
 
     def _parse_single_output(self, out, prediction, compute_variance):
         return self._aggregate(out.squeeze(1), prediction, compute_variance)

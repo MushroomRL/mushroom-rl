@@ -52,8 +52,7 @@ class A2C(DeepAC):
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters(), history_length=history_length,
                          action_history_length=action_history_length, device=device)
 
-        assert self._agent_backend.same_device(policy.device, self._info.device), \
-            f"The policy must be on the agent device '{self._info.device}', got '{policy.device}'."
+        self._check_device(policy, 'policy')
 
         self._add_save_attr(
             _critic_fit_params='pickle',
