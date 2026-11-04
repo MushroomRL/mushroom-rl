@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "numpy"]
+requires = ["setuptools>=77", "wheel", "numpy"]
 
 [project]
 name = "mushroom-rl"
@@ -25,11 +25,11 @@ maintainers = [
 ]
 description = "A Python library for Reinforcement Learning experiments."
 readme = "README.rst"
-license = { file= "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["Reinforcement Learning", "Machine Learning", "Robotics"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 
