@@ -158,6 +158,8 @@ class Parameter(MushroomBackendObject):
         if self._is_array(array):
             return ArrayBackend.convert(array, to=self.backend_name,
                                         device=self._backend.check_device(self._device))
+        elif hasattr(array, 'item'):
+            return array.item()
         else:
             return array
 

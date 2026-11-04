@@ -225,10 +225,9 @@ As an example, we move a standardization preprocessor to the GPU. Its running st
 
     preprocessor.to('cuda')
 
-Therefore, a class storing caches or runtime data that depend on the device declares them with the **none** method
-and rebuilds what it needs in ``self._post_load``, which must be safe to call on an object in use, not only on a freshly
-loaded one. For instance, the torch approximator re-links its optimizer to the network parameters in ``_post_load``,
-which also moves the optimizer state to the new device.
+Therefore, a class storing caches or runtime data that depend on the device declares them with the **none** method and
+rebuilds what it needs in ``self._post_load``. For instance, the torch approximator re-links its optimizer to the
+network parameters in ``_post_load``, which also moves the optimizer state to the new device.
 
 Load on a device
 ----------------

@@ -163,7 +163,7 @@ def test_running_standardization_to_keeps_the_statistics():
 
 def test_running_standardization_to_moves_the_statistics():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     standardization = RunningStandardization(shape=(2,), backend='torch', device='cpu')
     standardization.update_stats(torch.tensor([[1., 2.], [3., 5.]]))

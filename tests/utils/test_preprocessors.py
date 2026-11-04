@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -260,7 +261,7 @@ def test_preprocessor_statistics_follow_the_mdp_device():
 
 def test_preprocessors_move_to_another_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     from mushroom_rl.core.spaces import Box
     from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor

@@ -157,6 +157,9 @@ class HistoryManager(MushroomBackendObject):
         assert preprocessor.backend_name == backend_name, \
             f"The preprocessor operates on '{preprocessor.backend_name}' arrays, but the observations reaching it " \
             f"are in the agent backend '{backend_name}'. Build it with backend='{backend_name}'."
+        assert self._backend.same_device(preprocessor.device, self._device), \
+            f"The preprocessor is on '{preprocessor.device}', but the observations reaching it are on the agent " \
+            f"device '{self._device}'. Build it with device='{self._device}'."
 
         self._preprocessors.append(preprocessor)
 

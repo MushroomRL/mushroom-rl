@@ -3,7 +3,7 @@ import torch
 
 from torch.distributions import Distribution
 
-from mushroom_rl.utils.torch_utils import TorchUtils, DistHelperWrapper
+from mushroom_rl.utils.torch_utils import DistHelperWrapper
 
 
 def minibatch_number(size, batch_size):
@@ -78,8 +78,7 @@ def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
 
 def _indexes_per_vector(indexes, dataset_vectors):
     """
-    Place a permutation on the device of every vector it indexes: a tensor is indexed on its own device, any other
-    vector on the default one.
+    Place a permutation on the device of every vector it indexes.
 
     Args:
         indexes (torch.Tensor): the permutation, on the CPU;
@@ -89,8 +88,7 @@ def _indexes_per_vector(indexes, dataset_vectors):
         A list holding, for every vector, the permutation placed on the device the vector is indexed on.
 
     """
-    devices = [vector.device if isinstance(vector, torch.Tensor) else TorchUtils.get_device()
-               for vector in dataset_vectors]
+    devices = [vector.device for vector in dataset_vectors]
     placed = {device: indexes.to(device) for device in set(devices)}
 
     return [placed[device] for device in devices]

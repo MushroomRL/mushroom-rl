@@ -6,7 +6,7 @@ from mushroom_rl.core.mushroom_object import MushroomObject
 
 class TorchTrainer(MushroomObject):
     def __init__(self, loss_fn, batch_size, n_fit_targets, reinitialize, dropout,
-                 fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet):
+                 fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet, device=None):
         self._loss_fn = loss_fn
         self.quiet = quiet
         self.batch_size = batch_size
@@ -25,6 +25,9 @@ class TorchTrainer(MushroomObject):
             reinitialize='primitive',
             dropout='primitive',
         )
+
+        if device is not None:
+            self.to(device)
 
     def set_callbacks(self, fit_epoch_fn, compute_val_loss_fn, store_loss_fn):
         self._fit_epoch_fn = fit_epoch_fn

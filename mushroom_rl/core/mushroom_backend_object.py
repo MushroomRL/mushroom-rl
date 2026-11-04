@@ -37,7 +37,8 @@ class MushroomBackendObject(MushroomObject):
     def to(self, device):
         """
         Move the object to another device, together with the backend objects it owns, and rebuild the state that
-        is rebuilt after a load. The objects it only references, owned by another object, are not moved.
+        is rebuilt after a load. Every runtime state is wiped. The objects it only references, owned by another
+        object, are not moved.
 
         Args:
             device (str, None): the device to move to, or ``None`` for the default one.
@@ -98,6 +99,8 @@ class MushroomBackendObject(MushroomObject):
     def _move_to_device(value, device):
         if isinstance(value, torch.nn.Parameter):
             value.data = value.data.to(device)
+            if value.grad is not None:
+                value.grad = value.grad.to(device)
             return value
         if isinstance(value, (torch.Tensor, torch.nn.Module)):
             return value.to(device)

@@ -162,6 +162,15 @@ class DistHelperWrapper:
         """
         return self._distribution
 
+    @property
+    def device(self):
+        """
+        Returns:
+            The device the parameters of the wrapped distribution are stored on.
+
+        """
+        return self._parameters[0].device
+
     def _split(self):
         distribution = self._distribution
 

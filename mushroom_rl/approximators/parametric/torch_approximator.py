@@ -95,8 +95,8 @@ class TorchApproximator(Approximator):
         self._last_loss = None
         self._dirty = False
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
-                                     self._fit_epoch, self._compute_val_loss, self._store_loss, quiet)
-        self._trainer.to(self._device)
+                                     self._fit_epoch, self._compute_val_loss, self._store_loss, quiet,
+                                     device=self._device)
 
         self._add_save_attr(
             _parse_output='none',
@@ -413,8 +413,7 @@ class TorchEnsemble(Ensemble):
         self._params, self._buffers = stack_module_state([m.network for m in self._models])
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss,
-                                     self._store_loss, quiet)
-        self._trainer.to(self._device)
+                                     self._store_loss, quiet, device=self._device)
 
         self._add_save_attr(
             _randomness='primitive',

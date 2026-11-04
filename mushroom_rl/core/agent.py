@@ -177,7 +177,8 @@ class Agent(MushroomObject):
     def add_core_preprocessor(self, preprocessor):
         """
         Add preprocessor to the core's preprocessor list. The preprocessors are applied in order. When the agent is
-        loaded, they are placed on the device given as ``env_device`` to :meth:`load`.
+        loaded, they are placed on the device given as ``env_device`` to :meth:`load`, or on the agent device when it
+        is not given.
 
         Args:
             preprocessor (object): state preprocessors to be applied
