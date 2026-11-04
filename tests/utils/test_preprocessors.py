@@ -220,7 +220,7 @@ def test_minmax_preprocessor_single_bounded_component():
 
 def test_preprocessors_allocate_statistics_on_the_requested_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     from mushroom_rl.core import MDPInfo
     from mushroom_rl.core.spaces import Box
@@ -245,7 +245,7 @@ def test_preprocessors_allocate_statistics_on_the_requested_device():
 
 def test_preprocessor_statistics_follow_the_mdp_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     from mushroom_rl.core import MDPInfo
     from mushroom_rl.core.spaces import Box

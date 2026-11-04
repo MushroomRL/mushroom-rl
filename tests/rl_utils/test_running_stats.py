@@ -98,7 +98,7 @@ def test_running_stats_save_the_arrays_with_the_backend_method(tmpdir):
 
 def test_running_stats_allocate_on_the_requested_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     standardization = RunningStandardization(shape=(2,), backend='torch', device='cuda')
     standardization.update_stats(torch.ones(1, 2, device='cuda'))

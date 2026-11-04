@@ -558,7 +558,7 @@ def test_vectorized_core_steps_per_fit_below_n_envs():
 
 def test_vectorized_core_env_device_differs_from_default():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     torch.random.manual_seed(42)
 

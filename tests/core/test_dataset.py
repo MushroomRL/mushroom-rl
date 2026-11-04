@@ -587,7 +587,7 @@ def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
 
 def test_history_state_takes_row_indices_from_another_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     entries = HistoryState('numpy', None, np.array([0, 3]), {'obs_history': np.array([[1.], [2.]])})
 
@@ -641,7 +641,7 @@ class FitCollectingAgent(Agent):
 
 def test_policy_states_follow_row_indices_from_the_env_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     env = CudaCountingVecEnv()
     agent = FitCollectingAgent(env.info)

@@ -994,7 +994,7 @@ def test_parse_nstep_history_single_step_reuses_the_anchor_window():
 
 def test_preprocessor_on_the_agent_device_parses_under_a_cpu_default():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     mdp_info, _ = _make_infos(obs_shape=(2,), act_shape=(1,))
     agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch', device='cuda')
