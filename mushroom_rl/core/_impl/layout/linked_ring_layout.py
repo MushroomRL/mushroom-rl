@@ -190,6 +190,9 @@ class LinkedRingLayout(RingLayout):
         """
         return self._prev_links, self._next_links
 
+    def _create_instance(self, backend, device):
+        return LinkedRingLayout(backend, self._max_size, device)
+
     def _contiguous_links(self, last):
         prev_links = self._backend.zeros(self._max_size, dtype=int, device=self._device)
         next_links = self._backend.zeros(self._max_size, dtype=int, device=self._device)

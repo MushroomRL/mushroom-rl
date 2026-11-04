@@ -264,7 +264,7 @@ class RingLayout(StreamLayout):
         return order, boundary_code
 
     def to_backend(self, backend, device=None):
-        layout = type(self)(backend, self._max_size, device)
+        layout = self._create_instance(backend, device)
         layout._n_rows, layout._head = self._n_rows, self._head
         layout._write_head, layout._full = self._write_head, self._full
         layout._ring_tails = self._converted_rows(self._ring_tails, backend, device)
@@ -319,6 +319,18 @@ class RingLayout(StreamLayout):
 
         """
         return self._ring_tails
+
+    def _create_instance(self, backend, device):
+        """
+        Args:
+            backend (str): the array backend;
+            device (str, None): the device.
+
+        Returns:
+            A new, empty layout of the same class, with the capacity of this one.
+
+        """
+        return RingLayout(backend, self._max_size, device)
 
     def _clear_rows(self):
         super()._clear_rows()

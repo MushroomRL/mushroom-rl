@@ -1,5 +1,4 @@
-from mushroom_rl.utils.monitors import PlotItemBuffer
-from mushroom_rl.utils.monitors.plot_item_buffer import PlotItemBufferLimited
+from mushroom_rl.utils.monitors.plot_item_buffer import PlotItemBuffer, PlotItemBufferLimited
 
 
 class RewardPerStep(PlotItemBuffer):

@@ -1,7 +1,7 @@
 __extras__ = []
 
 try:
-    from mushroom_rl.utils.callbacks.dataset_monitor import DatasetMonitor  # noqa: F401
+    from .dataset_monitor import DatasetMonitor  # noqa: F401
     __extras__.append('DatasetMonitor')
 except ImportError:
     pass

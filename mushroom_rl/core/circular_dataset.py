@@ -219,7 +219,7 @@ class CircularDataset(Dataset):
         if converted is self:
             return self
 
-        dataset = type(self)(converted._dataset_info, self._layout.max_size)
+        dataset = self._create_instance(converted._dataset_info)
         dataset._append_rows(converted)
         dataset._layout = converted._layout
         dataset._history_state = converted._history_state
@@ -475,6 +475,17 @@ class CircularDataset(Dataset):
 
     def _walk_last(self):
         return self._last_array()
+
+    def _create_instance(self, dataset_info):
+        """
+        Args:
+            dataset_info (DatasetInfo): the information of the new dataset.
+
+        Returns:
+            A new, empty dataset of the same class, with the capacity of this one.
+
+        """
+        return CircularDataset(dataset_info, self._layout.max_size)
 
     def _create_layout(self, dataset_info, n_steps, n_envs):
         return RingLayout(dataset_info.env_backend_name, n_steps, dataset_info.env_device)
