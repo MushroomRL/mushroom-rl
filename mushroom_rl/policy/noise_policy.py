@@ -3,7 +3,6 @@ import numpy as np
 
 from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
 from mushroom_rl.rl_utils.parameters import CovarianceParameter
-from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
@@ -14,7 +13,7 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
     as in https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py.
 
     """
-    def __init__(self, mu, sigma, theta, dt, x0=None):
+    def __init__(self, mu, sigma, theta, dt, x0=None, device=None):
         """
         Constructor.
 
@@ -23,17 +22,18 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
             sigma (torch.tensor): average magnitude of the random fluctations per square-root time;
             theta (float): rate of mean reversion;
             dt (float): time interval;
-            x0 (torch.tensor, None): initial values of noise.
+            x0 (torch.tensor, None): initial values of noise;
+            device (str, None): device the policy is stored on, or ``None`` for the default one.
 
         """
-        super().__init__(policy_state_shape=tuple(mu.output_shape))
+        super().__init__(policy_state_shape=tuple(mu.output_shape), backend='torch', device=device)
 
         self._approximator = mu
         self._predict_params = dict()
-        self._sigma = torch.as_tensor(sigma, device=TorchUtils.get_device())
+        self._sigma = torch.as_tensor(sigma, device=self._device)
         self._theta = theta
         self._dt = dt
-        self._x0 = torch.as_tensor(x0, device=TorchUtils.get_device()) if x0 is not None else None
+        self._x0 = torch.as_tensor(x0, device=self._device) if x0 is not None else None
 
         self._add_save_attr(
             _approximator='mushroom',
@@ -75,14 +75,14 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
 
     def reset(self):
         self._policy_state = self._x0.clone() if self._x0 is not None \
-            else torch.zeros(self._approximator.output_shape, device=TorchUtils.get_device())
+            else torch.zeros(self._approximator.output_shape, device=self._device)
 
         return self._policy_state
 
     def reset_vectorized(self, start_mask):
         if self._policy_state is None:
             self._policy_state = torch.zeros((len(start_mask),) + tuple(self._approximator.output_shape),
-                                             device=TorchUtils.get_device())
+                                             device=self._device)
         self._policy_state[start_mask] = self._x0 if self._x0 is not None else 0.
 
         return self._policy_state
@@ -104,7 +104,7 @@ class ClippedGaussianPolicy(HasWeights, Policy):
     Thus, the non-differentiability.
 
     """
-    def __init__(self, mu, sigma, low, high):
+    def __init__(self, mu, sigma, low, high, device=None):
         """
         Constructor.
 
@@ -115,14 +115,17 @@ class ClippedGaussianPolicy(HasWeights, Policy):
                 component, a :class:`Parameter` returning such a vector, or a :class:`CovarianceParameter`; n is the
                 action dimensionality;
             low (torch.tensor): a vector containing the minimum action for each component;
-            high (torch.tensor): a vector containing the maximum action for each component.
+            high (torch.tensor): a vector containing the maximum action for each component;
+            device (str, None): device the policy is stored on, or ``None`` for the default one.
 
         """
+        super().__init__('torch', device)
+
         self._approximator = mu
         self._predict_params = dict()
-        self._sigma = CovarianceParameter.make(sigma, backend='torch')
-        self._low = torch.as_tensor(low, device=TorchUtils.get_device())
-        self._high = torch.as_tensor(high, device=TorchUtils.get_device())
+        self._sigma = CovarianceParameter.make(sigma, backend='torch', device=self._device)
+        self._low = torch.as_tensor(low, device=self._device)
+        self._high = torch.as_tensor(high, device=self._device)
 
         self._add_save_attr(
             _approximator='mushroom',

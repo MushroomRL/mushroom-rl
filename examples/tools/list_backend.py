@@ -82,7 +82,7 @@ def experiment(alpha, n_episodes, n_steps_test, seed=0):
     logger.info(f'episode length: {dataset.episodes_length.item()}')
 
     logger.weak_line()
-    logger.info(f'dataset backend: {dataset.array_backend.get_backend_name()}')
+    logger.info(f'dataset backend: {dataset.backend.get_backend_name()}')
 
 
 if __name__ == '__main__':

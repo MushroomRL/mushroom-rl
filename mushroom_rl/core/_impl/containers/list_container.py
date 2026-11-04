@@ -11,6 +11,8 @@ class ListContainer(Container, backend='list'):
 
     """
     def __init__(self, n_columns, n_envs=None):
+        super().__init__('list')
+
         self._columns = [list() for _ in range(n_columns)]
         self._n_envs = n_envs
 
@@ -97,6 +99,7 @@ class ListContainer(Container, backend='list'):
 
         """
         new_dataset = cls.__new__(cls)
+        Container.__init__(new_dataset, 'list')
 
         new_dataset._columns = None
         new_dataset._n_envs = dataset._n_envs if dataset is not None else None

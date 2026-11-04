@@ -12,10 +12,12 @@ from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.rl_utils.preprocessors import Preprocessor
 
 
-class RecordingPreprocessor:
+class RecordingPreprocessor(Preprocessor):
     def __init__(self, scale):
+        super().__init__('torch')
         self.scale = scale
         self.shapes = list()
 

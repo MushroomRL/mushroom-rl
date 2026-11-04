@@ -1,4 +1,4 @@
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 
 
@@ -58,9 +58,8 @@ class QApproximatorSimple(QApproximator):
         params['input_shape'] = input_shape
         params['output_shape'] = output_shape
         model = approximator(**params)
-        backend = getattr(model, '_backend', None)
         super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=backend.get_backend_name() if backend is not None else 'numpy')
+                         backend=getattr(model, 'backend_name', 'numpy'), device=getattr(model, 'device', None))
         self._n_actions = n_actions
         self._models = [model]
         self._add_save_attr(
@@ -197,9 +196,9 @@ class QApproximatorAction(QApproximator):
             params['input_shape'] = input_shape
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
-        backend = getattr(self._models[0], '_backend', None)
         super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=backend.get_backend_name() if backend is not None else 'numpy')
+                         backend=getattr(self._models[0], 'backend_name', 'numpy'),
+                         device=getattr(self._models[0], 'device', None))
         self._add_save_attr(
             _n_actions='primitive',
             _models=self._get_serialization_method(approximator)
@@ -239,13 +238,13 @@ class QApproximatorAction(QApproximator):
         state = self._batch_pad(z[0])[0]
         if len(z) == 2:
             action = self._backend.atleast_2d(z[1])
-            q = self._backend.zeros(state.shape[0])
+            q = self._backend.zeros(state.shape[0], device=self._device)
             for i in range(self._n_actions):
                 mask = (action == i)[:, 0]
                 if mask.any():
                     q[mask] = self._models[i].predict(state[mask], **predict_params).squeeze()
         else:
-            q = self._backend.zeros(state.shape[0], self._n_actions)
+            q = self._backend.zeros(state.shape[0], self._n_actions, device=self._device)
             for i in range(self._n_actions):
                 q[:, i] = self._models[i].predict(state, **predict_params).squeeze()
         return self._backend.squeeze(q)
@@ -306,7 +305,7 @@ class QApproximatorAction(QApproximator):
             return [m.diff(state) for m in self._models]
         a = action[0]
         s = self._models[0].weights_size
-        diff = self._backend.zeros(s * self._n_actions, dtype=float)
+        diff = self._backend.zeros(s * self._n_actions, dtype=float, device=self._device)
         diff[s * a:s * (a + 1)] = self._models[a].diff(state)
         return diff
 
@@ -349,9 +348,6 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
         Ensemble.__init__(self, QApproximator, n_models, prediction=prediction,
                           approximator=approximator, n_actions=n_actions,
                           input_shape=input_shape, output_shape=output_shape, **params)
-        backend = getattr(self._models[0], '_backend', None)
-        if backend is not None:
-            self._backend = backend
         self._n_actions = n_actions
         self._add_save_attr(_n_actions='primitive')
 

@@ -205,7 +205,7 @@ def test_from_array_list_backend():
     dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
                                  backend='list', gamma=0.9)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
     assert len(dataset) == 6
     assert dataset._dataset_info.state_shape == (2,)
@@ -248,7 +248,7 @@ def test_from_array_list_backend_ragged():
     dataset = Dataset.from_array(states, actions, rewards, states, absorbings, lasts,
                                  backend='list', gamma=0.9)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 1
     assert dataset._dataset_info.state_shape == (1,)
     assert dataset._dataset_info.action_shape == ()
@@ -364,7 +364,7 @@ def test_dataset_iadd_matches_add_in_place():
     assert np.array_equal(a.reward, reference.reward)
     assert np.array_equal(a.info['idx'], reference.info['idx'])
     assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
-    assert np.array_equal(np.array(a.theta_list), np.array(reference.theta_list))
+    assert np.array_equal(a.theta, reference.theta)
 
 
 def test_dataset_iadd_in_place_when_capacity_available():
@@ -587,7 +587,7 @@ def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
 
 def test_history_state_takes_row_indices_from_another_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     entries = HistoryState('numpy', None, np.array([0, 3]), {'obs_history': np.array([[1.], [2.]])})
 
@@ -620,7 +620,7 @@ class CudaCountingVecEnv(VectorizedEnvironment):
 
 class StateTrackingPolicy(StatefulPolicy):
     def __init__(self):
-        super().__init__((1,))
+        super().__init__((1,), backend='numpy')
 
     def reset_vectorized(self, start_mask):
         self._policy_state = np.zeros((len(start_mask), 1))
@@ -641,7 +641,7 @@ class FitCollectingAgent(Agent):
 
 def test_policy_states_follow_row_indices_from_the_env_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     env = CudaCountingVecEnv()
     agent = FitCollectingAgent(env.info)
@@ -707,7 +707,7 @@ class ZeroPolicy(Policy):
 
 class StatelessFitCollectingAgent(Agent):
     def __init__(self, mdp_info):
-        super().__init__(mdp_info, ZeroPolicy(), backend='numpy')
+        super().__init__(mdp_info, ZeroPolicy('numpy'), backend='numpy')
         self.fits = list()
 
     def fit(self, dataset):

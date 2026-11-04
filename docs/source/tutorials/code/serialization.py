@@ -41,7 +41,7 @@ class TestClass(MushroomObject):
             not_important='numpy!',
         )
 
-    def _post_load(self):
+    def _post_load(self, device):
         if self.not_important is None:
             self.not_important = np.zeros(10000)
 

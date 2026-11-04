@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 
-from mushroom_rl.utils.torch_utils import TorchUtils
-
 from .container import Container
 
 
@@ -13,7 +11,8 @@ class TorchContainer(Container, backend='torch'):
 
     """
     def __init__(self, shapes, dtypes, device=None, n_envs=None):
-        self._device = TorchUtils.get_device(device)
+        super().__init__('torch', device)
+
         self._arrays = [torch.empty(shape, dtype=dtype, device=self._device)
                         for shape, dtype in zip(shapes, dtypes)]
         self._n_envs = n_envs
@@ -129,8 +128,8 @@ class TorchContainer(Container, backend='torch'):
 
         """
         new_dataset = cls.__new__(cls)
+        Container.__init__(new_dataset, 'torch', dataset.device if dataset is not None else None)
 
-        new_dataset._device = dataset._device if dataset is not None else None
         new_dataset._arrays = None
         new_dataset._n_envs = dataset._n_envs if dataset is not None else None
         new_dataset._len = None
@@ -162,7 +161,6 @@ class TorchContainer(Container, backend='torch'):
 
     def _add_all_save_attr(self):
         self._add_save_attr(
-            _device='none',
             _arrays='torch',
             _n_envs='primitive',
             _len='primitive'
@@ -176,7 +174,7 @@ class TorchContainer(Container, backend='torch'):
     def _from_array_impl(cls, arrays, device):
         dataset = cls.create_new_instance()
 
-        dataset._device = TorchUtils.get_device(device)
+        dataset._device = dataset._backend.check_device(device)
         dataset._arrays = [dataset._to_tensor(array) for array in arrays]
         dataset._len = len(dataset._arrays[0])
 

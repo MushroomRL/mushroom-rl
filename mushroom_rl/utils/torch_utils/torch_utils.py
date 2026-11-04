@@ -304,6 +304,12 @@ class TorchUtils(object):
 
     @staticmethod
     def update_optimizer_parameters(optimizer, new_parameters):
+        state = optimizer.state_dict()
+        optimizer.param_groups[0]['params'] = new_parameters
+        optimizer.load_state_dict(state)
+
+    @staticmethod
+    def replace_optimizer_parameters(optimizer, new_parameters):
         if len(optimizer.state) > 0:
             for p_old, p_new in zip(optimizer.param_groups[0]['params'], new_parameters):
                 data = optimizer.state[p_old]

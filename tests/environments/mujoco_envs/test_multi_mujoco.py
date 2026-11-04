@@ -49,7 +49,7 @@ def test_multi_mujoco_runs_with_core():
         def fit(self, dataset):
             pass
 
-    dataset = Core(DummyAgent(mdp.info, ZeroPolicy()), mdp).evaluate(n_episodes=2, quiet=True)
+    dataset = Core(DummyAgent(mdp.info, ZeroPolicy('numpy')), mdp).evaluate(n_episodes=2, quiet=True)
 
     assert len(dataset) == 100
     assert dataset.n_episodes == 2

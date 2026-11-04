@@ -1,8 +1,7 @@
-from mushroom_rl.core import MushroomObject
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core import ArrayBackend, MushroomBackendObject
 
 
-class Policy(MushroomObject):
+class Policy(MushroomBackendObject):
     """
     Interface representing a generic policy.
     A policy is a probability distribution that gives the probability of taking
@@ -10,6 +9,18 @@ class Policy(MushroomObject):
     A policy is used by mushroom agents to interact with the environment.
 
     """
+    def __init__(self, backend, device=None):
+        """
+        Constructor.
+
+        Args:
+            backend (str): name of the array backend the policy operates in;
+            device (str, None): device the policy data is stored on, or ``None`` for the default one. Only allowed
+                with the torch backend.
+
+        """
+        super().__init__(backend, device)
+
     def __call__(self, state, action):
         """
         Compute the probability of taking action in a certain state following
@@ -110,15 +121,18 @@ class StatefulPolicy(Policy):
     take the policy state explicitly and never touch the stored one.
 
     """
-    def __init__(self, policy_state_shape):
+    def __init__(self, policy_state_shape, **kwargs):
         """
         Constructor.
 
         Args:
-            policy_state_shape (tuple): the shape of the internal state of the policy.
+            policy_state_shape (tuple): the shape of the internal state of the policy;
+            **kwargs: the remaining keyword arguments, passed to the constructor of the base policy.
 
         """
         assert isinstance(policy_state_shape, tuple)
+        super().__init__(**kwargs)
+
         self.policy_state_shape = policy_state_shape
         self._policy_state = None
 

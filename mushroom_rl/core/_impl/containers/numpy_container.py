@@ -10,6 +10,8 @@ class NumpyContainer(Container, backend='numpy'):
 
     """
     def __init__(self, shapes, dtypes, n_envs=None):
+        super().__init__('numpy')
+
         self._arrays = [np.empty(shape, dtype=dtype) for shape, dtype in zip(shapes, dtypes)]
         self._n_envs = n_envs
         self._len = 0
@@ -123,6 +125,7 @@ class NumpyContainer(Container, backend='numpy'):
 
         """
         new_dataset = cls.__new__(cls)
+        Container.__init__(new_dataset, 'numpy')
 
         new_dataset._arrays = None
         new_dataset._n_envs = dataset._n_envs if dataset is not None else None

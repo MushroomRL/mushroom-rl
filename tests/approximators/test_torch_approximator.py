@@ -590,3 +590,28 @@ def test_torch_ensemble_predict_compute_variance_multi_output():
                                                                   compute_variance=True)
     assert torch.allclose(mean_a, stacked_a.mean(0)) and torch.allclose(variance_a, stacked_a.var(0))
     assert torch.allclose(mean_b, stacked_b.mean(0)) and torch.allclose(variance_b, stacked_b.var(0))
+
+
+@pytest.mark.parametrize('n_models', [1, 3])
+def test_torch_approximator_to_keeps_training(n_models):
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    torch.manual_seed(1)
+    x, y = torch.randn(32, 3), torch.randn(32, 2)
+    approximator = TorchApproximator(network=QNetwork, input_shape=(3,), output_shape=(2,), n_features=4, n_layers=1,
+                                     n_models=n_models, optimizer={'class': optim.Adam, 'params': {'lr': 1e-2}},
+                                     loss=F.mse_loss, device='cpu')
+    approximator.fit(x, y, n_epochs=2)
+
+    assert approximator.to('cuda') is approximator
+
+    models = [approximator] if n_models == 1 else approximator._models
+    assert approximator.device == 'cuda'
+    assert {p.device.type for p in approximator.parameters()} == {'cuda'}
+    assert {value.device.type for m in models for state in m._optimizer.state.values() for value in state.values()
+            if torch.is_tensor(value) and value.ndim > 0} == {'cuda'}
+
+    approximator.fit(x.cuda(), y.cuda(), n_epochs=2)
+
+    assert approximator.predict(x.cuda()).device.type == 'cuda'

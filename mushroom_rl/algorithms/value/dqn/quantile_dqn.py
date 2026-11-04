@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value.dqn import AbstractDQN
@@ -9,20 +10,25 @@ from mushroom_rl.approximators.parametric.networks import QuantileNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class QuantileHuberLoss:
+class QuantileHuberLoss(nn.Module):
     """
     Quantile Huber loss for Quantile Regression DQN.
 
     """
     def __init__(self, n_quantiles):
-        self._n_quantiles = n_quantiles
-        self._tau_hat = self._build_tau_hat()
+        """
+        Constructor.
 
-    def _build_tau_hat(self):
-        tau = torch.arange(self._n_quantiles + 1, device=TorchUtils.get_device()) / self._n_quantiles
-        return (tau[:-1] + tau[1:]) / 2
+        Args:
+            n_quantiles (int): number of quantiles.
 
-    def __call__(self, input, target, reduction='mean'):
+        """
+        super().__init__()
+
+        tau = torch.arange(n_quantiles + 1, device=TorchUtils.get_device()) / n_quantiles
+        self.register_buffer('_tau_hat', (tau[:-1] + tau[1:]) / 2)
+
+    def forward(self, input, target, reduction='mean'):
         tau = self._tau_hat.repeat(input.shape[0], 1)
 
         target = target.t().unsqueeze(-1).repeat(1, 1, tau.shape[-1])
@@ -40,13 +46,6 @@ class QuantileHuberLoss:
             return per_sample_loss
         else:
             raise ValueError
-
-    def __getstate__(self):
-        return {'_n_quantiles': self._n_quantiles}
-
-    def __setstate__(self, state):
-        self._n_quantiles = state['_n_quantiles']
-        self._tau_hat = self._build_tau_hat()
 
 
 class QuantileDQN(AbstractDQN):
@@ -70,19 +69,24 @@ class QuantileDQN(AbstractDQN):
         params['approximator_params']['features_network'] = features_network
         params['approximator_params']['n_quantiles'] = n_quantiles
 
-        self._n_quantiles = n_quantiles
-        self._loss = QuantileHuberLoss(n_quantiles)
-
-        params['approximator_params']['loss'] = self._loss
-
-        self._add_save_attr(
-            _n_quantiles='primitive',
-            _loss='pickle'
-        )
+        params['approximator_params']['loss'] = QuantileHuberLoss(n_quantiles)
 
         super().__init__(mdp_info, policy, TorchApproximator, **params)
 
+        self._n_quantiles = n_quantiles
+        self._loss = self.approximator.loss
+
         self._fit_params['get_quantiles'] = True
+
+        self._add_save_attr(
+            _n_quantiles='primitive',
+            _loss='none'
+        )
+
+    def _post_load(self, device):
+        super()._post_load(device)
+
+        self._loss = self.approximator.loss
 
     def _compute_target(self, reward, next_state, absorbing):
         q_next = self.target_approximator.predict(next_state, **self._predict_params)

@@ -39,7 +39,8 @@ class CategoricalNetwork(nn.Module):
         self._v_max = v_max
 
         delta = (self._v_max - self._v_min) / (self._n_atoms - 1)
-        self._a_values = torch.arange(self._v_min, self._v_max + eps, delta, device=TorchUtils.get_device())
+        self.register_buffer('_a_values', torch.arange(self._v_min, self._v_max + eps, delta,
+                                                       device=TorchUtils.get_device()), persistent=False)
 
         self._p = nn.ModuleList(
             [nn.Linear(n_features, n_atoms) for _ in range(self._n_output)])

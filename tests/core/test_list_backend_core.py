@@ -11,7 +11,7 @@ from mushroom_rl.core._impl.history_state import HistoryState
 
 
 def dummy_agent(mdp_info, action_fn):
-    agent = Agent(mdp_info, Policy())
+    agent = Agent(mdp_info, Policy('numpy'))
     agent.draw_action = action_fn
     agent.fit = lambda dataset: None
     return agent
@@ -158,7 +158,7 @@ def test_variable_length_state_action():
 
     dataset = core.evaluate(n_episodes=2, quiet=True)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
     assert len(dataset) == 8
     assert dataset.state[0] == [0.0]
@@ -177,7 +177,7 @@ def test_object_state_action():
 
     dataset = core.evaluate(n_episodes=1, quiet=True)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 1
     assert len(dataset) == 3
     assert dataset.state[0] == {'id': 0}
@@ -195,7 +195,7 @@ def test_vectorized_extra_info():
 
     dataset = core.evaluate(n_steps=30, quiet=True)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert len(dataset) == 30
     assert dataset.info['v'] == [1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
                                  1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
@@ -213,7 +213,7 @@ def test_vectorized_no_extra_info():
 
     dataset = core.evaluate(n_steps=30, quiet=True)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert len(dataset) == 30
     assert list(dataset.info.keys()) == []
 
@@ -227,7 +227,7 @@ def test_vectorized_empty_dataset():
 
     assert len(dataset) == 0
     assert dataset.n_episodes == 0
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
 
 
 def test_vectorized_reset_preprocessing():
@@ -261,7 +261,7 @@ def test_infinite_horizon_uses_list_backend():
 
     dataset = core.evaluate(n_episodes=2, quiet=True)
 
-    assert dataset.array_backend.get_backend_name() == 'list'
+    assert dataset.backend.get_backend_name() == 'list'
     assert dataset.n_episodes == 2
     assert np.array_equal(dataset.compute_J(), np.array([-124., -122.]))
 
@@ -282,7 +282,7 @@ class FitRecorderAgent(Agent):
 
 def test_vectorized_list_agent_learns_through_episode_resets():
     mdp = ListVecEnv(with_info=False)
-    agent = FitRecorderAgent(mdp.info, ListActionPolicy())
+    agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
     core = Core(agent, mdp)
 
     core.learn(n_steps=30, n_steps_per_fit=6, quiet=True)
@@ -295,12 +295,12 @@ def test_list_agent_history_stacking_is_not_supported():
     mdp = ListVecEnv(with_info=False)
 
     with pytest.raises(NotImplementedError):
-        FitRecorderAgent(mdp.info, ListActionPolicy(), history_length=2)
+        FitRecorderAgent(mdp.info, ListActionPolicy('numpy'), history_length=2)
 
 
 def test_list_agent_nstep_parsing_is_not_supported():
     mdp = ListVecEnv(with_info=False)
-    agent = FitRecorderAgent(mdp.info, ListActionPolicy())
+    agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
     dataset = Dataset.from_array([[0.], [1.]], [[0.], [0.]], [1., 1.], [[1.], [2.]], [False, False], [False, True],
                                  gamma=0.9, backend='list')
 

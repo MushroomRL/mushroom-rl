@@ -9,7 +9,7 @@ def abstract_method_tester(f, ex, *args):
 
 
 def test_policy_interface():
-    tmp = Policy()
+    tmp = Policy('numpy')
     abstract_method_tester(tmp.__call__, NotImplementedError, None, None)
     abstract_method_tester(tmp.draw_action, NotImplementedError, None)
     abstract_method_tester(tmp.draw_action_greedy, NotImplementedError, None)
@@ -19,7 +19,7 @@ def test_policy_interface():
 
 
 def test_stateful_policy_interface():
-    tmp = StatefulPolicy(policy_state_shape=(1,))
+    tmp = StatefulPolicy(policy_state_shape=(1,), backend='numpy')
     assert tmp.is_stateful
 
     abstract_method_tester(tmp.reset, NotImplementedError)

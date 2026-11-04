@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -6,7 +7,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.policy import EpsGreedy
 
 from mushroom_rl.algorithms.value import DQN
-from mushroom_rl.core import Agent
+from mushroom_rl.core import Agent, MDPInfo
 
 from mushroom_rl.core import Core
 
@@ -91,8 +92,8 @@ def test_normalizing_preprocessor_backend():
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
 
-    mdp_info_torch = deepcopy(mdp.info)
-    mdp_info_torch.backend = 'torch'
+    mdp_info_torch = MDPInfo(mdp.info.observation_space, mdp.info.action_space, mdp.info.gamma, mdp.info.horizon,
+                             mdp.info.dt, backend='torch')
 
     norm_box_np = MinMaxPreprocessor(mdp_info=mdp.info, clip_obs=5.0, alpha=0.001)
     norm_box_torch = MinMaxPreprocessor(mdp_info=mdp_info_torch, clip_obs=5.0, alpha=0.001)
@@ -219,7 +220,7 @@ def test_minmax_preprocessor_single_bounded_component():
 
 def test_preprocessors_allocate_statistics_on_the_requested_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     from mushroom_rl.core import MDPInfo
     from mushroom_rl.core.spaces import Box
@@ -244,7 +245,7 @@ def test_preprocessors_allocate_statistics_on_the_requested_device():
 
 def test_preprocessor_statistics_follow_the_mdp_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     from mushroom_rl.core import MDPInfo
     from mushroom_rl.core.spaces import Box
@@ -256,3 +257,33 @@ def test_preprocessor_statistics_follow_the_mdp_device():
     assert preprocessor._obs_runstand.mean.device.type == 'cuda'
     assert preprocessor._obs_mean.device.type == 'cuda'
     assert preprocessor(torch.ones(1, 3, device='cuda')).device.type == 'cuda'
+
+
+def test_preprocessors_move_to_another_device():
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    from mushroom_rl.core.spaces import Box
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100,
+                       backend='torch', device='cpu')
+    obs = torch.tensor([[0.5, 1., 1.5]])
+
+    standardization = StandardizationPreprocessor(mdp_info)
+    standardization.update(obs)
+    min_max = MinMaxPreprocessor(mdp_info)
+    expected = standardization(obs), min_max(obs)
+
+    assert standardization.to('cuda') is standardization
+    assert min_max.to('cuda') is min_max
+
+    assert standardization.device == 'cuda'
+    assert standardization._obs_runstand.mean.device.type == 'cuda'
+    assert min_max.device == 'cuda'
+    assert min_max._obs_runstand.mean.device.type == 'cuda'
+    assert min_max._obs_mask.device.type == 'cuda'
+    assert min_max._obs_mean.device.type == 'cuda'
+    assert min_max._obs_delta.device.type == 'cuda'
+    assert torch.allclose(standardization(obs.cuda()).cpu(), expected[0])
+    assert torch.allclose(min_max(obs.cuda()).cpu(), expected[1])

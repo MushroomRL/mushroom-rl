@@ -1,7 +1,7 @@
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 
-class Container(MushroomObject):
+class Container(MushroomBackendObject):
     """
     Base class of the columnar containers holding the rows of a dataset: an ordered list of equal-length columns,
     each independently shaped and typed, plus a shared length counter. One subclass per array backend, selected by

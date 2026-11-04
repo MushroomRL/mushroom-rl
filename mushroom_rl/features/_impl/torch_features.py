@@ -28,6 +28,8 @@ class TorchFeatures(Features):
 
         super().__init__(feature_list=feature_list, backend=backend, **kwargs)
 
+        self._phi.to(self._internal_device)
+
         self._add_save_attr(_phi='torch')
 
     def to_torch_module(self):
@@ -45,6 +47,9 @@ class TorchFeatures(Features):
             return y[0]
 
         return y
+
+    def _post_load(self, device):
+        self._phi.to(self._internal_device)
 
     @property
     def _internal_backend(self):

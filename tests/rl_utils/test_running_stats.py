@@ -98,7 +98,7 @@ def test_running_stats_save_the_arrays_with_the_backend_method(tmpdir):
 
 def test_running_stats_allocate_on_the_requested_device():
     if not torch.cuda.is_available():
-        return
+        pytest.skip('requires cuda')
 
     standardization = RunningStandardization(shape=(2,), backend='torch', device='cuda')
     standardization.update_stats(torch.ones(1, 2, device='cuda'))
@@ -148,3 +148,31 @@ def test_running_standardization_reset_matches_a_fresh_instance():
     assert rs._m.shape == fresh._m.shape
     assert np.allclose(rs.mean, fresh.mean)
     assert np.allclose(rs.std, fresh.std)
+
+
+def test_running_standardization_to_keeps_the_statistics():
+    standardization = RunningStandardization(shape=(2,), backend='numpy')
+    standardization.update_stats(np.array([[1., 2.], [3., 5.]]))
+    mean, std = standardization.mean.copy(), standardization.std.copy()
+
+    assert standardization.to(None) is standardization
+    assert standardization.device is None
+    assert np.array_equal(standardization.mean, mean)
+    assert np.array_equal(standardization.std, std)
+
+
+def test_running_standardization_to_moves_the_statistics():
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    standardization = RunningStandardization(shape=(2,), backend='torch', device='cpu')
+    standardization.update_stats(torch.tensor([[1., 2.], [3., 5.]]))
+    m, s = standardization._m.clone(), standardization._s.clone()
+
+    standardization.to('cuda')
+
+    assert standardization.device == 'cuda'
+    assert standardization.mean.device.type == 'cuda'
+    assert standardization.std.device.type == 'cuda'
+    assert torch.equal(standardization._m.cpu(), m)
+    assert torch.equal(standardization._s.cpu(), s)

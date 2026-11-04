@@ -9,3 +9,9 @@ logger down the whole object tree, composing the metric names into a group hiera
 
 .. automodule:: mushroom_rl.core.mushroom_object
     :private-members:
+
+``MushroomBackendObject`` is the base of the MushroomRL objects storing their data in an array backend: it holds the
+backend and the device of the object, and places a loaded object on the device requested at load time, or on the
+default one.
+
+.. automodule:: mushroom_rl.core.mushroom_backend_object

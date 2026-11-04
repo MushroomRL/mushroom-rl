@@ -76,7 +76,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
     """
     def __init__(self, network, input_shape, output_shape, std_0=1.,
-                 log_std_min=-20, log_std_max=2, **params):
+                 log_std_min=-20, log_std_max=2, device=None, **params):
         """
         Constructor.
 
@@ -89,25 +89,26 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
             std_0 (float, 1.): initial standard deviation;
             log_std_min ([float, Parameter], -20): min value for the policy log std;
             log_std_max ([float, Parameter], 2): max value for the policy log std;
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
             **params: parameters used by the network constructor.
 
         """
         self._action_dim = output_shape[0]
 
         self._mu = RecurrentTorchApproximator(input_shape=input_shape, output_shape=output_shape,
-                                              network=network, **params)
+                                              network=network, device=device, **params)
 
-        super().__init__(self._mu.policy_state_shape)
+        super().__init__(self._mu.policy_state_shape, device=device)
 
         self._predict_params = dict()
 
-        log_sigma_init = torch.ones(self._action_dim, device=TorchUtils.get_device()) \
-            * torch.log(TorchUtils.to_float_tensor(std_0))
+        log_sigma_init = torch.ones(self._action_dim, device=self._device) \
+            * torch.log(TorchUtils.to_float_tensor(std_0, self._device))
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
-        self._log_std_min = Parameter.make(log_std_min, backend='torch')
-        self._log_std_max = Parameter.make(log_std_max, backend='torch')
+        self._log_std_min = Parameter.make(log_std_min, backend='torch', device=self._device)
+        self._log_std_max = Parameter.make(log_std_max, backend='torch', device=self._device)
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -147,7 +148,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return mu, covariance, next_hidden_state
 
     def set_weights(self, weights):
-        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
+        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
         self._log_sigma.data = log_sigma_data
 
         self._mu.set_weights(weights[:-self._action_dim])
@@ -162,14 +163,13 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return chain(self._mu.parameters(), [self._log_sigma])
 
     def reset(self):
-        self._policy_state = torch.zeros(self.policy_state_shape, device=TorchUtils.get_device())
+        self._policy_state = torch.zeros(self.policy_state_shape, device=self._device)
 
         return self._policy_state
 
     def reset_vectorized(self, start_mask):
         if self._policy_state is None:
-            self._policy_state = torch.zeros((len(start_mask),) + self.policy_state_shape,
-                                             device=TorchUtils.get_device())
+            self._policy_state = torch.zeros((len(start_mask),) + self.policy_state_shape, device=self._device)
         self._policy_state[start_mask] = 0.
 
         return self._policy_state

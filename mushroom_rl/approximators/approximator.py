@@ -1,10 +1,9 @@
 from sklearn.exceptions import NotFittedError
 
-from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core import MushroomObject, MushroomBackendObject
 
 
-class Approximator(MushroomObject):
+class Approximator(MushroomBackendObject):
     """
     Base class for all approximators. Handles logger attachment and dispatches
     to an ``Ensemble`` when ``n_models > 1`` is requested at construction time.
@@ -20,7 +19,7 @@ class Approximator(MushroomObject):
             return ensemble
         return MushroomObject.__new__(cls)
 
-    def __init__(self, input_shape, output_shape, backend='numpy'):
+    def __init__(self, input_shape, output_shape, backend='numpy', device=None):
         """
         Constructor.
 
@@ -30,14 +29,16 @@ class Approximator(MushroomObject):
                 inputs (e.g. a critic taking ``state`` and ``action`` separately);
             output_shape (tuple, list): shape of the output. A plain tuple for a single output, or
                 a list of shape tuples (one per output) for a model that produces several outputs;
-            backend (str, 'numpy'): array backend to use.
+            backend (str, 'numpy'): array backend to use;
+            device (str, None): device the approximator data is stored on, or ``None`` for the default one. Only
+                allowed with the torch backend.
 
         """
+        super().__init__(backend, device)
+
         self._input_shape = input_shape
         self._output_shape = output_shape
-        self._backend = ArrayBackend.get_array_backend(backend)
-        self._add_save_attr(_input_shape='primitive', _output_shape='primitive',
-                            _backend='primitive')
+        self._add_save_attr(_input_shape='primitive', _output_shape='primitive')
 
     def fit(self, *args, **kwargs):
         """
@@ -110,7 +111,7 @@ class Ensemble(Approximator):
 
     """
 
-    def __init__(self, model, n_models, prediction='mean', backend='numpy', **params):
+    def __init__(self, model, n_models, prediction='mean', **params):
         """
         Constructor.
 
@@ -120,18 +121,17 @@ class Ensemble(Approximator):
             prediction (str, 'mean'): the type of prediction to make across models. One of
                 ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``'all'`` to return all
                 predictions;
-            backend (str, 'numpy'): array backend to use;
-            **params: parameters dictionary to create each model.
+            **params: parameters dictionary to create each model. The ensemble uses the array backend and the
+                device of the models it creates.
 
         """
+        models = [model(**params) for _ in range(n_models)]
+
         super().__init__(input_shape=params.get('input_shape'), output_shape=params.get('output_shape'),
-                         backend=backend)
+                         backend=getattr(models[0], 'backend_name', 'numpy'), device=getattr(models[0], 'device', None))
 
         self._prediction = prediction
-        self._models = []
-
-        for _ in range(n_models):
-            self._models.append(model(**params))
+        self._models = models
 
         n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
@@ -142,7 +142,7 @@ class Ensemble(Approximator):
             _parse_output='none'
         )
 
-    def _post_load(self):
+    def _post_load(self, device):
         n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 

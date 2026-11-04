@@ -1,4 +1,3 @@
-import numpy as np
 from copy import deepcopy
 
 from mushroom_rl.policy.policy import Policy, HasWeights
@@ -21,6 +20,8 @@ class VectorPolicy(HasWeights, Policy):
             n_envs (int): number of environments to be repeated.
 
         """
+        super().__init__(policy.backend_name, policy.device)
+
         self._policy_vector = [deepcopy(policy) for _ in range(n_envs)]
 
         self._add_save_attr(_policy_vector='mushroom')
@@ -30,14 +31,14 @@ class VectorPolicy(HasWeights, Policy):
         for i, policy in enumerate(self._policy_vector):
             actions.append(policy.draw_action(state[i]))
 
-        return np.array(actions)
+        return self._backend.stack(actions, dim=0)
 
     def draw_action_greedy(self, state):
         actions = list()
         for i, policy in enumerate(self._policy_vector):
             actions.append(policy.draw_action_greedy(state[i]))
 
-        return np.array(actions)
+        return self._backend.stack(actions, dim=0)
 
     def set_n(self, n_envs):
         if len(self) > n_envs:
@@ -75,7 +76,7 @@ class VectorPolicy(HasWeights, Policy):
             weights_i = policy.get_weights()
             weight_list.append(weights_i)
 
-        return np.array(weight_list)
+        return self._backend.stack(weight_list, dim=0)
 
     @property
     def weights_size(self):

@@ -1,10 +1,10 @@
 from enum import IntFlag
 
 from mushroom_rl.core.array_backend import ArrayBackend
-from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 
-class EpisodeLayout(MushroomObject):
+class EpisodeLayout(MushroomBackendObject):
     """
     Base class for the row structure of a dataset: where each stored row breaks from the previous one, and the
     episodes left open to the datasets joined before and after it.
@@ -28,20 +28,18 @@ class EpisodeLayout(MushroomObject):
             n_envs (int, None): the number of parallel environments of each row, or ``None``.
 
         """
-        self._array_backend = ArrayBackend.get_array_backend(backend)
+        super().__init__(backend, device)
+
         self._shape = shape
-        self._device = device
         self._n_envs = n_envs
         self._first = int(self.Boundary.FRESH)
         self._open_heads = None
         self._open_tails = None
         self._n_joins = 0
 
-        serialization = self._array_backend.get_backend_serialization()
+        serialization = self._backend.get_backend_serialization()
         self._add_save_attr(
-            _array_backend='primitive',
             _shape='primitive',
-            _device='none',
             _n_envs='primitive',
             _first='primitive',
             _open_heads=serialization,
@@ -125,14 +123,13 @@ class EpisodeLayout(MushroomObject):
         if isinstance(index, slice) and index.step in (None, 1):
             layout = self._standalone_slice(index, last)
         else:
-            array_backend = self._array_backend
             starts = self.row_starts(last)[index]
-            boundary = array_backend.zeros(len(starts), dtype=self.dtype, device=self._device)
+            boundary = self._backend.zeros(len(starts), dtype=self.dtype, device=self._device)
             boundary[:] = int(self.Boundary.CONTINUING)
             boundary[starts] = int(self.Boundary.FRESH)
             layout = self._coded_from_array(boundary)
-        layout._open_heads = self._array_backend.zeros(0, dtype=int, device=self._device)
-        layout._open_tails = self._array_backend.zeros(0, dtype=int, device=self._device)
+        layout._open_heads = self._backend.zeros(0, dtype=int, device=self._device)
+        layout._open_tails = self._backend.zeros(0, dtype=int, device=self._device)
 
         return layout
 
@@ -148,15 +145,14 @@ class EpisodeLayout(MushroomObject):
             The layout of the selected rows, continuing no episode and leaving none open.
 
         """
-        array_backend = self._array_backend
-        boundary_code = array_backend.zeros(len(rows), dtype=self.dtype, device=self._device)
+        boundary_code = self._backend.zeros(len(rows), dtype=self.dtype, device=self._device)
         boundary_code[:] = int(self.Boundary.CONTINUING)
         boundary_code[self.row_starts(last)[rows]] = int(self.Boundary.FRESH)
         linked = (rows[1:] == rows[:-1] + 1) & self._follow_previous(rows[1:])
         boundary_code[1:][linked] = int(self.Boundary.NONE)
         return self._coded_from_array(boundary_code,
-                                      open_heads=self._array_backend.zeros(0, dtype=int, device=self._device),
-                                      open_tails=self._array_backend.zeros(0, dtype=int, device=self._device))
+                                      open_heads=self._backend.zeros(0, dtype=int, device=self._device),
+                                      open_tails=self._backend.zeros(0, dtype=int, device=self._device))
 
     def walk_back(self, last, anchors, n_hops):
         """
@@ -201,8 +197,8 @@ class EpisodeLayout(MushroomObject):
         if self._open_heads is not None:
             return self._open_heads
         if len(self) > 0 and self._code(0) & self.Boundary.CONTINUING:
-            return self._array_backend.arange(0, 1, device=self._device)
-        return self._array_backend.zeros(0, dtype=int, device=self._device)
+            return self._backend.arange(0, 1, device=self._device)
+        return self._backend.zeros(0, dtype=int, device=self._device)
 
     def pending_tails(self, last):
         """
@@ -218,8 +214,8 @@ class EpisodeLayout(MushroomObject):
         if self._open_tails is not None:
             return self._open_tails
         if len(self) > 0 and not bool(last[-1]):
-            return self._array_backend.arange(len(self) - 1, len(self), device=self._device)
-        return self._array_backend.zeros(0, dtype=int, device=self._device)
+            return self._backend.arange(len(self) - 1, len(self), device=self._device)
+        return self._backend.zeros(0, dtype=int, device=self._device)
 
     @staticmethod
     def walk_stream_back(last, anchors, n_hops):
@@ -311,13 +307,13 @@ class EpisodeLayout(MushroomObject):
         The data type of the boundary codes.
 
         """
-        return self._array_backend.to_backend_dtype('int8')
+        return self._backend.to_backend_dtype('int8')
 
     def _coded_from_array(self, boundary, open_heads=None, open_tails=None):
         raise NotImplementedError
 
     def _resized(self, n_rows):
-        return (n_rows,) + tuple(self._shape[1:]) if self._array_backend.get_backend_name() != 'list' else ()
+        return (n_rows,) + tuple(self._shape[1:]) if self.backend_name != 'list' else ()
 
     def _copy_state(self, layout):
         layout._first, layout._n_joins = self._first, self._n_joins

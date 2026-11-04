@@ -18,7 +18,7 @@ class DMP(HasWeights, StatefulPolicy):
     def __init__(self, mu, phi, goal, dt, tau, alpha_v, beta_v, alpha_z, beta_z):
         self._action_shape = mu.output_shape
 
-        super().__init__(policy_state_shape=(4,) + tuple(self._action_shape))
+        super().__init__(policy_state_shape=(4,) + tuple(self._action_shape), backend='numpy')
 
         self._approximator = mu
         self._phi = phi

@@ -3,25 +3,26 @@ The MushroomObject Interface
 
 In this tutorial, we explain in detail the ``MushroomObject`` interface, i.e. the common base class of almost every
 MushroomRL component: agents, policies, approximators, parameters, distributions, environments, and datasets all derive
-from it. It exists to give these heterogeneous objects two cross-cutting capabilities for free, so that their own code can
-stay focused on the reinforcement learning logic. The first one is serialization: an object can be saved to and loaded
-from disk in a robust, native format, declaring exactly which of its attributes to persist and how. The second one is
-logger forwarding: a logger attached to a top-level object (typically an agent) is automatically propagated down its tree
-of sub-objects, so that each component can log its own quantities under a coherent hierarchy of metric names, without
-holding a reference to the logger in advance.
+from it. It exists to give these heterogeneous objects two cross-cutting capabilities for free, so that their own code
+can stay focused on the reinforcement learning logic. The first one is serialization: an object can be saved to and
+loaded from disk in a robust, native format, declaring exactly which of its attributes to persist and how. The second
+one is logger forwarding: a logger attached to a top-level object (typically an agent) is automatically propagated down
+its tree of sub-objects, so that each component can log its own quantities under a coherent hierarchy of metric names,
+without holding a reference to the logger in advance.
 
 Both capabilities rely on the same idea: a ``MushroomObject`` declares its relevant attributes and loggable children
 (with ``_add_save_attr`` and ``_add_logger_attr``), and the base class walks that declaration to recursively save the
 object or forward the logger. Because the wiring is data rather than hand-written code, it composes naturally through
 nested objects, survives inheritance and reload, and a subclass only needs to declare what it adds.
 
-We first explain how to use classes implementing the ``MushroomObject`` interface, and then we provide a small example of
-how to implement it on a custom class to serialize the object properly on disk. Finally, we describe how the same
-interface is used to forward a logger down the object tree.
+We first explain how to use classes implementing the ``MushroomObject`` interface, and then we provide a small example
+of how to implement it on a custom class to serialize the object properly on disk. Then, we describe how the same
+interface is used to forward a logger down the object tree. Finally, we introduce the objects storing their data in an
+array backend, how to move them to another device, and how to load them, and in particular an agent, on a given device.
 
-The Mushroom RL save format (extension ``.msh``) is nothing else than a zip file, containing some information (stored into
-the ``config`` file) to load the object. This information can be accessed easily and you can try to recover the information
-by hand from corrupted files.
+The Mushroom RL save format (extension ``.msh``) is nothing else than a zip file, containing some information (stored
+into the ``config`` file) to load the object. This information can be accessed easily and you can try to recover the
+information by hand from corrupted files.
 
 Note that it is always possible to serialize Python objects with the pickle library. However, the MushroomRL
 serialization interface use a native format, is easy to use, and is more robust to code changes, as it doesn't serialize
@@ -101,14 +102,14 @@ Implementing the MushroomObject interface
 We give a simple example of how to implement the ``MushroomObject`` interface in MushroomRL for a custom class.
 We use almost all possible data persistence types implemented.
 
-We start the example by importing the ``MushroomObject`` interface, the torch library, the NumPy library, and the MushroomRL
-``Parameter class``.
+We start the example by importing the ``MushroomObject`` interface, the torch library, the NumPy library, and the
+MushroomRL ``Parameter class``.
 
 .. literalinclude:: code/serialization.py
    :lines: 1-5
 
-While it is required to import the ``MushroomObject`` interface, the other three imports are only required by this example, as
-they are used to create variables of such type.
+While it is required to import the ``MushroomObject`` interface, the other three imports are only required by this
+example, as they are used to create variables of such type.
 
 Now we define a class implementing the ``MushroomObject`` interface. In this case, we call it ``TestClass``.
 In the constructor we first build a set of variables of different types, and then we specify which variables
@@ -125,7 +126,8 @@ store in the file, while the associated value is the method we want to use to st
 The available methods are:
 
 - **primitive**, to store any primitive type. This includes lists and dictionaries of primitive values.
-- **mushroom**, to store any type implementing the ``MushroomObject`` interface. Also, lists of ``MushroomObject`` instances are supported.
+- **mushroom**, to store any type implementing the ``MushroomObject`` interface. Also, lists of ``MushroomObject``
+  instances are supported.
 - **numpy**, to store NumPy arrays.
 - **torch**, to store any torch object.
 - **pickle**, to store any Python object that cannot be stored with the above methods.
@@ -136,7 +138,8 @@ serialized if and only if the ``full_save`` flag is set to true.
 
 To conclude the implementation of our ``MushroomObject`` interface, we might want to implement also the
 ``self._post_load`` method. This method is executed after all the data specified in ``self._add_save_attr`` has been
-loaded into the class. It can be useful to set the variables not saved in the file to a default variable.
+loaded into the class, and receives the device the object is loaded on (``None`` for the default one). It can be
+useful to set the variables not saved in the file to a default variable.
 
 .. literalinclude:: code/serialization.py
    :lines: 44-48
@@ -186,3 +189,65 @@ composed automatically down the object tree. As for ``_add_save_attr``, children
 the forwarding keeps working after an object is reassigned or loaded from disk (the registry is part of the
 saved data). A single value is logged with ``self._logger.log_training(...)`` from inside the object, where
 the first positional argument is the metric group and the values are passed as keyword arguments.
+
+Backend objects and devices
+---------------------------
+
+The objects storing their data in an array backend, such as approximators, policies, distributions, preprocessors
+and the dataset internals, derive from ``MushroomBackendObject``, a ``MushroomObject`` that also keeps track of the
+backend and of the device of its data. Their constructor takes the name of the backend and the device, and the
+``backend``, ``backend_name`` and ``device`` properties give access to them.
+
+Such an object can be moved to another device at any time with its ``to`` method, which returns the object itself.
+The method uses the information declared with ``self._add_save_attr``, so a custom class gets it without writing
+any code. It:
+
+- moves the tensors and torch modules of the attributes saved with the **torch** method, also when they are stored in
+  dictionaries, lists, tuples and deques; torch parameters are moved in place, so they keep their identity;
+- moves the attributes saved with the **mushroom** method, and the lists of them, by calling their own ``to`` method,
+  when they have one;
+- sets the attributes saved with the **none** method to ``None`` and calls ``self._post_load`` with the new device, so
+  that the object rebuilds them exactly as it does after a load.
+
+The attributes whose method ends with '**!**' are not moved: they usually reference objects owned by another one, such
+as the approximator of a TD policy, which is owned by the agent. Such objects are moved through their owner.
+
+As an example, we move a standardization preprocessor to the GPU. Its running statistics are a nested
+``MushroomBackendObject``, so they are moved with it:
+
+.. code-block:: python
+
+    from mushroom_rl.environments import Gymnasium
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp = Gymnasium('Pendulum-v1', horizon=200, gamma=.99)
+    preprocessor = StandardizationPreprocessor(mdp.info, backend='torch')
+
+    preprocessor.to('cuda')
+
+Therefore, a class storing caches or runtime data that depend on the device declares them with the **none** method and
+rebuilds what it needs in ``self._post_load``. For instance, the torch approximator re-links its optimizer to the
+network parameters in ``_post_load``, which also moves the optimizer state to the new device.
+
+Load on a device
+----------------
+
+Devices are not stored in the save file: a loaded object is placed on the device passed to ``load``, or on the
+default one (see ``TorchUtils.set_default_device``) when none is given. For instance, an agent trained on a GPU can be
+loaded on a machine without one:
+
+.. code-block:: python
+
+    from mushroom_rl.core import Agent
+    agent = Agent.load('agent.msh', device='cpu')
+
+An agent also stores data belonging to the environment it interacts with: the information of the environment, used to
+convert the actions, and the core preprocessors, applied to the observations the environment returns. When the
+environment is on a different device than the agent, pass its device as ``env_device``:
+
+.. code-block:: python
+
+    agent = Agent.load('agent.msh', device='cuda:1', env_device='cuda:0')
+
+The core preprocessors are moved with their ``to`` method, described in the previous section, so a custom core
+preprocessor is moved correctly as long as it declares its arrays with ``_add_save_attr``.

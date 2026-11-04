@@ -36,6 +36,16 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def get_container_serialization():
+        """
+        Returns:
+            The name of the ``MushroomObject`` save method (see ``_add_save_attr``) to use for attributes holding
+            containers (dictionaries, lists, deques) of this backend's arrays, i.e. ``'torch'`` or ``'pickle'``.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def get_array_backend(backend_name):
         """
         Args:
@@ -98,6 +108,15 @@ class ArrayBackend(object):
         return None
 
     @staticmethod
+    def supports_devices():
+        """
+        Returns:
+            Whether the arrays of the backend can be placed on a device.
+
+        """
+        return False
+
+    @staticmethod
     def get_device(array):
         """
         Args:
@@ -108,6 +127,37 @@ class ArrayBackend(object):
 
         """
         return None
+
+    @classmethod
+    def resolve_device(cls, device):
+        """
+        Resolve the device to be used for a requested one, ignoring the request for the backends that do not
+        support devices.
+
+        Args:
+            device: device requested by the caller, or ``None`` to use the default one.
+
+        Returns:
+            The device to be used, i.e. ``None`` for the backends that do not support devices.
+
+        """
+        return cls.check_device(device if cls.supports_devices() else None)
+
+    @classmethod
+    def same_device(cls, device_a, device_b):
+        """
+        Args:
+            device_a: a device of this backend, or ``None`` for the default one;
+            device_b: another device of this backend, or ``None`` for the default one.
+
+        Returns:
+            Whether the two devices are the same one.
+
+        Raises:
+            ValueError: if a device is not ``None`` and the backend does not support devices.
+
+        """
+        return cls.check_device(device_a) == cls.check_device(device_b)
 
     @classmethod
     def convert(cls, *arrays, to=None, backend=None, device=None):
@@ -1007,6 +1057,10 @@ class NumpyBackend(ArrayBackend):
     def get_backend_serialization():
         return 'numpy'
 
+    @staticmethod
+    def get_container_serialization():
+        return 'pickle'
+
     @classmethod
     def convert_to_backend(cls, backend, array, device=None):
         cls.check_device(device)
@@ -1282,13 +1336,28 @@ class TorchBackend(ArrayBackend):
     def get_backend_serialization():
         return 'torch'
 
+    @staticmethod
+    def get_container_serialization():
+        return 'torch'
+
     @classmethod
     def check_device(cls, device):
         return TorchUtils.get_device() if device is None else device
 
     @staticmethod
+    def supports_devices():
+        return True
+
+    @staticmethod
     def get_device(array):
         return array.device
+
+    @classmethod
+    def same_device(cls, device_a, device_b):
+        devices = [torch.device(cls.check_device(device)) for device in (device_a, device_b)]
+        devices = [torch.device(device.type, torch.cuda.current_device())
+                   if device.type == 'cuda' and device.index is None else device for device in devices]
+        return devices[0] == devices[1]
 
     @staticmethod
     def convert_to_backend(backend, array, device=None):
@@ -1555,6 +1624,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def get_backend_serialization():
         return 'numpy'
+
+    @staticmethod
+    def get_container_serialization():
+        return 'pickle'
 
     @classmethod
     def convert_to_backend(cls, backend, array, device=None):

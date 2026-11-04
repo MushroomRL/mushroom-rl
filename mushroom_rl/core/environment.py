@@ -1,10 +1,9 @@
 import warnings
 
-from mushroom_rl.core.mushroom_object import MushroomObject
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 
 
-class MDPInfo(MushroomObject):
+class MDPInfo(MushroomBackendObject):
     """
     This class is used to store the information of the environment.
 
@@ -22,25 +21,24 @@ class MDPInfo(MushroomObject):
              backend (str, 'numpy'): the type of data library used to generate state and actions;
              device (str, None): device the environment data is stored on, only allowed with the torch backend.
 
+        Raises:
+            ValueError: if ``device`` is not ``None`` and the backend does not support devices.
+
         """
-        assert backend == 'torch' or device is None
+        super().__init__(backend, device)
 
         self.observation_space = observation_space
         self.action_space = action_space
         self.gamma = gamma
         self.horizon = horizon
         self.dt = dt
-        self.backend = backend
-        self.device = device
 
         self._add_save_attr(
             observation_space='mushroom',
             action_space='mushroom',
             gamma='primitive',
             horizon='primitive',
-            dt='primitive',
-            backend='primitive',
-            device='primitive'
+            dt='primitive'
         )
 
     @property
@@ -235,7 +233,7 @@ class Environment(object):
             The bounded variable.
 
         """
-        array_backend = ArrayBackend.get_array_backend(self.info.backend)
-        return array_backend.maximum(min_value, array_backend.minimum(x, max_value))
+        backend = self.info.backend
+        return backend.maximum(min_value, backend.minimum(x, max_value))
 
     _registered_envs = dict()

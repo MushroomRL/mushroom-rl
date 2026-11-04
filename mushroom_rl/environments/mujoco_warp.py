@@ -87,8 +87,8 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._wp = wp
 
         wp.init()
-        self._device = TorchUtils.get_device(device)
-        wp.set_device(wp.device_from_torch(self._device))
+        device = TorchUtils.get_device(device)
+        wp.set_device(wp.device_from_torch(device))
 
         self._model = MuJoCo.load_model(xml_file)
         if timestep is not None:
@@ -114,7 +114,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
 
         self._reset_mask_t = torch.zeros(
-            self._num_envs, dtype=torch.bool, device=self._device
+            self._num_envs, dtype=torch.bool, device=device
         )
         self._reset_mask_wp = wp.from_torch(self._reset_mask_t)
 
@@ -160,7 +160,7 @@ class MuJoCoWarp(VectorizedEnvironment):
             horizon,
             self.dt,
             backend="torch",
-            device=self._device,
+            device=device,
         )
         mdp_info = self._modify_mdp_info(mdp_info)
 
@@ -171,7 +171,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         )
 
         self._action_indices_t = torch.as_tensor(
-            self._action_indices, device=self._device, dtype=torch.long
+            self._action_indices, device=device, dtype=torch.long
         )
 
         super().__init__(mdp_info, num_envs)
@@ -477,7 +477,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         ctrl_action_t = (
             ctrl_action
             if isinstance(ctrl_action, torch.Tensor)
-            else torch.as_tensor(ctrl_action, device=self._device, dtype=ctrl.dtype)
+            else torch.as_tensor(ctrl_action, device=self.info.device, dtype=ctrl.dtype)
         )
         ctrl_action_t = ctrl_action_t.to(ctrl.dtype)
 
@@ -541,14 +541,14 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
         if ncon == 0:
-            return torch.zeros(self._num_envs, dtype=torch.bool, device=self._device)
+            return torch.zeros(self._num_envs, dtype=torch.bool, device=self.info.device)
 
         geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
         worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
 
         ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
         ids1_mask[list(ids1)] = True
         ids2_mask[list(ids2)] = True
 
@@ -556,7 +556,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         g2 = geom[:, 1].long()
         match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
 
-        result = torch.zeros(self._num_envs, dtype=torch.bool, device=self._device)
+        result = torch.zeros(self._num_envs, dtype=torch.bool, device=self.info.device)
         if match.any():
             matched_envs = worldid[match].long()
             result[matched_envs] = True
@@ -582,7 +582,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         ids2 = self.collision_groups[group2]
 
         ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
-        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=self._device)
+        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=self.info.device)
         if ncon == 0:
             return result
 
@@ -591,8 +591,8 @@ class MuJoCoWarp(VectorizedEnvironment):
         frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]
 
         ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self._device)
+        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
+        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
         ids1_mask[list(ids1)] = True
         ids2_mask[list(ids2)] = True
 

@@ -1,5 +1,6 @@
 from .array_backend import ArrayBackend
 from .mushroom_object import MushroomObject
+from .mushroom_backend_object import MushroomBackendObject
 from .spaces import Box, Discrete
 from .environment import Environment, MDPInfo
 from .vectorized_env import VectorizedEnvironment
@@ -16,7 +17,7 @@ import mushroom_rl.environments  # noqa: F401
 
 __all__ = [
     'ArrayBackend',
-    'MushroomObject',
+    'MushroomObject', 'MushroomBackendObject',
     'Box', 'Discrete',
     'Environment', 'MDPInfo',
     'VectorizedEnvironment', 'MultiprocessEnvironment',

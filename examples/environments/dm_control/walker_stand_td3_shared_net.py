@@ -22,6 +22,7 @@ from mushroom_rl.algorithms.actor_critic import TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import DMControl
 from mushroom_rl.policy import ClippedGaussianPolicy
+from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.rl_utils.parameters import LinearParameter
 from mushroom_rl.utils.torch_utils import TorchUtils
 
@@ -35,13 +36,15 @@ def orthogonal_init(m):
         nn.init.zeros_(m.bias)
 
 
-class RandomShiftAugmentation(nn.Module):
+class RandomShiftAugmentation(Preprocessor):
     def __init__(self, pad):
-        super().__init__()
+        super().__init__('torch')
 
         self._pad = pad
 
-    def forward(self, state):
+        self._add_save_attr(_pad='primitive')
+
+    def __call__(self, state):
         shape = state.shape
         image = state.reshape(-1, shape[-3] * shape[-4], *shape[-2:]).float()
         n, _, h, w = image.shape

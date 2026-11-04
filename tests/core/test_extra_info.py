@@ -1,5 +1,5 @@
 from mushroom_rl.core import ArrayBackend
-from mushroom_rl.core._impl.extra_info import StepInfo, EpisodeInfo
+from mushroom_rl.core._impl.extra_info import StepInfo, EpisodeInfoReset, EpisodeInfoParameters
 import pytest
 import torch
 import numpy as np
@@ -703,7 +703,7 @@ def test_save_and_load(tmpdir):
 
 
 def test_episode_info_keeps_one_entry_per_episode_and_environment():
-    info = EpisodeInfo(3, 'numpy')
+    info = EpisodeInfoReset(3, 'numpy')
 
     info.append([{'ep': float(j)} for j in range(3)], np.ones(3, dtype=bool))
     info.append({'ep': np.array([10., 11., 12.])}, np.array([True, False, True]))
@@ -716,7 +716,7 @@ def test_episode_info_keeps_one_entry_per_episode_and_environment():
 
 
 def test_episode_info_of_a_single_environment_takes_the_dictionary_as_is():
-    info = EpisodeInfo(1, 'numpy')
+    info = EpisodeInfoReset(1, 'numpy')
 
     info.append({'ep': 1.})
     info.append({'ep': 2.})
@@ -727,7 +727,7 @@ def test_episode_info_of_a_single_environment_takes_the_dictionary_as_is():
 
 
 def test_episode_info_flatten_concatenates_the_environments():
-    info = EpisodeInfo(2, 'numpy')
+    info = EpisodeInfoReset(2, 'numpy')
 
     info.append([{'ep': 0.}, {'ep': 1.}], np.ones(2, dtype=bool))
     info.append([{'ep': 2.}, {'ep': 3.}], np.array([True, False]))
@@ -739,50 +739,50 @@ def test_episode_info_flatten_concatenates_the_environments():
 
 
 def test_episode_info_keeps_raw_entries_apart():
-    info = EpisodeInfo(3, 'numpy')
+    info = EpisodeInfoParameters(3, 'numpy')
 
-    info.append(np.arange(3.), np.array([True, False, True]))
-    info.append(np.arange(3.) + 10, np.array([True, True, False]))
+    info.append(np.arange(3.)[:, None], np.array([True, False, True]))
+    info.append(np.arange(3.)[:, None] + 10, np.array([True, True, False]))
 
     assert info.n_envs == 3
     assert len(info) == 4
-    assert info.episodes == [[0., 10.], [11.], [2.]]
-    assert info.flatten().episodes == [0., 10., 11., 2.]
+    assert np.array_equal(info.parse(), np.array([[0.], [10.], [11.], [2.]]))
+    assert np.array_equal(info.flatten().parse(), np.array([[0.], [10.], [11.], [2.]]))
 
 
 def test_episode_info_of_a_single_environment_takes_the_entry_as_is():
-    info = EpisodeInfo(1, 'numpy')
+    info = EpisodeInfoParameters(1, 'numpy')
 
-    info.append(1.)
-    info.append(2.)
+    info.append(np.array([1.]))
+    info.append(np.array([2.]))
 
     assert info.n_envs == 1
-    assert info.episodes == [1., 2.]
-    assert info.flatten().episodes == [1., 2.]
+    assert np.array_equal(info.parse(), np.array([[1.], [2.]]))
+    assert np.array_equal(info.flatten().parse(), np.array([[1.], [2.]]))
 
 
 def test_episode_info_merges_environment_by_environment():
-    first = EpisodeInfo(2, 'numpy')
-    first.append([0., 1.], np.ones(2, dtype=bool))
+    first = EpisodeInfoParameters(2, 'numpy')
+    first.append(np.array([[0.], [1.]]), np.ones(2, dtype=bool))
 
-    second = EpisodeInfo(2, 'numpy')
-    second.append([2., 3.], np.ones(2, dtype=bool))
-    second.append([4., 5.], np.array([False, True]))
+    second = EpisodeInfoParameters(2, 'numpy')
+    second.append(np.array([[2.], [3.]]), np.ones(2, dtype=bool))
+    second.append(np.array([[4.], [5.]]), np.array([False, True]))
 
     merged = first + second
 
-    assert merged.episodes == [[0., 2.], [1., 3., 5.]]
-    assert first.episodes == [[0.], [1.]]
+    assert np.array_equal(merged.parse(), np.array([[0.], [2.], [1.], [3.], [5.]]))
+    assert np.array_equal(first.parse(), np.array([[0.], [1.]]))
 
     first += second
 
-    assert first.episodes == [[0., 2.], [1., 3., 5.]]
+    assert np.array_equal(first.parse(), np.array([[0.], [2.], [1.], [3.], [5.]]))
 
 
 @pytest.mark.parametrize('backend', ['numpy', 'torch'])
 def test_episode_info_masked_append_keeps_the_environment_order(backend):
     array = ArrayBackend.get_array_backend(backend)
-    info = EpisodeInfo(3, backend)
+    info = EpisodeInfoReset(3, backend)
 
     info.append({'ep': array.from_list([0., 1., 2.])}, array.from_list([True, False, True]))
     info.append({'ep': array.from_list([10., 11., 12.])}, array.from_list([False, True, True]))
@@ -790,21 +790,20 @@ def test_episode_info_masked_append_keeps_the_environment_order(backend):
 
     assert len(info) == 4
     assert array.to_list(info.parse()['ep']) == [0., 11., 2., 12.]
-    assert [[e['ep'].item() for e in episodes] for episodes in info.episodes] == [[0.], [11.], [2., 12.]]
 
 
 def test_episode_info_copy_and_clear_are_independent():
-    info = EpisodeInfo(2, 'numpy')
-    info.append([1., 2.], np.ones(2, dtype=bool))
+    info = EpisodeInfoParameters(2, 'numpy')
+    info.append(np.array([[1.], [2.]]), np.ones(2, dtype=bool))
 
     copied = info.copy()
     empty = info.empty()
     info.clear()
 
-    assert copied.episodes == [[1.], [2.]]
-    assert empty.episodes == [[], []]
+    assert np.array_equal(copied.parse(), np.array([[1.], [2.]]))
+    assert empty.parse() is None
     assert empty.n_envs == 2
-    assert info.episodes == [[], []]
+    assert info.parse() is None
 
 
 def test_merge_keeps_the_row_order_for_every_parsed_combination():
@@ -1155,7 +1154,7 @@ def test_to_backend_defers_the_conversion():
 
 
 def test_to_backend_converts_the_episode_info():
-    info = EpisodeInfo(1, 'numpy')
+    info = EpisodeInfoReset(1, 'numpy')
     info.append({'ep': np.array([3.])})
 
     converted = info.to_backend('torch')

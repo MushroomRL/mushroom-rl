@@ -2,11 +2,12 @@ import numpy as np
 from tqdm import trange, tqdm
 
 from mushroom_rl.core.mushroom_object import MushroomObject
+from mushroom_rl.utils.torch_utils.torch_utils import TorchUtils
 
 
 class TorchTrainer(MushroomObject):
     def __init__(self, loss_fn, batch_size, n_fit_targets, reinitialize, dropout,
-                 fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet):
+                 fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet, device=None):
         self._loss_fn = loss_fn
         self.quiet = quiet
         self.batch_size = batch_size
@@ -18,7 +19,7 @@ class TorchTrainer(MushroomObject):
         self._store_loss_fn = store_loss_fn
 
         self._add_save_attr(
-            _loss_fn='pickle',
+            _loss_fn='torch',
             quiet='primitive',
             batch_size='primitive',
             n_fit_targets='primitive',
@@ -26,16 +27,55 @@ class TorchTrainer(MushroomObject):
             dropout='primitive',
         )
 
+        if device is not None:
+            self.to(device)
+
     def set_callbacks(self, fit_epoch_fn, compute_val_loss_fn, store_loss_fn):
         self._fit_epoch_fn = fit_epoch_fn
         self._compute_val_loss_fn = compute_val_loss_fn
         self._store_loss_fn = store_loss_fn
+
+    def to(self, device):
+        """
+        Move the trainer to the given device. The loss function is moved only if it supports it.
+
+        Args:
+            device (str, None): the device to move the trainer to, or ``None`` for the default one.
+
+        Returns:
+            The trainer itself.
+
+        """
+        if hasattr(self._loss_fn, 'to'):
+            self._loss_fn.to(TorchUtils.get_device(device))
+        return self
 
     def fit(self, args, n_epochs, weights, epsilon, patience, validation_split, network_kwargs):
         check_loss, n_epochs, use_weights, train_args, val_args = self._setup(
             args, n_epochs, weights, epsilon, validation_split)
         self._run_loop(n_epochs, check_loss, epsilon, patience,
                        train_args, val_args, use_weights, network_kwargs)
+
+    def compute_loss_from_output(self, y_hat, y_targets, weights=None):
+        if isinstance(y_hat, tuple):
+            output_type = y_hat[0].dtype
+        else:
+            output_type = y_hat.dtype
+        y = [yi.to(output_type) for yi in y_targets]
+        if weights is None:
+            return self._loss_fn(y_hat, *y)
+        loss = self._loss_fn(y_hat, *y, reduction='none')
+        loss = loss @ weights
+        return loss / weights.sum()
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the trainer.
+
+        """
+        return self._loss_fn
 
     def _setup(self, args, n_epochs, weights, epsilon, validation_split):
         if epsilon is not None:
@@ -98,15 +138,3 @@ class TorchTrainer(MushroomObject):
                         t_epochs.set_postfix(loss=float(np.mean(loss_current)))
 
                     self._store_loss_fn(loss_current)
-
-    def compute_loss_from_output(self, y_hat, y_targets, weights=None):
-        if isinstance(y_hat, tuple):
-            output_type = y_hat[0].dtype
-        else:
-            output_type = y_hat.dtype
-        y = [yi.to(output_type) for yi in y_targets]
-        if weights is None:
-            return self._loss_fn(y_hat, *y)
-        loss = self._loss_fn(y_hat, *y, reduction='none')
-        loss = loss @ weights
-        return loss / weights.sum()

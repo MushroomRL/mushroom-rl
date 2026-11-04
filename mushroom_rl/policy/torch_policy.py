@@ -19,6 +19,17 @@ class TorchPolicy(Policy):
 
     """
 
+    def __init__(self, device=None, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
+            **kwargs: the remaining keyword arguments, passed to the constructor of the base policy.
+
+        """
+        super().__init__(backend='torch', device=device, **kwargs)
+
     def __call__(self, state, action):
         return torch.exp(self.log_prob(state, action))
 
@@ -117,7 +128,7 @@ class GaussianTorchPolicy(TorchPolicy):
     deviation. The standard deviation is not state-dependent.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1., **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, **params):
         """
         Constructor.
 
@@ -127,16 +138,20 @@ class GaussianTorchPolicy(TorchPolicy):
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
             **params: parameters used by the network constructor.
 
         """
+        super().__init__(device)
+
         self._action_dim = output_shape[0]
 
-        self._mu = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
+        self._mu = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network,
+                                     device=self._device, **params)
         self._predict_params = dict()
 
-        log_sigma_init = (torch.ones(self._action_dim, device=TorchUtils.get_device())
-                          * torch.log(TorchUtils.to_float_tensor(std_0)))
+        log_sigma_init = (torch.ones(self._action_dim, device=self._device)
+                          * torch.log(TorchUtils.to_float_tensor(std_0, self._device)))
 
         self._log_sigma = nn.Parameter(log_sigma_init)
 
@@ -165,7 +180,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return self.distribution(state, action_history=action_history).log_prob(action).unsqueeze(-1)
 
     def entropy(self, state=None):
-        return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e))\
+        return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e, self._device))\
                + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
@@ -177,7 +192,7 @@ class GaussianTorchPolicy(TorchPolicy):
         return mean, torch.diag(torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
-        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:])
+        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
         self._log_sigma.data = log_sigma_data
 
         self._mu.set_weights(weights[:-self._action_dim])
@@ -197,7 +212,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    def __init__(self, network, input_shape, output_shape, beta, **params):
+    def __init__(self, network, input_shape, output_shape, beta, device=None, **params):
         """
         Constructor.
 
@@ -209,15 +224,19 @@ class BoltzmannTorchPolicy(TorchPolicy):
             beta ([float, Parameter]): the inverse of the temperature distribution. As
                 the temperature approaches infinity, the policy becomes more and
                 more random. As the temperature approaches 0.0, the policy becomes
-                more and more greedy.
+                more and more greedy;
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
             **params: parameters used by the network constructor.
 
         """
+        super().__init__(device)
+
         self._action_dim = output_shape[0]
         self._predict_params = dict()
 
-        self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network, **params)
-        self._beta = Parameter.make(beta, backend='torch')
+        self._logits = TorchApproximator(input_shape=input_shape, output_shape=output_shape, network=network,
+                                         device=self._device, **params)
+        self._beta = Parameter.make(beta, backend='torch', device=self._device)
 
         self._add_save_attr(
             _action_dim='primitive',
@@ -259,7 +278,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         return self._logits.parameters()
 
     def set_beta(self, beta):
-        self._beta = Parameter.make(beta, backend='torch')
+        self._beta = Parameter.make(beta, backend='torch', device=self._device)
 
 
 class SquashedGaussianTorchPolicy(TorchPolicy):
@@ -269,7 +288,7 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
     :class:`~mushroom_rl.utils.torch_utils.torch_distributions.SquashedGaussian` distribution.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max, device=None):
         """
         Constructor.
 
@@ -279,17 +298,20 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
             min_a (np.ndarray): a vector specifying the minimum action value for each component;
             max_a (np.ndarray): a vector specifying the maximum action value for each component;
             log_std_min ([float, Parameter]): min value for the policy log std;
-            log_std_max ([float, Parameter]): max value for the policy log std.
+            log_std_max ([float, Parameter]): max value for the policy log std;
+            device (str, None): device the policy is stored on, or ``None`` for the default one.
 
         """
+        super().__init__(device)
+
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
 
-        self._min_a = TorchUtils.to_float_tensor(min_a)
-        self._max_a = TorchUtils.to_float_tensor(max_a)
+        self._min_a = TorchUtils.to_float_tensor(min_a, self._device)
+        self._max_a = TorchUtils.to_float_tensor(max_a, self._device)
 
-        self._log_std_min = Parameter.make(log_std_min, backend='torch')
-        self._log_std_max = Parameter.make(log_std_max, backend='torch')
+        self._log_std_min = Parameter.make(log_std_min, backend='torch', device=self._device)
+        self._log_std_max = Parameter.make(log_std_max, backend='torch', device=self._device)
 
         self._eps = 1e-6
 

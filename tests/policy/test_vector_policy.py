@@ -13,7 +13,7 @@ def _make_gaussian_policy(state_dim=3, action_dim=2):
 
 class _StatefulPolicy(HasWeights, StatefulPolicy):
     def __init__(self, reset_value):
-        super().__init__(policy_state_shape=(reset_value.shape[0],))
+        super().__init__(policy_state_shape=(reset_value.shape[0],), backend='numpy')
         self._reset_value = reset_value.copy()
         self._w = np.zeros(3)
         self._add_save_attr(_reset_value='numpy', _w='numpy')

@@ -46,6 +46,8 @@ class GaussianPolicy(AbstractGaussianPolicy):
                 action dimensionality.
 
         """
+        super().__init__('numpy')
+
         self._approximator = mu
         self._predict_params = dict()
         self._sigma = CovarianceParameter.make(sigma, backend='numpy')
@@ -123,6 +125,8 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
                 this vector must be equal to the action dimensionality.
 
         """
+        super().__init__('numpy')
+
         self._approximator = mu
         self._predict_params = dict()
         self._std = std
@@ -209,6 +213,8 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
                 ensure that is always greater than zero.
 
         """
+        super().__init__('numpy')
+
         assert eps > 0
 
         self._mu_approximator = mu
@@ -300,6 +306,8 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
                 regressor must be equal to the action dimensionality.
 
         """
+        super().__init__('numpy')
+
         self._mu_approximator = mu
         self._log_std_approximator = log_std
         self._predict_params = dict()

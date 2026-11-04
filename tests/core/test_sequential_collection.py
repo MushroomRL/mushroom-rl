@@ -8,7 +8,7 @@ from mushroom_rl.utils.callbacks import CollectDataset
 class ZeroPolicy(Policy):
     def __init__(self, action_shape):
         self._dim = action_shape[0]
-        super().__init__()
+        super().__init__('numpy')
 
     def draw_action(self, state):
         return np.zeros(self._dim)

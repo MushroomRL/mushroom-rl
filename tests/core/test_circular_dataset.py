@@ -217,7 +217,7 @@ def test_step_info_is_dropped():
 
     assert buffer.info == {}
     assert buffer.episode_info == {}
-    assert buffer.theta_list == []
+    assert buffer.theta is None
 
 
 def test_append_episode_info_and_append_theta_raise():
@@ -363,7 +363,7 @@ def test_to_backend_keeps_the_ring():
 
 def test_to_backend_shares_no_links_with_the_ring():
     buffer = make_linked_buffer()
-    buffer._dataset_info.agent_backend = 'torch'
+    buffer._dataset_info.agent_backend_name = 'torch'
     links = [link.copy() for link in buffer.links]
 
     converted = buffer.to_backend('numpy')

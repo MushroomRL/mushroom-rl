@@ -48,3 +48,20 @@ def test_minibatch_generator_unsupported_distribution():
 
     with pytest.raises(NotImplementedError):
         next(minibatch_generator(4, x, dist))
+
+
+def test_minibatch_generator_indexes_each_tensor_on_its_own_device():
+    if not torch.cuda.is_available():
+        pytest.skip('requires cuda')
+
+    x = torch.arange(10, device='cuda')
+    lengths = torch.arange(10) * 10
+
+    torch.manual_seed(1)
+    batches = list(minibatch_generator(4, x, lengths))
+    torch.manual_seed(1)
+    indexes = torch.randperm(10)
+
+    assert [(x_i.device.type, lengths_i.device.type) for x_i, lengths_i in batches] == [('cuda', 'cpu')] * 3
+    assert torch.equal(torch.cat([x_i for x_i, _ in batches]).cpu(), indexes)
+    assert all(torch.equal(lengths_i, x_i.cpu() * 10) for x_i, lengths_i in batches)

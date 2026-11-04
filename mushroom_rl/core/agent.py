@@ -1,27 +1,24 @@
 from mushroom_rl.core.mushroom_object import MushroomObject
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.history_manager import HistoryManager
 
 
-class AgentInfo(MushroomObject):
+class AgentInfo(MushroomBackendObject):
     def __init__(self, is_episodic, policy_state_shape, backend, device=None):
         assert isinstance(is_episodic, bool)
         assert policy_state_shape is None or isinstance(policy_state_shape, tuple)
         assert isinstance(backend, str)
-        assert backend == 'torch' or device is None
+
+        super().__init__(backend, device)
 
         self.is_episodic = is_episodic
         self.is_stateful = policy_state_shape is not None
         self.policy_state_shape = policy_state_shape
-        self.backend = backend
-        self.device = device
 
         self._add_save_attr(
             is_episodic='primitive',
             is_stateful='primitive',
-            policy_state_shape='primitive',
-            backend='primitive',
-            device='primitive'
+            policy_state_shape='primitive'
         )
 
 
@@ -63,8 +60,6 @@ class Agent(MushroomObject):
             device=device
         )
         self.policy = policy
-        self._agent_backend = ArrayBackend.get_array_backend(backend)
-        self._env_backend = ArrayBackend.get_array_backend(self.mdp_info.backend)
 
         if history_manager is not None:
             self._history_manager = history_manager
@@ -82,10 +77,8 @@ class Agent(MushroomObject):
             mdp_info='mushroom',
             _info='mushroom',
             _history_manager='mushroom',
-            _agent_backend='primitive',
-            _env_backend='primitive',
             _core_preprocessors='mushroom',
-            _fit_preprocessors='pickle'
+            _fit_preprocessors='mushroom'
         )
 
     def fit(self, dataset):
@@ -183,10 +176,12 @@ class Agent(MushroomObject):
 
     def add_core_preprocessor(self, preprocessor):
         """
-        Add preprocessor to the core's preprocessor list. The preprocessors are applied in order.
+        Add preprocessor to the core's preprocessor list. The preprocessors are applied in order. When the agent is
+        loaded, they are placed on the device given as ``env_device`` to :meth:`load`, or on the agent device when it
+        is not given.
 
         Args:
-            preprocessor (object): state preprocessors to be applied
+            preprocessor (Preprocessor): state preprocessors to be applied
                 to state variables before feeding them to the agent.
 
         """
@@ -213,10 +208,35 @@ class Agent(MushroomObject):
         observations of a fit batch, and never to the observations the policy acts on.
 
         Args:
-            preprocessor (object): state preprocessor to be applied to the observations of a fit batch.
+            preprocessor (Preprocessor): state preprocessor to be applied to the observations of a fit batch.
 
         """
         self._fit_preprocessors.append(preprocessor)
+
+    @classmethod
+    def load(cls, path, device=None, env_device=None):
+        """
+        Load and deserialize the agent from the given location on disk.
+
+        Args:
+            path (Path, string): relative or absolute path to the agent save location;
+            device (str, None): device the agent and all its sub-objects are placed on, or ``None`` for the default
+                one;
+            env_device (str, None): device of the environment the agent interacts with, where the information of
+                the environment and the core preprocessors are placed. If ``None``, they are placed on ``device``.
+
+        Returns:
+            The loaded agent.
+
+        """
+        agent = super().load(path, device)
+
+        if env_device is not None:
+            agent.mdp_info.to(env_device)
+            for preprocessor in agent.core_preprocessors:
+                preprocessor.to(env_device)
+
+        return agent
 
     @property
     def core_preprocessors(self):
@@ -286,11 +306,24 @@ class Agent(MushroomObject):
 
         return state
 
+    def _check_device(self, component, name):
+        assert self._agent_backend.same_device(component.device, self._info.device), \
+            f"The {name} must be on the agent device '{self._info.device}', got '{component.device}'. " \
+            f"Build it with device='{self._info.device}'."
+
     def _convert_to_env_backend(self, array):
-        return self._env_backend.convert_to_backend(self._agent_backend, array)
+        return self._env_backend.convert_to_backend(self._agent_backend, array, device=self.mdp_info.device)
 
     def _convert_to_agent_backend(self, array):
-        return self._agent_backend.convert_to_backend(self._env_backend, array)
+        return self._agent_backend.convert_to_backend(self._env_backend, array, device=self._info.device)
+
+    @property
+    def _agent_backend(self):
+        return self._info.backend
+
+    @property
+    def _env_backend(self):
+        return self.mdp_info.backend
 
 
 class HasNextAction:

@@ -30,6 +30,7 @@ def test_abstract_backend_not_implemented():
     calls = [
         lambda: ArrayBackend.get_backend_name(),
         lambda: ArrayBackend.get_backend_serialization(),
+        lambda: ArrayBackend.get_container_serialization(),
         lambda: ArrayBackend.convert_to_backend(ArrayBackend, None),
         lambda: ArrayBackend.to_numpy(None),
         lambda: ArrayBackend.to_torch(None),
@@ -90,6 +91,7 @@ def test_abstract_backend_not_implemented():
 def test_list_backend():
     assert ListBackend.get_backend_name() == 'list'
     assert ListBackend.get_backend_serialization() == 'numpy'
+    assert ListBackend.get_container_serialization() == 'pickle'
 
     assert np.array_equal(ListBackend.to_numpy([1, 2, 3]), np.array([1, 2, 3]))
     assert torch.equal(ListBackend.to_torch([1, 2, 3]), torch.tensor([1, 2, 3]))
@@ -446,3 +448,9 @@ def test_convert_mask():
 
     assert isinstance(ArrayBackend.convert_mask(numpy_mask, to='list'), np.ndarray)
     assert np.array_equal(ListBackend.convert_to_backend_mask(TorchBackend, torch_mask), numpy_mask)
+
+
+def test_supports_devices():
+    assert NumpyBackend.supports_devices() is False
+    assert ListBackend.supports_devices() is False
+    assert TorchBackend.supports_devices() is True

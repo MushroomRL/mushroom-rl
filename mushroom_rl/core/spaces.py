@@ -46,14 +46,30 @@ class Box(MushroomObject):
 
         self._data_type = data_type
 
-        arr_backend = ArrayBackend.get_array_backend_from(self._low)
-        assert arr_backend == ArrayBackend.get_array_backend_from(self._high)
+        backend = ArrayBackend.get_array_backend_from(self._low)
+        assert backend == ArrayBackend.get_array_backend_from(self._high)
 
         self._add_save_attr(
-            _low=arr_backend.get_backend_serialization(),
-            _high=arr_backend.get_backend_serialization(),
+            _low=backend.get_backend_serialization(),
+            _high=backend.get_backend_serialization(),
             _data_type='primitive'
         )
+
+    def to(self, device):
+        """
+        Move the bounds of the space to another device.
+
+        Args:
+            device (str, None): the device to move to, or ``None`` for the default one.
+
+        Returns:
+            This space.
+
+        """
+        backend = ArrayBackend.get_array_backend_from(self._low)
+        self._low, self._high = backend.convert(self._low, self._high, device=backend.resolve_device(device))
+
+        return self
 
     @property
     def low(self):
@@ -86,7 +102,7 @@ class Box(MushroomObject):
     def data_type(self):
         return self._data_type
 
-    def _post_load(self):
+    def _post_load(self, device):
         self._shape = self._low.shape
 
 
@@ -111,6 +127,19 @@ class Discrete(MushroomObject):
             n='primitive',
             values='numpy'
         )
+
+    def to(self, device):
+        """
+        Move the space to another device. A discrete space stores no device data, so nothing changes.
+
+        Args:
+            device (str, None): the device to move to, or ``None`` for the default one.
+
+        Returns:
+            This space.
+
+        """
+        return self
 
     @property
     def size(self):

@@ -3,7 +3,6 @@ import torch
 
 from mushroom_rl.approximators.approximator import Approximator
 from mushroom_rl.approximators.parametric.torch_approximator import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class NumpyTorchApproximator(Approximator):
@@ -41,7 +40,7 @@ class NumpyTorchApproximator(Approximator):
             The numpy predictions of the model.
 
         """
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+        torch_args = [torch.as_tensor(x, device=self._model.device) for x in args]
         return self._model.predict(*torch_args, **kwargs).detach().cpu().numpy()
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
@@ -58,7 +57,7 @@ class NumpyTorchApproximator(Approximator):
             **kwargs: other parameters used by the fit method of the :class:`TorchApproximator`.
 
         """
-        torch_args = [torch.as_tensor(x, device=TorchUtils.get_device()) for x in args]
+        torch_args = [torch.as_tensor(x, device=self._model.device) for x in args]
         self._model.fit(*torch_args, n_epochs=n_epochs, weights=weights, epsilon=epsilon, patience=patience,
                         validation_split=validation_split, **kwargs)
 
@@ -74,7 +73,7 @@ class NumpyTorchApproximator(Approximator):
             The numpy derivative of the output w.r.t. the model parameters.
 
         """
-        torch_args = [torch.as_tensor(np.atleast_2d(x), device=TorchUtils.get_device()) for x in args]
+        torch_args = [torch.as_tensor(np.atleast_2d(x), device=self._model.device) for x in args]
         gradient = self._model.diff(*torch_args, **kwargs)
         return gradient.detach().cpu().numpy()
 

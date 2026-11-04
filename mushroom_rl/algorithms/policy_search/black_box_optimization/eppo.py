@@ -3,6 +3,7 @@ import torch
 from mushroom_rl.algorithms.policy_search.black_box_optimization import BlackBoxOptimization
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.utils.torch_utils import TorchUtils
 
 
 class ePPO(BlackBoxOptimization):
@@ -13,23 +14,28 @@ class ePPO(BlackBoxOptimization):
 
     """
     def __init__(self, mdp_info, distribution, policy, optimizer, n_epochs_policy, batch_size, eps_ppo, ent_coeff=0.0,
-                 context_builder=None):
+                 context_builder=None, device=None):
         """
         Constructor.
 
         Args:
-            optimizer: the gradient step optimizer.
+            optimizer: the gradient step optimizer;
+            device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
         assert hasattr(distribution, 'parameters')
 
         self._optimizer = optimizer['class'](distribution.parameters(), **optimizer['params'])
-        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch')
-        self._batch_size = Parameter.make(batch_size, backend='torch')
-        self._eps_ppo = Parameter.make(eps_ppo, backend='torch')
-        self._ent_coeff = Parameter.make(ent_coeff, backend='torch')
+        self._n_epochs_policy = Parameter.make(n_epochs_policy, backend='torch', device=device)
+        self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
+        self._eps_ppo = Parameter.make(eps_ppo, backend='torch', device=device)
+        self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
-        super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch')
+        super().__init__(mdp_info, distribution, policy, context_builder=context_builder, backend='torch',
+                         device=device)
+
+        self._check_device(distribution, 'distribution')
+        self._check_device(policy, 'policy')
 
         self._add_save_attr(
             _optimizer='torch',
@@ -40,7 +46,7 @@ class ePPO(BlackBoxOptimization):
         )
 
     def _update(self, Jep, theta, context):
-        Jep = torch.tensor(Jep)
+        Jep = torch.tensor(Jep, device=self._info.device)
         J_mean = torch.mean(Jep)
         J_std = torch.std(Jep)
 
@@ -74,3 +80,6 @@ class ePPO(BlackBoxOptimization):
             context_i = None
 
         return theta_i, context_i, Jep_i, old_dist_i
+
+    def _post_load(self, device):
+        TorchUtils.update_optimizer_parameters(self._optimizer, list(self.distribution.parameters()))
