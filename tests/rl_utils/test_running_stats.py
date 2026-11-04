@@ -38,20 +38,20 @@ def test_running_exp_weighted_average():
     rew = RunningExpWeightedAverage(shape=(3,), alpha=0.1, backend='numpy')
     for _ in range(30):
         rew.update_stats(np.random.randn(3))
-    assert np.allclose(rew.mean, [[0.05275285, 0.00430447, 0.17010064]])
+    assert np.allclose(rew.mean, [0.05275285, 0.00430447, 0.17010064])
 
 
 def test_running_exp_weighted_average_init_value():
     init = np.array([3., -1.])
     rew = RunningExpWeightedAverage(shape=(2,), alpha=0.1, backend='numpy', init_value=init)
-    assert np.allclose(rew.mean, [[3., -1.]])
+    assert np.allclose(rew.mean, [3., -1.])
 
 
 def test_running_exp_weighted_average_reset():
     rew = RunningExpWeightedAverage(shape=(2,), alpha=0.1, backend='numpy')
     rew.update_stats(np.array([10., 5.]))
     rew.reset()
-    assert np.allclose(rew.mean, [[0., 0.]])
+    assert np.allclose(rew.mean, [0., 0.])
 
 
 def test_running_averaged_window():
@@ -243,3 +243,12 @@ def test_running_averaged_window_mean_on_cuda():
 
     assert window.mean.device.type == 'cuda'
     assert torch.allclose(window.mean.cpu(), torch.tensor([2., 4.]))
+
+
+def test_running_standardization_keeps_the_unit_dimensions_of_the_sample():
+    for shape in [(1,), (3, 1)]:
+        standardization = RunningStandardization(shape=shape, backend='numpy')
+        standardization.update_stats(np.ones(shape))
+
+        assert standardization.mean.shape == shape
+        assert standardization.std.shape == shape

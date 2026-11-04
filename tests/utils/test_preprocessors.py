@@ -201,6 +201,22 @@ def test_minmax_preprocessor_multi_dimensional_observation():
     assert np.allclose(normalized, np.array([[[-1., 0.], [1., -0.5]]]))
 
 
+def test_standardization_preprocessor_keeps_the_unit_dimensions_of_the_observation():
+    from mushroom_rl.core import MDPInfo
+    from mushroom_rl.core.spaces import Box
+    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+
+    mdp_info = MDPInfo(Box(-np.ones((3, 1)), np.ones((3, 1))), Box(-np.ones(1), np.ones(1)), .99, 100)
+    preprocessor = StandardizationPreprocessor(mdp_info=mdp_info)
+    preprocessor.update(np.array([[1.], [2.], [3.]]))
+    preprocessor.update(np.array([[3.], [2.], [1.]]))
+
+    normalized = preprocessor(np.array([[1.], [2.], [3.]]))
+
+    assert normalized.shape == (3, 1)
+    assert np.allclose(normalized, [[-0.24253563], [0.60302269], [1.21267813]])
+
+
 def test_minmax_preprocessor_single_bounded_component():
     from mushroom_rl.core import MDPInfo
     from mushroom_rl.core.spaces import Box

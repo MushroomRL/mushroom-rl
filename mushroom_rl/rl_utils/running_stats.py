@@ -119,7 +119,7 @@ class RunningStandardization(RunningStatistics):
             The estimated mean value.
 
         """
-        return self._backend.squeeze(self._m)
+        return self._m
 
     @property
     def std(self):
@@ -128,7 +128,7 @@ class RunningStandardization(RunningStatistics):
             The estimated standard deviation value.
 
         """
-        return self._backend.squeeze(self._backend.sqrt(self._s / self._n))
+        return self._backend.sqrt(self._s / self._n)
 
     def _update(self, batch):
         batch_size = len(batch)
