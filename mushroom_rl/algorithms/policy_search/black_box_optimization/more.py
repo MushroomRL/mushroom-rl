@@ -91,7 +91,7 @@ class MORE(BlackBoxOptimization):
         R[uid] = beta[1 + n:]
         R.T[uid] = R[uid]
 
-        w, v = np.linalg.eig(R)
+        w, v = np.linalg.eigh(R)
         w[w >= 0.0] = -1e-12
         R = v @ np.diag(w) @ v.T
         R = 0.5 * (R + R.T)

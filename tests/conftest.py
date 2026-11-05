@@ -6,6 +6,8 @@ import pytest
 os.environ['MKL_CBWR'] = 'COMPATIBLE'
 os.environ['ATEN_CPU_CAPABILITY'] = 'avx2'
 os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+if 'DISPLAY' not in os.environ:
+    os.environ.setdefault('MUJOCO_GL', 'disable')
 
 import torch  # noqa: E402
 
