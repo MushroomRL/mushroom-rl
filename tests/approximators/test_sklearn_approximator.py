@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from sklearn.ensemble import BaggingRegressor, ExtraTreesRegressor
 from sklearn.exceptions import NotFittedError
-from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.linear_model import BayesianRidge, LinearRegression, Ridge
 
 from mushroom_rl.core import MushroomObject
 from mushroom_rl.approximators import Ensemble, QApproximator
@@ -66,6 +66,18 @@ def test_sklearn_approximator_fit_and_predict_params():
 
     with pytest.raises(TypeError):
         approximator.predict(x, unknown_param=True)
+
+    approximator = SklearnApproximator(BayesianRidge, input_shape=(2,), output_shape=[(1,), (1,)])
+    estimator = BayesianRidge()
+
+    approximator.fit(x, y)
+    estimator.fit(x, y)
+    mean, std = approximator.predict(x, return_std=True)
+    mean_estimator, std_estimator = estimator.predict(x, return_std=True)
+
+    assert np.array_equal(mean, mean_estimator) and np.array_equal(std, std_estimator)
+    assert np.array_equal(approximator.predict(x), mean_estimator)
+    assert np.array_equal(approximator.predict(x[0]), mean_estimator[:1])
 
 
 def test_sklearn_approximator_forwards_estimator_param():

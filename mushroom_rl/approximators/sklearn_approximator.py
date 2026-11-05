@@ -16,9 +16,9 @@ class SklearnApproximator(Approximator):
         Args:
             model_class (class): the scikit-learn estimator class to instantiate;
             input_shape (tuple): shape of the input;
-            output_shape (tuple, list, (1,)): shape of the output, or a list of shapes, one per element of the tuple
-                the estimator returns with some ``predict_params`` (e.g. ``return_std=True``);
-            n_models (int, 1): number of models; with more than one, an ``Ensemble`` of them is built;
+            output_shape (tuple, list, (1,)): shape of the output, or a list of shapes for estimators returning a
+                tuple;
+            n_models (int, 1): number of models; more than one builds an ``Ensemble``;
             **model_params: parameters passed to the constructor of the estimator.
 
         """
@@ -33,10 +33,9 @@ class SklearnApproximator(Approximator):
         Fit the estimator.
 
         Args:
-            x (np.ndarray): inputs, a batch of samples of shape ``input_shape`` along the first axis;
-            y (np.ndarray): targets, one per input, each holding ``prod(output_shape)`` values, or
-                ``prod(output_shape[0])`` when ``output_shape`` is a list;
-            **fit_params: other parameters passed to the ``fit`` method of the estimator.
+            x (np.ndarray): a batch of inputs;
+            y (np.ndarray): the targets, one per input;
+            **fit_params: parameters passed to the ``fit`` method of the estimator.
 
         """
         output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
@@ -53,14 +52,11 @@ class SklearnApproximator(Approximator):
         Predict with the estimator.
 
         Args:
-            x (np.ndarray): inputs, a single sample of shape ``input_shape`` or a batch of them along the first
-                axis;
-            **predict_params: other parameters passed to the ``predict`` method of the estimator.
+            x (np.ndarray): a single input or a batch of inputs;
+            **predict_params: parameters passed to the ``predict`` method of the estimator.
 
         Returns:
-            The predictions: an array of shape ``output_shape`` for a single sample; for a batch of ``n`` samples,
-            an array of shape ``(n, *output_shape)``, or ``(n,)`` when ``output_shape`` is ``(1,)``. When
-            ``output_shape`` is a list, a tuple with one such array per shape in the list.
+            The prediction, or a tuple of predictions when the estimator returns one.
 
         Raises:
             NotFittedError: if the estimator has not been fitted yet.
@@ -81,7 +77,8 @@ class SklearnApproximator(Approximator):
 
             return tuple(outputs)
         else:
-            return self._parse_output(prediction, self._output_shape, single)
+            output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
+            return self._parse_output(prediction, output_shape, single)
 
     @property
     def model(self):
