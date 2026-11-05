@@ -42,9 +42,7 @@ class SklearnApproximator(Approximator):
         output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
         target_shape = () if tuple(output_shape) == (1,) else (int(np.prod(output_shape)),)
 
-        x = np.asarray(x)
-        assert x.shape[1:] == tuple(self._input_shape)
-        x = x.reshape(len(x), -1)
+        x = self._flatten_inputs(np.asarray(x))
         y = np.asarray(y)
         y = y.reshape((len(y),) + target_shape)
 
@@ -72,8 +70,7 @@ class SklearnApproximator(Approximator):
         single = x.ndim == len(self._input_shape)
         if single:
             x = x[None]
-        assert x.shape[1:] == tuple(self._input_shape)
-        x = x.reshape(len(x), -1)
+        x = self._flatten_inputs(x)
 
         prediction = self._model.predict(x, **predict_params)
 
@@ -94,6 +91,10 @@ class SklearnApproximator(Approximator):
 
         """
         return self._model
+
+    def _flatten_inputs(self, x):
+        assert x.shape[1:] == tuple(self._input_shape)
+        return x.reshape(len(x), -1)
 
     @staticmethod
     def _parse_output(y, shape, single):
