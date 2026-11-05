@@ -14,9 +14,9 @@ class AirHockeyBaseBullet(PyBullet):
     Base class for air hockey environment.
     The environment is designed for 3 joints planar robot playing Air-Hockey
     """
-    def __init__(self, gamma=0.99, horizon=500, n_agents=1, env_noise=False, obs_noise=False, obs_delay=False,
-                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, table_boundary_terminate=False):
+    def __init__(self, gamma=0.99, horizon=500, n_agents=1, obs_noise=False, torque_control=True,
+                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
+                 table_boundary_terminate=False):
         """
         Constructor.
 
@@ -24,18 +24,14 @@ class AirHockeyBaseBullet(PyBullet):
             gamma (float, 0.99): discount factor;
             horizon (int, 500): horizon of the task;
             n_agents (int, 1): number of agents;
-            env_noise(bool, False): If true, the puck's movement is affected by the air-flow noise;
             obs_noise(bool, False): If true, the noise is added in the observation;
-            obs_delay(bool, False): If true, velocity is observed by the low-pass filter;
-            control(bool, True): If false, the robot in position control mode;
+            torque_control(bool, True): If false, the robot in position control mode;
             step_action_function(object, None): A callable function to warp-up the policy action to environment command.
             table_boundary_terminate(bool, False): Episode terminates if the mallet is outside the boundary
         """
 
         self.n_agents = n_agents
-        self.env_noise = env_noise
         self.obs_noise = obs_noise
-        self.obs_delay = obs_delay
         self.step_action_function = step_action_function
         self.table_boundary_terminate = table_boundary_terminate
 
@@ -132,12 +128,6 @@ class AirHockeyBaseBullet(PyBullet):
             return action
         else:
             return self.step_action_function(state, action)
-
-    def _simulation_pre_step(self):
-        if self.env_noise:
-            force = np.concatenate([np.random.randn(2), [0]]) * 0.0005
-            self._client.applyExternalForce(self._model_map['puck']['id'], -1, force, [0., 0., 0.],
-                                            self._client.WORLD_FRAME)
 
     def is_absorbing(self, state):
         boundary = np.array([self.env_spec['table']['length'], self.env_spec['table']['width']]) / 2

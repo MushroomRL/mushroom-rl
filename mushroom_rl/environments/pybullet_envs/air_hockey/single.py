@@ -9,9 +9,9 @@ class AirHockeySingleBullet(AirHockeyBaseBullet):
     """
     Base class for single agent air hockey tasks.
     """
-    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False,
-                 torque_control=True, step_action_function=None, timestep=1 / 240., n_intermediate_steps=1,
-                 debug_gui=False, table_boundary_terminate=False, number_flags=0):
+    def __init__(self, gamma=0.99, horizon=120, obs_noise=False, torque_control=True, step_action_function=None,
+                 timestep=1 / 240., n_intermediate_steps=1, debug_gui=False, table_boundary_terminate=False,
+                 number_flags=0):
 
         """
         Constructor.
@@ -21,10 +21,9 @@ class AirHockeySingleBullet(AirHockeyBaseBullet):
         """
         self.init_state = np.array([-0.9273, 0.9273, np.pi / 2])
         self.number_flags = number_flags
-        self.obs_prev = None
-        super().__init__(gamma=gamma, horizon=horizon, env_noise=env_noise, n_agents=1, obs_noise=obs_noise,
-                         obs_delay=obs_delay, torque_control=torque_control, step_action_function=step_action_function,
-                         timestep=timestep, n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
+        super().__init__(gamma=gamma, horizon=horizon, n_agents=1, obs_noise=obs_noise, torque_control=torque_control,
+                         step_action_function=step_action_function, timestep=timestep,
+                         n_intermediate_steps=n_intermediate_steps, debug_gui=debug_gui,
                          table_boundary_terminate=table_boundary_terminate)
 
         self._client.resetDebugVisualizerCamera(cameraDistance=1.5, cameraYaw=-90.0, cameraPitch=-45.0,
@@ -74,13 +73,7 @@ class AirHockeySingleBullet(AirHockeyBaseBullet):
         robot_vel[2] = self.get_sim_state(state, self.agents[0]['name'] + "/joint_3",
                                           PyBulletObservationType.JOINT_VEL).item()
 
-        if self.obs_delay:
-            alpha = 0.5
-            puck_vel_2d = alpha * puck_vel_2d + (1 - alpha) * self.obs_prev[2:6]
-            robot_vel = alpha * robot_vel + (1 - alpha) * self.obs_prev[8:11]
-
-        self.obs_prev = np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
-        return self.obs_prev
+        return np.concatenate([puck_pose_2d, puck_vel_2d, robot_pos, robot_vel])
 
     def _puck_2d_in_robot_frame(self, puck_in, robot_frame, type='pose'):
         if type == 'pose':

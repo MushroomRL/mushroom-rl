@@ -61,9 +61,9 @@ class AirHockeyDouble(AirHockeyBase):
         return puck_pos, puck_lin_vel, puck_ang_vel
 
     def get_ee(self, robot=1):
-        ee_pos = self._read_data("planar_robot_" + str(robot) + "/ee_pos")
+        ee_pos = self._read_data("robot_" + str(robot) + "/ee_pos")
 
-        ee_vel = self._read_data("planar_robot_" + str(robot) + "/ee_vel")
+        ee_vel = self._read_data("robot_" + str(robot) + "/ee_vel")
 
         return ee_pos, ee_vel
 
@@ -105,7 +105,7 @@ class AirHockeyDouble(AirHockeyBase):
             self.robot_1_hit = self._check_collision("puck", "robot_1/ee")
 
         if not self.robot_2_hit:
-            self.robot_2_hit = self._check_collision("puck", "robot_1/ee")
+            self.robot_2_hit = self._check_collision("puck", "robot_2/ee")
 
         if not self.has_bounce:
             self.has_bounce = self._check_collision("puck", "rim_short_sides")

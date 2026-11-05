@@ -12,7 +12,7 @@ class AirHockeyHitBullet(AirHockeySingleBullet):
     And will get bonus reward if the robot scores a goal.
     """
 
-    def __init__(self, gamma=0.99, horizon=120, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
+    def __init__(self, gamma=0.99, horizon=120, obs_noise=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
                  random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_robot_state="right"):
         """
@@ -37,7 +37,7 @@ class AirHockeyHitBullet(AirHockeySingleBullet):
         self.vec_puck_side = None
         self.puck_pos = None
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
+                         debug_gui=debug_gui, obs_noise=obs_noise,
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate, number_flags=1)
 
