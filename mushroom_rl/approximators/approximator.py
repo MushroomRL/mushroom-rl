@@ -125,8 +125,8 @@ class Ensemble(Approximator):
         """
         models = [model(**params) for _ in range(n_models)]
 
-        super().__init__(input_shape=params.get('input_shape'), output_shape=params.get('output_shape'),
-                         backend=getattr(models[0], 'backend_name', 'numpy'), device=getattr(models[0], 'device', None))
+        super().__init__(input_shape=models[0].input_shape, output_shape=models[0].output_shape,
+                         backend=models[0].backend_name, device=models[0].device)
 
         self._prediction = prediction
         self._models = models
@@ -135,7 +135,7 @@ class Ensemble(Approximator):
         self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
 
         self._add_save_attr(
-            _models=self._get_serialization_method(model),
+            _models='mushroom',
             _prediction='primitive',
             _parse_output='none'
         )

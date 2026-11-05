@@ -6,6 +6,7 @@ from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
+from mushroom_rl.approximators import Approximator
 from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
@@ -14,8 +15,9 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
-class FlattenExtraTrees:
+class FlattenExtraTrees(Approximator):
     def __init__(self, input_shape, output_shape, **params):
+        super().__init__(input_shape, output_shape)
         self._models = [ExtraTreesRegressor(**params) for _ in range(output_shape[0])]
         self.fit_state = None
 

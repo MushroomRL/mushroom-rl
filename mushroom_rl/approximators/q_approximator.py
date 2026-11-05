@@ -58,13 +58,13 @@ class QApproximatorSimple(QApproximator):
         params['input_shape'] = input_shape
         params['output_shape'] = output_shape
         model = approximator(**params)
-        super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=getattr(model, 'backend_name', 'numpy'), device=getattr(model, 'device', None))
+        super().__init__(input_shape=input_shape, output_shape=output_shape, backend=model.backend_name,
+                         device=model.device)
         self._n_actions = n_actions
         self._models = [model]
         self._add_save_attr(
             _n_actions='primitive',
-            _models=self._get_serialization_method(approximator)
+            _models='mushroom'
         )
 
     def fit(self, state, action, q, **fit_params):
@@ -184,12 +184,11 @@ class QApproximatorAction(QApproximator):
         params['input_shape'] = input_shape
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
-        super().__init__(input_shape=input_shape, output_shape=output_shape,
-                         backend=getattr(self._models[0], 'backend_name', 'numpy'),
-                         device=getattr(self._models[0], 'device', None))
+        super().__init__(input_shape=input_shape, output_shape=output_shape, backend=self._models[0].backend_name,
+                         device=self._models[0].device)
         self._add_save_attr(
             _n_actions='primitive',
-            _models=self._get_serialization_method(approximator)
+            _models='mushroom'
         )
 
     def fit(self, state, action, q, **fit_params):
@@ -230,11 +229,11 @@ class QApproximatorAction(QApproximator):
             for i in range(self._n_actions):
                 mask = (action == i)[:, 0]
                 if mask.any():
-                    q[mask] = self._models[i].predict(state[mask], **predict_params).squeeze()
+                    q[mask] = self._models[i].predict(state[mask], **predict_params)
         else:
             q = self._backend.zeros(state.shape[0], self._n_actions, device=self._device)
             for i in range(self._n_actions):
-                q[:, i] = self._models[i].predict(state, **predict_params).squeeze()
+                q[:, i] = self._models[i].predict(state, **predict_params)
         return self._backend.squeeze(q)
 
     @property

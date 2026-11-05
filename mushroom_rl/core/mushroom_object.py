@@ -417,10 +417,3 @@ class MushroomObject(object):
         save_method = getattr(MushroomObject, '_save_{}'.format(method))
         for i, element in enumerate(obj):  # a nested list recurses via the method's own list guard
             save_method(zip_file, str(i), element, folder=new_folder, full_save=full_save)
-
-    @staticmethod
-    def _get_serialization_method(class_name):
-        if issubclass(class_name, MushroomObject):
-            return 'mushroom'
-        else:
-            return 'pickle'

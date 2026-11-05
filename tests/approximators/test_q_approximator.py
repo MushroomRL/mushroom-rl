@@ -6,15 +6,16 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-from mushroom_rl.approximators import QApproximator
+from mushroom_rl.approximators import Approximator, QApproximator
 from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator, NumpyTorchApproximator, CMAC
 from mushroom_rl.approximators.parametric.networks import QNetwork, FeedForwardNetwork
 from mushroom_rl.features.tiles import Tiles
 
 
-class FlattenLeastSquares:
+class FlattenLeastSquares(Approximator):
     def __init__(self, input_shape):
+        super().__init__(input_shape, (1,))
         self._w = None
 
     def fit(self, x, y):
