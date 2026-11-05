@@ -35,7 +35,7 @@ class CMAC(LinearApproximator):
             x (np.ndarray): input;
             y (np.ndarray): target;
             alpha (float): learning rate;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the approximator.
 
         """
         y_hat = self.predict(x)
@@ -58,7 +58,7 @@ class CMAC(LinearApproximator):
 
         Args:
             x (np.ndarray): input;
-            **predict_params: other parameters used by the predict method of the regressor.
+            **predict_params: other parameters used by the predict method of the approximator.
 
         Returns:
             The predictions of the model.

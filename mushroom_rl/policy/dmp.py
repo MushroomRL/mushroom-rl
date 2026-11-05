@@ -7,7 +7,7 @@ class DMP(HasWeights, StatefulPolicy):
     """
     Class representing a Dynamic Movement Primitive (DMP).
 
-    Differently from the original implementation of DMP, an arbitrary regressor can be used to compute the mean from
+    Differently from the original implementation of DMP, an arbitrary approximator can be used to compute the mean from
     phase variable.
 
     The internal state of the dynamical system, i.e. the canonical velocity ``v``, the phase ``x``, and the

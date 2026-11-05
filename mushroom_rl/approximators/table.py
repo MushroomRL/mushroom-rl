@@ -13,9 +13,9 @@ class Table(Approximator):
         Constructor.
 
         Args:
-            shape (tuple): the shape of the tabular regressor.
+            shape (tuple): the shape of the tabular approximator.
             initial_value (float, 0.): the initial value for each entry of the
-                tabular regressor.
+                tabular approximator.
             dtype ([int, float], None): the dtype of the table array.
             **kwargs: other params of the approximator.
 

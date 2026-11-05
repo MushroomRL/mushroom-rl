@@ -23,8 +23,7 @@ class DoubleQLearning(TD):
             _alpha_double='primitive'
         )
 
-        assert len(self.Q) == 2, 'The regressor ensemble must' \
-                                 ' have exactly 2 models.'
+        assert len(self.Q) == 2, 'The ensemble must have exactly 2 models.'
 
     def _update(self, state, action, reward, next_state, absorbing):
         approximator_idx = 0 if np.random.uniform() < .5 else 1

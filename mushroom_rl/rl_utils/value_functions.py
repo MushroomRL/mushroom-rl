@@ -35,7 +35,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
     (Monte Carlo estimation).
 
     Args:
-        V (Regressor): the current value function regressor;
+        V (Approximator): the current value function approximator;
         s (torch.tensor): the set of states in which we want to evaluate the advantage;
         ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
         r (torch.tensor): the reward obtained in each transition from state s to state ss;
@@ -82,7 +82,7 @@ def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, 
     over a dataset. The value function is estimated using bootstrapping.
 
     Args:
-        V (Regressor): the current value function regressor;
+        V (Approximator): the current value function approximator;
         s (torch.tensor): the set of states in which we want to evaluate the advantage;
         ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
         r (torch.tensor): the reward obtained in each transition from state s to state ss;
@@ -117,7 +117,7 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
     Schulman J. et al. 2016.
 
     Args:
-        V (Regressor): the current value function regressor;
+        V (Approximator): the current value function approximator;
         s (torch.tensor): the set of states in which we want to evaluate the advantage;
         ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
         r (torch.tensor): the reward obtained in each transition from state s to state ss;

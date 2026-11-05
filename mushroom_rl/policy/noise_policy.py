@@ -18,7 +18,7 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the state;
+            mu (Approximator): the approximator representing the mean w.r.t. the state;
             sigma (torch.tensor): average magnitude of the random fluctations per square-root time;
             theta (float): rate of mean reversion;
             dt (float): time interval;
@@ -109,7 +109,7 @@ class ClippedGaussianPolicy(HasWeights, Policy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the state;
+            mu (Approximator): the approximator representing the mean w.r.t. the state;
             sigma ([Array, Parameter, CovarianceParameter]): the covariance of the policy: a square positive
                 definite covariance matrix of size n x n, a vector of size n with the standard deviation of each action
                 component, a :class:`Parameter` returning such a vector, or a :class:`CovarianceParameter`; n is the

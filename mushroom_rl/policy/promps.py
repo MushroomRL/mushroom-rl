@@ -9,8 +9,8 @@ class ProMP(HasWeights, StatefulPolicy):
     Class representing a Probabilistic Movement Primitive (ProMP). Specifically, this class represents the low-level
     gaussian time-dependant policy.
 
-    Differently from the original implementation of ProMPs, an arbitrary regressor can be used to compute the mean from
-    time features. By using a non-linear regressor, the theory behind conditioning might not hold.
+    Differently from the original implementation of ProMPs, an arbitrary approximator can be used to compute the mean
+    from time features. By using a non-linear approximator, the theory behind conditioning might not hold.
 
     """
     def __init__(self, mu, phi, duration, sigma=None, periodic=False):
@@ -18,7 +18,7 @@ class ProMP(HasWeights, StatefulPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean at each time step;
+            mu (Approximator): the approximator representing the mean at each time step;
             phi (Features): Basis functions used as time features;
             duration (int): duration of the movement in number of steps;
             sigma (np.ndarray; None): a square positive definite matrix representing the covariance matrix. The size of

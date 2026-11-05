@@ -31,7 +31,7 @@ class DeterministicPolicy(HasWeights, Policy):
         Getter.
 
         Returns:
-            The regressor that is used to map state to actions.
+            The approximator that is used to map state to actions.
 
         """
         return self._approximator

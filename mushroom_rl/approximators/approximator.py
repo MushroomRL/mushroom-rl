@@ -46,7 +46,7 @@ class Approximator(MushroomBackendObject):
 
         Args:
             *args: list of inputs;
-            **kwargs: other parameters used by the fit method of the regressor.
+            **kwargs: other parameters used by the fit method of the approximator.
 
         """
         raise NotImplementedError
@@ -57,7 +57,7 @@ class Approximator(MushroomBackendObject):
 
         Args:
             *args: list of inputs;
-            **kwargs: other parameters used by the predict method of the regressor.
+            **kwargs: other parameters used by the predict method of the approximator.
 
         Returns:
             The model prediction.

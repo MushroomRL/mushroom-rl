@@ -187,7 +187,7 @@ class RecurrentTorchEnsemble(Ensemble):
 
         Args:
             *args: input;
-            **kwargs: other parameters used by the diff method of the regressor.
+            **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
             The stacked derivatives of all models w.r.t. the input.

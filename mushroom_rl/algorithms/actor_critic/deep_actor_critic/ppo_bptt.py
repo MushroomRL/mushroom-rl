@@ -123,7 +123,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         Schulman J. et al.. 2016.
 
         Args:
-            V (Regressor): the current value function regressor;
+            V (Approximator): the current value function approximator;
             s (torch.Tensor): the set of states in which we want
                 to evaluate the advantage;
             ss (torch.Tensor): the set of next states in which we want

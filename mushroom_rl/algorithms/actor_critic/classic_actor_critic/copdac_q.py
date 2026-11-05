@@ -22,7 +22,7 @@ class COPDAC_Q(Agent):
         Constructor.
 
         Args:
-            mu (Regressor): regressor that describe the deterministic policy to be
+            mu (Approximator): approximator that describe the deterministic policy to be
                 learned i.e., the deterministic mapping between state and action.
             alpha_theta ([float, Parameter]): learning rate for policy update;
             alpha_omega ([float, Parameter]): learning rate for the advantage function;

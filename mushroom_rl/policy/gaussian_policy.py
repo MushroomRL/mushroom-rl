@@ -38,7 +38,7 @@ class GaussianPolicy(AbstractGaussianPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the
+            mu (Approximator): the approximator representing the mean w.r.t. the
                 state;
             sigma ([Array, Parameter, CovarianceParameter]): the covariance of the policy: a square positive
                 definite covariance matrix of size n x n, a vector of size n with the standard deviation of each action
@@ -119,7 +119,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the
+            mu (Approximator): the approximator representing the mean w.r.t. the
                 state;
             std (np.ndarray): a vector of standard deviations. The length of
                 this vector must be equal to the action dimensionality.
@@ -195,7 +195,7 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
     standard deviation, which is computed for each state.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the diagonal gaussian policy, but a parametric
-    regressor is used to compute the standard deviation, so the standard
+    approximator is used to compute the standard deviation, so the standard
     deviation depends on the current state.
 
     """
@@ -204,11 +204,11 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the
+            mu (Approximator): the approximator representing the mean w.r.t. the
                 state;
-            std (Regressor): the regressor representing the standard
+            std (Approximator): the approximator representing the standard
                 deviations w.r.t. the state. The output dimensionality of the
-                regressor must be equal to the action dimensionality;
+                approximator must be equal to the action dimensionality;
             eps(float, 1e-6): A positive constant added to the variance to
                 ensure that is always greater than zero.
 
@@ -291,7 +291,7 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
     computed in each state.
     This is a differentiable policy for continuous action spaces.
     This policy is similar to the State std gaussian policy, but here the
-    regressor represents the logarithm of the standard deviation.
+    approximator represents the logarithm of the standard deviation.
 
     """
     def __init__(self, mu, log_std):
@@ -299,11 +299,11 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
         Constructor.
 
         Args:
-            mu (Regressor): the regressor representing the mean w.r.t. the
+            mu (Approximator): the approximator representing the mean w.r.t. the
                 state;
-            log_std (Regressor): a regressor representing the logarithm of the
+            log_std (Approximator): an approximator representing the logarithm of the
                 variance w.r.t. the state. The output dimensionality of the
-                regressor must be equal to the action dimensionality.
+                approximator must be equal to the action dimensionality.
 
         """
         super().__init__('numpy')

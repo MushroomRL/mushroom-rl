@@ -11,7 +11,7 @@ from mushroom_rl.utils.torch_utils import TorchUtils, TorchTrainer
 
 class TorchApproximator(Approximator):
     """
-    Class to interface a pytorch model to the mushroom Regressor interface.
+    Class to interface a pytorch model to the mushroom Approximator interface.
     This class implements all is needed to use a generic pytorch model and train it using a specified optimizer and
     objective function. This class supports also minibatches.
     When ``n_models > 1``, construction dispatches to ``TorchEnsemble``.
@@ -166,7 +166,7 @@ class TorchApproximator(Approximator):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+            **kwargs: other parameters used by the fit method of the approximator, including any keyword input
                 declared via ``kwargs_shape``/``action_history_shape``.
 
         """
@@ -313,7 +313,7 @@ class TorchApproximator(Approximator):
 
         Args:
             *args: input;
-            **kwargs: other parameters used by the diff method of the regressor.
+            **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
             The derivative of the output w.r.t. ``state``, and ``action`` if provided.
@@ -455,7 +455,7 @@ class TorchEnsemble(Ensemble):
                 ``'min'``, ``'max'``, ``'sum'``, or ``'all'`` to return all predictions. ``None`` uses the
                 constructor default;
             compute_variance (bool, False): if ``True``, also return the variance across models.
-            **kwargs: other parameters used by the predict method of the regressor, including any declared
+            **kwargs: other parameters used by the predict method of the approximator, including any declared
                 keyword input.
 
         Returns:
@@ -502,7 +502,7 @@ class TorchEnsemble(Ensemble):
             epsilon (float, None): the coefficient used for early stopping;
             patience (float, 1.): the number of epochs to wait until stop the learning if not improving;
             validation_split (float, 1.): the percentage of the dataset to use as training set;
-            **kwargs: other parameters used by the fit method of the regressor, including any keyword input
+            **kwargs: other parameters used by the fit method of the approximator, including any keyword input
                 declared via ``kwargs_shape``/``action_history_shape``.
 
         """
@@ -713,7 +713,7 @@ class TorchEnsemble(Ensemble):
 
         Args:
             *args: input;
-            **kwargs: other parameters used by the diff method of the regressor.
+            **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
             The stacked derivatives of all models w.r.t. the input, shape ``(n_models, weights_size, n_outputs)``.

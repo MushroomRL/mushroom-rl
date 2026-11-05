@@ -81,7 +81,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         Constructor.
 
         Args:
-            network (RecurrentNetwork): the network class used to implement the mean regressor. Its
+            network (RecurrentNetwork): the network class used to implement the mean approximator. Its
                 ``forward`` must return ``(action_mean, next_policy_state)``, so it must declare
                 ``returns_policy_state``;
             input_shape (tuple): the shape of the state space;

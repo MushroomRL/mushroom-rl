@@ -134,7 +134,7 @@ class GaussianTorchPolicy(TorchPolicy):
 
         Args:
             network (object): the network class used to implement the mean
-                regressor;
+                approximator;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
@@ -218,7 +218,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
 
         Args:
             network (object): the network class used to implement the mean
-                regressor;
+                approximator;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             beta ([float, Parameter]): the inverse of the temperature distribution. As
@@ -293,8 +293,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         Constructor.
 
         Args:
-            mu_approximator (Approximator): a regressor computing the mean given a state;
-            sigma_approximator (Approximator): a regressor computing the log standard deviation given a state;
+            mu_approximator (Approximator): an approximator computing the mean given a state;
+            sigma_approximator (Approximator): an approximator computing the log standard deviation given a state;
             min_a (np.ndarray): a vector specifying the minimum action value for each component;
             max_a (np.ndarray): a vector specifying the maximum action value for each component;
             log_std_min ([float, Parameter]): min value for the policy log std;
