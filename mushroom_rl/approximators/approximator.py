@@ -233,17 +233,6 @@ class Ensemble(Approximator):
         """
         return self._models[0].n_actions
 
-    def reset(self):
-        """
-        Reset the parameters of all models in the ensemble.
-
-        """
-        try:
-            for m in self._models:
-                m.reset()
-        except AttributeError:
-            raise NotImplementedError('Attempt to reset weights of a non-parametric regressor.')
-
     def _parse_single_output(self, output_list, prediction, compute_variance):
         return self._aggregate(self._backend.stack(output_list, 0), prediction, compute_variance)
 

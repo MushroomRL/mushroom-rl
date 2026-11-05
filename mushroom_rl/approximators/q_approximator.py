@@ -158,16 +158,6 @@ class QApproximatorSimple(QApproximator):
             return self._models[0].diff(state)
         return self._models[0].diff(state, action).squeeze()
 
-    def reset(self):
-        """
-        Reset the model parameters.
-
-        """
-        try:
-            self._models[0].reset()
-        except AttributeError:
-            raise NotImplementedError
-
 
 class QApproximatorAction(QApproximator):
     """
@@ -308,17 +298,6 @@ class QApproximatorAction(QApproximator):
         diff = self._backend.zeros(s * self._n_actions, dtype=float, device=self._device)
         diff[s * a:s * (a + 1)] = self._models[a].diff(state)
         return diff
-
-    def reset(self):
-        """
-        Reset the parameters of all action models.
-
-        """
-        try:
-            for m in self._models:
-                m.reset()
-        except AttributeError:
-            raise NotImplementedError
 
 
 class QApproximatorEnsemble(QApproximator, Ensemble):
