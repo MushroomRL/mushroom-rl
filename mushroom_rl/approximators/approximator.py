@@ -13,7 +13,7 @@ class Approximator(MushroomBackendObject):
             return MushroomObject.__new__(cls)
         if n_models > 1:
             ensemble = MushroomObject.__new__(Ensemble)
-            Ensemble.__init__(ensemble, cls, n_models, **kwargs)
+            Ensemble.__init__(ensemble, cls, n_models, *args, **kwargs)
             return ensemble
         return MushroomObject.__new__(cls)
 
@@ -109,13 +109,14 @@ class Ensemble(Approximator):
 
     """
 
-    def __init__(self, model, n_models, prediction='mean', **params):
+    def __init__(self, model, n_models, *args, prediction='mean', **params):
         """
         Constructor.
 
         Args:
             model (class): the model class to use for each element of the ensemble;
             n_models (int): number of models in the ensemble;
+            *args: positional arguments to create each model;
             prediction (str, 'mean'): the type of prediction to make across models. One of
                 ``'mean'``, ``'sum'``, ``'min'``, ``'max'``, or ``'all'`` to return all
                 predictions;
@@ -123,7 +124,7 @@ class Ensemble(Approximator):
                 device of the models it creates.
 
         """
-        models = [model(**params) for _ in range(n_models)]
+        models = [model(*args, **params) for _ in range(n_models)]
 
         super().__init__(input_shape=models[0].input_shape, output_shape=models[0].output_shape,
                          backend=models[0].backend_name, device=models[0].device)
