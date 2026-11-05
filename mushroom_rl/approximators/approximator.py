@@ -1,5 +1,3 @@
-from sklearn.exceptions import NotFittedError
-
 from mushroom_rl.core import MushroomObject, MushroomBackendObject
 
 
@@ -195,10 +193,7 @@ class Ensemble(Approximator):
             idx = list(range(len(self)))
 
         if isinstance(idx, int):
-            try:
-                return self[idx].predict(*z, **predict_params)
-            except NotFittedError:
-                raise NotFittedError
+            return self[idx].predict(*z, **predict_params)
 
         output_list = list()
         for i in idx:

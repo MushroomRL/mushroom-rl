@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from sklearn.ensemble import ExtraTreesRegressor
 import itertools
 
 import mushroom_rl
@@ -12,6 +11,7 @@ from mushroom_rl.policy.policy import HasWeights
 from mushroom_rl.policy.noise_policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.distributions.gaussian import GaussianDiagonalDistribution
 from mushroom_rl.approximators.table import Table
+from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.approximators.approximator import Approximator, Ensemble
 from mushroom_rl.approximators.q_approximator import QApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, PrioritizedReplayMemory
@@ -41,6 +41,22 @@ class TestUtils:
         Compare the weights of two objects for equality
         """
         return cls._eq_numpy(this.get_weights(), that.get_weights())
+
+    @classmethod
+    def eq_sklearn(cls, this, that):
+        """
+        Compare the fitted weights of two scikit-learn approximators for equality. Non-parametric models, i.e. those
+        without ``coef_``/``coefs_`` (e.g. tree ensembles, nearest neighbours), are not compared.
+        """
+        res = True
+        for name in ('coef_', 'intercept_', 'coefs_', 'intercepts_'):
+            if hasattr(this.model, name):
+                this_w, that_w = getattr(this.model, name), getattr(that.model, name)
+                if isinstance(this_w, list):
+                    res &= len(this_w) == len(that_w) and all(cls._eq_numpy(a, b) for a, b in zip(this_w, that_w))
+                else:
+                    res &= cls._eq_numpy(this_w, that_w)
+        return res
 
     @classmethod
     def eq_box(cls, this, that):
@@ -403,6 +419,7 @@ class TestUtils:
             (sub, Ensemble, ensemble),
             (sub, QApproximator, lambda a, b: pairwise(a._models, b._models)),
             (exact, Table, asserting(lambda a, b: cls._eq_numpy(a.table, b.table))),
+            (exact, SklearnApproximator, asserting(cls.eq_sklearn)),
             (sub, Approximator, asserting(cls.eq_weights)),
             (sub, TorchPolicy, asserting(cls.eq_weights)),
             (sub, HasWeights, asserting(cls.eq_weights)),
@@ -429,7 +446,6 @@ class TestUtils:
             (exact, Discrete, asserting(cls.eq_discrete)),
             (exact, FunctionalFeatures, asserting(cls._eq_functional_features)),
             (exact, BasisFeatures, asserting(cls._eq_basis_features)),
-            (exact, ExtraTreesRegressor, ignored),
             (both_callable, None, ignored),
             (exact, torch.nn.parameter.Parameter, asserting(cls._eq_torch)),
             (exact, torch.Tensor, asserting(cls._eq_torch)),

@@ -1,10 +1,12 @@
 import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.linear_model import LinearRegression
 
 from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent
+from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import CarOnHill
@@ -38,13 +40,14 @@ def learn(alg, alg_params):
     pi = EpsGreedy(epsilon=epsilon)
 
     # Approximator
-    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
+    approximator_params = dict(model_class=ExtraTreesRegressor,
+                               input_shape=mdp.info.observation_space.shape,
                                n_actions=mdp.info.action_space.n,
                                n_models=1 if alg is not BoostedFQI else alg_params['n_iterations'],
                                n_estimators=50,
                                min_samples_split=5,
                                min_samples_leaf=2)
-    approximator = ExtraTreesRegressor
+    approximator = SklearnApproximator
 
     # Agent
     agent = alg(mdp.info, pi, approximator, approximator_params=approximator_params, **alg_params)
@@ -84,6 +87,31 @@ def test_fqi_save(tmpdir):
         load_attr = getattr(agent_load, att)
 
         tu.assert_eq(save_attr, load_attr)
+
+
+def test_fqi_linear_save(tmpdir):
+    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
+
+    mdp = CarOnHill()
+    np.random.seed(1)
+    pi = EpsGreedy(epsilon=Parameter(value=1.))
+    approximator_params = dict(model_class=LinearRegression, input_shape=mdp.info.observation_space.shape,
+                               n_actions=mdp.info.action_space.n)
+    agent_save = FQI(mdp.info, pi, SklearnApproximator, approximator_params=approximator_params, n_iterations=3,
+                     quiet=True)
+    Core(agent_save, mdp).learn(n_episodes=5, n_episodes_per_fit=5, quiet=True)
+
+    agent_save.save(agent_path)
+    agent_load = Agent.load(agent_path)
+
+    for att, method in vars(agent_save).items():
+        save_attr = getattr(agent_save, att)
+        load_attr = getattr(agent_load, att)
+
+        tu.assert_eq(save_attr, load_attr)
+
+    weights = [m.model.coef_ for m in agent_save.approximator.model]
+    assert all(np.any(w != 0) for w in weights)
 
 
 def test_fqi_boosted():

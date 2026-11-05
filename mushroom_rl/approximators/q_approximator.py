@@ -181,9 +181,7 @@ class QApproximatorAction(QApproximator):
 
         """
         assert n_actions >= 2
-        is_sklearn = approximator.__module__.startswith('sklearn')
-        if not is_sklearn:
-            params['input_shape'] = input_shape
+        params['input_shape'] = input_shape
         self._n_actions = n_actions
         self._models = [approximator(**params) for _ in range(n_actions)]
         super().__init__(input_shape=input_shape, output_shape=output_shape,

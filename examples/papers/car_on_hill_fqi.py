@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom_rl.algorithms.value import FQI
+from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import CarOnHill
 from mushroom_rl.policy import EpsGreedy
@@ -27,12 +28,13 @@ def experiment(seed=0):
     pi = EpsGreedy(epsilon=epsilon)
 
     # Approximator
-    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
+    approximator_params = dict(model_class=ExtraTreesRegressor,
+                               input_shape=mdp.info.observation_space.shape,
                                n_actions=mdp.info.action_space.n,
                                n_estimators=50,
                                min_samples_split=5,
                                min_samples_leaf=2)
-    approximator = ExtraTreesRegressor
+    approximator = SklearnApproximator
 
     # Agent
     agent = FQI(mdp.info, pi, approximator, approximator_params=approximator_params, n_iterations=20)

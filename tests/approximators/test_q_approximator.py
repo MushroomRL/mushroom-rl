@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.approximators import QApproximator
+from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator, NumpyTorchApproximator, CMAC
 from mushroom_rl.approximators.parametric.networks import QNetwork, FeedForwardNetwork
 from mushroom_rl.features.tiles import Tiles
@@ -236,7 +237,7 @@ def test_q_simple_single_window():
 
 def test_q_approximator_requires_input_shape():
     with pytest.raises(TypeError):
-        QApproximator(ExtraTreesRegressor, n_actions=2)
+        QApproximator(SklearnApproximator, n_actions=2, model_class=ExtraTreesRegressor)
 
     with pytest.raises(TypeError):
-        QApproximator(ExtraTreesRegressor, n_actions=2, n_models=2)
+        QApproximator(SklearnApproximator, n_actions=2, n_models=2, model_class=ExtraTreesRegressor)

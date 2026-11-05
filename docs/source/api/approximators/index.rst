@@ -23,6 +23,7 @@ turned into an ensemble simply by passing ``n_models``:
    ~mushroom_rl.approximators.approximator.Approximator
    ~mushroom_rl.approximators.q_approximator.QApproximator
    ~mushroom_rl.approximators.table.Table
+   ~mushroom_rl.approximators.sklearn_approximator.SklearnApproximator
    ~mushroom_rl.approximators.parametric.linear.LinearApproximator
    ~mushroom_rl.approximators.parametric.cmac.CMAC
    ~mushroom_rl.approximators.parametric.torch_approximator.TorchApproximator
@@ -35,4 +36,5 @@ turned into an ensemble simply by passing ``n_models``:
    approximator
    q_approximator
    table
+   sklearn_approximator
    parametric/index
