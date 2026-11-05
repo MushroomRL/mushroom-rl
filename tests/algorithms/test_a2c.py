@@ -3,11 +3,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import numpy as np
-from datetime import datetime
+import pytest
 
+from helper.dummies import FakeLogger
+from helper.cases import devices
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.algorithms.actor_critic import A2C
@@ -16,7 +17,7 @@ from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 
 
-def learn_a2c():
+def learn_a2c(logger=None, **extra_params):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -46,7 +47,9 @@ def learn_a2c():
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
-    agent = A2C(mdp.info, policy, **algorithm_params)
+    agent = A2C(mdp.info, policy, **algorithm_params, **extra_params)
+    if logger is not None:
+        agent.set_logger(logger)
 
     core = Core(agent, mdp)
     core.learn(n_episodes=10, n_episodes_per_fit=5)
@@ -137,47 +140,41 @@ def learn_a2c_action_history(action_history_length):
     return agent
 
 
-def test_a2c():
+@pytest.mark.parametrize('device', devices())
+def test_a2c(device, tmpdir):
     agent = learn_a2c()
 
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.662464, -1.3380364, -0.1384504, -0.00665062])
 
-    assert torch.allclose(w, w_test)
+    tu.assert_recorded(w, 'test_a2c', device)
 
-
-def test_a2c_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    agent_save = learn_a2c()
-
-    agent_save.save(agent_path, full_save=True)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-        print('checking ', att)
-        print(save_attr, load_attr)
-
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 
 
-def test_a2c_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_a2c_options(device):
+    logger = FakeLogger()
+    agent = learn_a2c(logger, device=device)
+
+    tu.assert_recorded(agent.policy.get_weights(), 'test_a2c', device)
+    assert logger.keys() == {'actor/loss', 'actor/entropy', 'critic/loss'}
+
+
+@pytest.mark.parametrize('device', devices())
+def test_a2c_history_length(device):
     agent = learn_a2c_history(history_length=3)
 
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.4626, 0.1360, -0.1221, 0.2626, 0.0368, 0.3435, -0.0927, -0.0071])
 
     assert agent.history_length == 3
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_a2c_history_length', device)
 
 
-def test_a2c_action_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_a2c_action_history_length(device):
     agent = learn_a2c_action_history(action_history_length=1)
 
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.1550, 0.7338, -0.2418, 0.2693, -0.0078])
 
     assert agent._history_manager.uses_action
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_a2c_action_history_length', device)

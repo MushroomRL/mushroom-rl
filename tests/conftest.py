@@ -1,5 +1,13 @@
+import os
+
 import pytest
-import torch
+
+# Pin the MKL and ATen kernel paths before torch loads, so that every CPU computes the same numbers
+os.environ['MKL_CBWR'] = 'COMPATIBLE'
+os.environ['ATEN_CPU_CAPABILITY'] = 'avx2'
+os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+
+import torch  # noqa: E402
 
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
@@ -21,3 +29,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if item.nodeid.startswith(pinned_paths):
                 item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def reset_default_device():
+    from mushroom_rl.utils import TorchUtils
+
+    TorchUtils.set_default_device('cpu')
+    yield
+    TorchUtils.set_default_device('cpu')

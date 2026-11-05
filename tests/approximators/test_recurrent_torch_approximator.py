@@ -16,7 +16,7 @@ def _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden, action_his
     )
 
 
-def test_recurrent_approximator_single_sample_padding():
+def test_recurrent():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
@@ -25,8 +25,6 @@ def test_recurrent_approximator_single_sample_padding():
     assert action.shape == (dim_action,)
     assert next_state.shape == (1, n_hidden)
 
-
-def test_recurrent_approximator_vectorized_padding():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden, n_envs = 4, 2, 6, 3
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
@@ -35,8 +33,6 @@ def test_recurrent_approximator_vectorized_padding():
     assert action.shape == (n_envs, dim_action)
     assert next_state.shape == (n_envs, 1, n_hidden)
 
-
-def test_recurrent_approximator_training_passthrough():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 5, 4
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
@@ -47,8 +43,6 @@ def test_recurrent_approximator_training_passthrough():
     assert action.shape == (batch, dim_action)
     assert next_state.shape == (batch, 1, n_hidden)
 
-
-def test_recurrent_approximator_lengths_default_matches_explicit():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
@@ -58,8 +52,6 @@ def test_recurrent_approximator_lengths_default_matches_explicit():
     explicit_action, _ = approximator.predict(state, policy_state, lengths=torch.ones(1, dtype=torch.long))
     assert torch.allclose(default_action, explicit_action)
 
-
-def test_recurrent_approximator_action_history_padding():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden,
@@ -70,8 +62,6 @@ def test_recurrent_approximator_action_history_padding():
     assert action.shape == (dim_action,)
     assert next_state.shape == (1, n_hidden)
 
-
-def test_recurrent_approximator_missing_action_history_raises():
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden = 4, 2, 6
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden,
@@ -80,8 +70,25 @@ def test_recurrent_approximator_missing_action_history_raises():
     with pytest.raises(KeyError):
         approximator.predict(torch.randn(dim_env), torch.zeros(1, n_hidden))
 
+    torch.manual_seed(1)
+    dim_env, dim_action, n_hidden = 4, 2, 6
 
-def test_recurrent_ensemble():
+    approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
+    ensemble = RecurrentTorchApproximator(
+        input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
+        n_models=3, n_features=8, rnn_type='gru',
+        n_hidden_features=n_hidden, num_hidden_layers=1
+    )
+
+    state, policy_state = torch.randn(dim_env), torch.zeros(1, n_hidden)
+    with pytest.raises(NotImplementedError):
+        approximator.diff(state, policy_state)
+
+    with pytest.raises(NotImplementedError):
+        ensemble.diff(state, policy_state)
+
+
+def test_recurrent_ensemble(tmpdir):
     torch.manual_seed(1)
     dim_env, n_hidden, batch, seq = 4, 6, 8, 5
 
@@ -111,8 +118,18 @@ def test_recurrent_ensemble():
     assert mean.shape == (batch,)
     assert torch.allclose(mean, stacked.mean(0))
 
+    weights = approximator.get_weights()
+    approximator.set_weights(torch.zeros_like(weights))
+    approximator.set_learning_rate(.01)
 
-def test_recurrent_ensemble_multi_output():
+    assert approximator.weights_size == (3, weights.shape[1])
+    assert torch.equal(approximator.get_weights(), torch.zeros_like(weights))
+    assert len(approximator.parameters()) == 3 * len(list(approximator[0].network.parameters()))
+    assert approximator.network is approximator[0].network
+    assert approximator.policy_state_shape == approximator[0].policy_state_shape
+    assert len(approximator.loss_fit) == 3
+    assert all(model._optimizer.param_groups[0]['lr'] == .01 for model in approximator)
+
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 8, 5
 
@@ -146,8 +163,6 @@ def test_recurrent_ensemble_multi_output():
     assert torch.allclose(mean_action, stacked_action.mean(0))
     assert torch.allclose(var_action, stacked_action.var(0))
 
-
-def test_recurrent_ensemble_multi_output_after_save_load(tmpdir):
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 8, 5
 
@@ -174,27 +189,6 @@ def test_recurrent_ensemble_multi_output_after_save_load(tmpdir):
     assert stacked_action.shape == (3, batch, dim_action)
     assert stacked_state.shape == (3, batch, 1, n_hidden)
 
-
-def test_recurrent_approximator_diff_not_supported():
-    torch.manual_seed(1)
-    dim_env, dim_action, n_hidden = 4, 2, 6
-
-    approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
-    ensemble = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
-        n_models=3, n_features=8, rnn_type='gru',
-        n_hidden_features=n_hidden, num_hidden_layers=1
-    )
-
-    state, policy_state = torch.randn(dim_env), torch.zeros(1, n_hidden)
-    with pytest.raises(NotImplementedError):
-        approximator.diff(state, policy_state)
-
-    with pytest.raises(NotImplementedError):
-        ensemble.diff(state, policy_state)
-
-
-def test_recurrent_ensemble_prediction_all():
     torch.manual_seed(1)
     dim_env, n_hidden, batch, seq = 4, 6, 8, 5
 

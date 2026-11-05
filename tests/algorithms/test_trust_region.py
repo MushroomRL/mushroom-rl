@@ -1,12 +1,12 @@
 import numpy as np
+import pytest
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from datetime import datetime
+from helper.dummies import FakeLogger
+from helper.cases import devices
 from helper.utils import TestUtils as tu
-
-from mushroom_rl.core import Agent
 
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
@@ -15,7 +15,7 @@ from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 
 
-def learn(alg, alg_params):
+def learn(alg, alg_params, logger=None):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -40,6 +40,8 @@ def learn(alg, alg_params):
     alg_params['critic_params'] = critic_params
 
     agent = alg(mdp.info, policy, **alg_params)
+    if logger is not None:
+        agent.set_logger(logger)
 
     core = Core(agent, mdp)
 
@@ -121,105 +123,98 @@ def learn_action_history(alg, alg_params, action_history_length):
     return agent
 
 
-def test_PPO():
+@pytest.mark.parametrize('device', devices())
+def test_PPO(device, tmpdir):
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
-    policy = learn(PPO, params).policy
+    agent = learn(PPO, params)
+    policy = agent.policy
     w = policy.get_weights()
-    w_test = torch.tensor([0.66152734, -1.33367574, -0.13922985, -0.00175668])
 
-    assert torch.allclose(w, w_test)
+    tu.assert_recorded(w, 'test_PPO', device)
 
-
-def test_PPO_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    params = dict(actor_optimizer={'class': optim.Adam,
-                                   'params': {'lr': 3e-4}},
-                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
-
-    agent_save = learn(PPO, params)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_TRPO():
+@pytest.mark.parametrize('device', devices())
+def test_TRPO(device, tmpdir):
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
-    policy = learn(TRPO, params).policy
+    agent = learn(TRPO, params)
+    policy = agent.policy
     w = policy.get_weights()
-    w_test = torch.tensor([0.53987426, -1.3105278, 0.02826479, -0.02005163])
 
-    assert torch.allclose(w, w_test, rtol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_TRPO', device)
 
-
-def test_TRPO_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
-                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
-
-    agent_save = learn(TRPO, params)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_PPO_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_logger(device):
+    ppo_params = dict(actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}}, n_epochs_policy=4,
+                      batch_size=64, eps_ppo=.2, lam=.95, device=device)
+    trpo_params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10, n_epochs_cg=10,
+                       cg_damping=1e-2, cg_residual_tol=1e-10, device=device)
+
+    for alg, params in [(PPO, ppo_params), (TRPO, trpo_params)]:
+        logger = FakeLogger()
+        w = learn(alg, params, logger=logger).policy.get_weights()
+
+        tu.assert_recorded(w, f'test_{alg.__name__}', device)
+        assert logger.keys() == {'R', 'actor/entropy', 'actor/kl', 'critic/loss'}
+        assert logger.messages == ['Iteration 1', 'Iteration 2']
+
+
+def test_TRPO_rejected_step():
+    torch.manual_seed(1)
+    w_initial = GaussianTorchPolicy(ActorNetwork, (2,), (1,), std_0=1., n_features=None, n_layers=0).get_weights()
+    params = dict(n_epochs_line_search=0, cg_residual_tol=1e10)
+
+    assert torch.equal(learn(TRPO, params).policy.get_weights(), w_initial)
+
+
+@pytest.mark.parametrize('device', devices())
+def test_PPO_history_length(device):
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     agent = learn_history(PPO, params, history_length=3)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.46873438, 0.12638518, -0.11563689, 0.25445520,
-                           0.04333199, 0.33579704, -0.08567944, -0.00061753])
 
     assert agent.history_length == 3
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_PPO_history_length', device)
 
 
-def test_TRPO_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_TRPO_history_length(device):
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     agent = learn_history(TRPO, params, history_length=3)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.46534720, 0.10432260, -0.13507554, 0.26350110,
-                           -0.02306816, 0.37749213, 0.01202566, -0.01654112])
 
     assert agent.history_length == 3
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_TRPO_history_length', device)
 
 
-def test_PPO_action_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_PPO_action_history_length(device):
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
                   n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
     agent = learn_action_history(PPO, params, action_history_length=1)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.15486133, 0.73268884, -0.25019532, 0.26914904, -0.00178988])
 
     assert agent._history_manager.uses_action
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_PPO_action_history_length', device)
 
 
-def test_TRPO_action_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_TRPO_action_history_length(device):
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
                   n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
     agent = learn_action_history(TRPO, params, action_history_length=1)
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.2469, 0.7433, -0.2348, 0.3901, -0.0191])
 
     assert agent._history_manager.uses_action
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_TRPO_action_history_length', device)

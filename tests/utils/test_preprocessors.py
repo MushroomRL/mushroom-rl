@@ -1,37 +1,35 @@
-import pytest
-import numpy as np
-import torch
-import torch.nn.functional as F
-from mushroom_rl.rl_utils.parameters import Parameter
-
-from mushroom_rl.policy import EpsGreedy
-
-from mushroom_rl.algorithms.value import DQN
-from mushroom_rl.core import Agent, MDPInfo
-
-from mushroom_rl.core import Core
-
-from mushroom_rl.approximators.parametric.networks import QNetwork
-from torch import optim
-
-from mushroom_rl.environments import Gymnasium
-from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor
-
 from copy import deepcopy
 
+import numpy as np
+import pytest
+import torch
+import torch.nn.functional as F
+from torch import optim
 
-def test_normalizing_preprocessor(tmpdir):
+from helper.cases import devices
+
+from mushroom_rl.algorithms.actor_critic import PPO
+from mushroom_rl.algorithms.value import DQN
+from mushroom_rl.approximators.parametric.networks import ActorNetwork, FeedForwardNetwork, QNetwork
+from mushroom_rl.core import Agent, Core, MDPInfo
+from mushroom_rl.core.spaces import Box
+from mushroom_rl.environments import Gymnasium, InvertedPendulum
+from mushroom_rl.policy import EpsGreedy, GaussianTorchPolicy
+from mushroom_rl.rl_utils.parameters import Parameter
+from mushroom_rl.rl_utils.preprocessors import MinMaxPreprocessor, StandardizationPreprocessor
+
+
+def test_minmax_save(tmpdir):
+    pytest.importorskip('gymnasium')
     np.random.seed(42)
     torch.manual_seed(42)
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
     mdp.seed(42)
 
-    # Policy
     epsilon_random = Parameter(value=1.)
     pi = EpsGreedy(epsilon=epsilon_random, backend='torch')
 
-    # Approximator
     input_shape = mdp.info.observation_space.shape
 
     approximator_params = dict(network=QNetwork,
@@ -57,13 +55,10 @@ def test_normalizing_preprocessor(tmpdir):
     core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
     dataset = core.evaluate(n_steps=1000)
 
-    # training correctly
     assert (dataset.state.min() >= -norm_box._clip_obs and dataset.state.max() <= norm_box._clip_obs)
 
-    # save current dict
     state_dict1 = deepcopy(norm_box.__dict__)
 
-    # save preprocessor and agent
     norm_box.save(tmpdir / 'norm_box.msh')
     agent.save(tmpdir / 'agent.msh')
 
@@ -87,7 +82,8 @@ def test_normalizing_preprocessor(tmpdir):
            and (state_dict1["_obs_runstand"].std == state_dict3["_obs_runstand"].std).all()
 
 
-def test_normalizing_preprocessor_backend():
+def test_minmax_backend():
+    pytest.importorskip('gymnasium')
     np.random.seed(42)
 
     mdp = Gymnasium('CartPole-v1', horizon=500, gamma=.99)
@@ -116,10 +112,7 @@ def test_normalizing_preprocessor_backend():
             mdp.reset()
 
 
-def test_minmax_preprocessor_does_not_mutate_its_input():
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
-
+def test_minmax():
     bounded = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100)
     partly_unbounded = MDPInfo(Box(np.array([0., -np.inf, 0.]), np.array([2., np.inf, 2.])),
                                Box(-np.ones(1), np.ones(1)), .99, 100)
@@ -134,14 +127,30 @@ def test_minmax_preprocessor_does_not_mutate_its_input():
         assert np.array_equal(obs, original)
         assert not np.array_equal(normalized, original)
 
+    mdp_info = MDPInfo(Box(np.zeros((2, 2)), 2 * np.ones((2, 2))), Box(-np.ones(1), np.ones(1)), .99, 100)
+    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
 
-def test_agent_preprocessor_with_history_keeps_flat_statistics(tmpdir):
-    from mushroom_rl.algorithms.actor_critic import PPO
-    from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
-    from mushroom_rl.environments import InvertedPendulum
-    from mushroom_rl.policy import GaussianTorchPolicy
-    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+    assert preprocessor._obs_mask.shape == (2, 2)
+    assert not preprocessor._run_norm_obs
 
+    normalized = preprocessor(np.array([[[0., 1.], [2., 0.5]]]))
+
+    assert np.allclose(normalized, np.array([[[-1., 0.], [1., -0.5]]]))
+
+    low = np.array([-np.inf, 0., -np.inf])
+    high = np.array([np.inf, 4., np.inf])
+    mdp_info = MDPInfo(Box(low, high), Box(-np.ones(1), np.ones(1)), .99, 100)
+    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
+
+    assert preprocessor._run_norm_obs
+    assert preprocessor._obs_mask.sum() == 1
+
+    normalized = preprocessor(np.array([[1., 1., 1.]]))
+
+    assert np.isclose(normalized[0, 1], -0.5)
+
+
+def test_agent_preprocessor_history(tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -186,26 +195,7 @@ def test_agent_preprocessor_with_history_keeps_flat_statistics(tmpdir):
     assert len(agent_new.history_manager.preprocessors) == 2
 
 
-def test_minmax_preprocessor_multi_dimensional_observation():
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
-
-    mdp_info = MDPInfo(Box(np.zeros((2, 2)), 2 * np.ones((2, 2))), Box(-np.ones(1), np.ones(1)), .99, 100)
-    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
-
-    assert preprocessor._obs_mask.shape == (2, 2)
-    assert not preprocessor._run_norm_obs
-
-    normalized = preprocessor(np.array([[[0., 1.], [2., 0.5]]]))
-
-    assert np.allclose(normalized, np.array([[[-1., 0.], [1., -0.5]]]))
-
-
-def test_standardization_preprocessor_keeps_the_unit_dimensions_of_the_observation():
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
-    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
-
+def test_standardization_shape():
     mdp_info = MDPInfo(Box(-np.ones((3, 1)), np.ones((3, 1))), Box(-np.ones(1), np.ones(1)), .99, 100)
     preprocessor = StandardizationPreprocessor(mdp_info=mdp_info)
     preprocessor.update(np.array([[1.], [2.], [3.]]))
@@ -217,70 +207,29 @@ def test_standardization_preprocessor_keeps_the_unit_dimensions_of_the_observati
     assert np.allclose(normalized, [[-0.24253563], [0.60302269], [1.21267813]])
 
 
-def test_minmax_preprocessor_single_bounded_component():
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
-
-    low = np.array([-np.inf, 0., -np.inf])
-    high = np.array([np.inf, 4., np.inf])
-    mdp_info = MDPInfo(Box(low, high), Box(-np.ones(1), np.ones(1)), .99, 100)
-    preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
-
-    assert preprocessor._run_norm_obs
-    assert preprocessor._obs_mask.sum() == 1
-
-    normalized = preprocessor(np.array([[1., 1., 1.]]))
-
-    assert np.isclose(normalized[0, 1], -0.5)
-
-
-def test_preprocessors_allocate_statistics_on_the_requested_device():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
-    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
-
+@pytest.mark.parametrize('device', devices())
+def test_device(device):
     mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100)
-    obs = torch.ones(1, 3, device='cuda')
+    obs = torch.ones(1, 3, device=device)
 
-    standardization = StandardizationPreprocessor(mdp_info, backend='torch', device='cuda')
+    standardization = StandardizationPreprocessor(mdp_info, backend='torch', device=device)
     standardization.update(obs)
+    min_max = MinMaxPreprocessor(mdp_info, backend='torch', device=device)
 
-    assert standardization._obs_runstand.mean.device.type == 'cuda'
-    assert standardization(obs).device.type == 'cuda'
-
-    min_max = MinMaxPreprocessor(mdp_info, backend='torch', device='cuda')
-
-    assert min_max._obs_mask.device.type == 'cuda'
-    assert min_max._obs_mean.device.type == 'cuda'
-    assert min_max._obs_delta.device.type == 'cuda'
-    assert min_max(obs).device.type == 'cuda'
-
-
-def test_preprocessor_statistics_follow_the_mdp_device():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
-    from mushroom_rl.core import MDPInfo
-    from mushroom_rl.core.spaces import Box
+    assert standardization._obs_runstand.mean.device.type == device
+    assert standardization(obs).device.type == device
+    assert min_max._obs_mask.device.type == device
+    assert min_max._obs_mean.device.type == device
+    assert min_max._obs_delta.device.type == device
+    assert min_max(obs).device.type == device
 
     mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100,
-                       backend='torch', device='cuda')
+                       backend='torch', device=device)
     preprocessor = MinMaxPreprocessor(mdp_info=mdp_info)
 
-    assert preprocessor._obs_runstand.mean.device.type == 'cuda'
-    assert preprocessor._obs_mean.device.type == 'cuda'
-    assert preprocessor(torch.ones(1, 3, device='cuda')).device.type == 'cuda'
-
-
-def test_preprocessors_move_to_another_device():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
-    from mushroom_rl.core.spaces import Box
-    from mushroom_rl.rl_utils.preprocessors import StandardizationPreprocessor
+    assert preprocessor._obs_runstand.mean.device.type == device
+    assert preprocessor._obs_mean.device.type == device
+    assert preprocessor(torch.ones(1, 3, device=device)).device.type == device
 
     mdp_info = MDPInfo(Box(np.zeros(3), 2 * np.ones(3)), Box(-np.ones(1), np.ones(1)), .99, 100,
                        backend='torch', device='cpu')
@@ -291,15 +240,14 @@ def test_preprocessors_move_to_another_device():
     min_max = MinMaxPreprocessor(mdp_info)
     expected = standardization(obs), min_max(obs)
 
-    assert standardization.to('cuda') is standardization
-    assert min_max.to('cuda') is min_max
-
-    assert standardization.device == 'cuda'
-    assert standardization._obs_runstand.mean.device.type == 'cuda'
-    assert min_max.device == 'cuda'
-    assert min_max._obs_runstand.mean.device.type == 'cuda'
-    assert min_max._obs_mask.device.type == 'cuda'
-    assert min_max._obs_mean.device.type == 'cuda'
-    assert min_max._obs_delta.device.type == 'cuda'
-    assert torch.allclose(standardization(obs.cuda()).cpu(), expected[0])
-    assert torch.allclose(min_max(obs.cuda()).cpu(), expected[1])
+    assert standardization.to(device) is standardization
+    assert min_max.to(device) is min_max
+    assert standardization.device == device
+    assert standardization._obs_runstand.mean.device.type == device
+    assert min_max.device == device
+    assert min_max._obs_runstand.mean.device.type == device
+    assert min_max._obs_mask.device.type == device
+    assert min_max._obs_mean.device.type == device
+    assert min_max._obs_delta.device.type == device
+    assert torch.allclose(standardization(obs.to(device)).cpu(), expected[0])
+    assert torch.allclose(min_max(obs.to(device)).cpu(), expected[1])

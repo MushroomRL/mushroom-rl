@@ -39,7 +39,7 @@ def test_value_iteration():
     eps = 1e-1
 
     q = value_iteration(p, r, gamma, eps)
-    test_q = np.array([0.93653921, 0.99439414, 0.99439414, 0.])
+    test_q = np.load('tests/solvers/data/test_value_iteration.npy')
 
     assert np.allclose(q, test_q)
 
@@ -80,7 +80,7 @@ def test_policy_iteration():
     gamma = .95
 
     q, p = policy_iteration(p, r, gamma)
-    q_test = np.array([0.93953176, 0.99447514, 0.99447514, 0.])
+    q_test = np.load('tests/solvers/data/test_policy_iteration.npy')
     p_test = np.array([1, 1, 3, 0])
 
     assert np.allclose(q, q_test) and np.allclose(p, p_test)

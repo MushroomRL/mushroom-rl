@@ -177,3 +177,31 @@ def test_sklearn_approximator_save_load(tmpdir):
     assert approximator_load.backend_name == 'numpy'
     assert np.array_equal(approximator_load.predict(x), approximator.predict(x))
     assert np.array_equal(ensemble_load.predict(x, prediction='all'), ensemble.predict(x, prediction='all'))
+
+
+def test_sklearn_approximator_shapes():
+    x = [[0., 1.], [1., 0.], [1., 1.], [2., 1.]]
+    multi = SklearnApproximator(LinearRegression, (2,), output_shape=(2,))
+    multi.fit(x, [[1., 2.], [2., 1.], [3., 3.], [4., 3.]])
+
+    assert multi.predict(x).shape == (4, 2)
+    assert multi.predict(x[0]).shape == (2,)
+
+    single = SklearnApproximator(LinearRegression, (2,))
+    single.fit(x, [1., 2., 3., 4.])
+
+    assert single.predict(x).shape == (4,) and single.predict(x[0]).shape == (1,)
+
+    with pytest.raises(AssertionError):
+        single.predict(np.arange(4.))
+    with pytest.raises(AssertionError):
+        single.fit(np.zeros((4, 3)), np.zeros(4))
+
+    std = SklearnApproximator(BayesianRidge, (2,), output_shape=[(1,), (1,)])
+    std.fit(x, [1., 2., 3., 4.])
+    mean, deviation = std.predict(x, return_std=True)
+    mean_single, deviation_single = std.predict(x[0], return_std=True)
+
+    assert mean.shape == (4,) and deviation.shape == (4,) and np.all(deviation > 0)
+    assert mean_single.shape == (1,) and deviation_single.shape == (1,)
+    assert np.allclose(mean_single, mean[:1]) and np.allclose(deviation_single, deviation[:1])

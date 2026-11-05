@@ -8,7 +8,7 @@ def abstract_method_tester(f, ex, *args):
         f(*args)
 
 
-def test_policy_interface():
+def test_interface():
     tmp = Policy('numpy')
     abstract_method_tester(tmp.__call__, NotImplementedError, None, None)
     abstract_method_tester(tmp.draw_action, NotImplementedError, None)
@@ -17,8 +17,6 @@ def test_policy_interface():
     assert tmp.reset_vectorized(None) is None
     assert not tmp.is_stateful
 
-
-def test_stateful_policy_interface():
     tmp = StatefulPolicy(policy_state_shape=(1,), backend='numpy')
     assert tmp.is_stateful
 
@@ -28,26 +26,20 @@ def test_stateful_policy_interface():
     abstract_method_tester(tmp.draw_action_greedy, NotImplementedError, None)
 
 
-def test_has_weights():
+def test_mixins():
     tmp = HasWeights()
     abstract_method_tester(tmp.set_weights, NotImplementedError, None)
     abstract_method_tester(tmp.get_weights, NotImplementedError)
     with pytest.raises(NotImplementedError):
         tmp.weights_size
 
-
-def test_has_gradient():
     tmp = HasGradient()
     abstract_method_tester(tmp.diff_log, NotImplementedError, None, None)
 
-
-def test_mixin_requires_policy():
     with pytest.raises(TypeError):
         class BadPolicy(HasWeights):
             pass
 
-
-def test_mixin_requires_mixin_first():
     with pytest.raises(TypeError):
         class MixinLast(Policy, HasWeights):
             pass
@@ -56,8 +48,6 @@ def test_mixin_requires_mixin_first():
         class GradientMixinLast(Policy, HasGradient):
             pass
 
-
-def test_mixin_accepts_mixin_first():
     class GoodPolicy(HasWeights, Policy):
         pass
 
@@ -67,8 +57,6 @@ def test_mixin_accepts_mixin_first():
     assert issubclass(GoodPolicy, Policy)
     assert issubclass(GoodGradientPolicy, HasWeights)
 
-
-def test_intermediate_mixin_allowed():
     class IntermediateMixin(HasWeights, is_mixin=True):
         pass
 

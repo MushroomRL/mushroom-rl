@@ -1,9 +1,7 @@
 import numpy as np
 import torch
-from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent
 from mushroom_rl.algorithms.actor_critic import COPDAC_Q
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
@@ -49,24 +47,12 @@ def learn_copdac_q():
     return agent
 
 
-def test_copdac_q():
-    policy = learn_copdac_q().policy
+def test_copdac_q(tmpdir):
+    agent = learn_copdac_q()
+    policy = agent.policy
     w = policy.get_weights()
-    w_test = np.array([[0.0, -6.62180045e-07, 0.0, -4.23972882e-02]])
+    w_test = np.load('tests/algorithms/data/test_copdac_q.npy')
 
     assert np.allclose(w, w_test)
 
-
-def test_copdac_q_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    agent_save = learn_copdac_q()
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')

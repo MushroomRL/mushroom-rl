@@ -16,7 +16,7 @@ def make_approximator(**kwargs):
                                   batch_size=20, quiet=True, **kwargs)
 
 
-def test_numpy_torch_approximator():
+def test_numpy_torch():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -28,8 +28,7 @@ def test_numpy_torch_approximator():
 
     y_hat = approximator.predict(x[:2])
     assert isinstance(y_hat, np.ndarray)
-    assert np.allclose(y_hat, np.array([[-0.099473774, 0.648228],
-                                        [-0.026544452, 0.36338845]]))
+    assert np.allclose(y_hat, np.load('tests/approximators/data/test_numpy_torch_0.npy'))
 
     y_hat_single = approximator.predict(x[0])
     assert isinstance(y_hat_single, np.ndarray)
@@ -42,8 +41,6 @@ def test_numpy_torch_approximator():
     approximator.set_weights(np.zeros(approximator.weights_size))
     assert np.allclose(approximator.predict(x[:2]), 0.)
 
-
-def test_numpy_torch_approximator_model():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -60,8 +57,6 @@ def test_numpy_torch_approximator_model():
     assert np.array_equal(approximator.predict(x), y_torch)
     assert np.array_equal(approximator.get_weights(), model.get_weights().detach().numpy())
 
-
-def test_numpy_torch_approximator_ensemble():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -78,17 +73,15 @@ def test_numpy_torch_approximator_ensemble():
 
     y_hat = approximator.predict(x[:2])
     assert isinstance(y_hat, np.ndarray)
-    assert np.allclose(y_hat, np.array([[-0.30214795, 0.38645002],
-                                        [-0.18841632, -0.023845255]]))
+    assert np.allclose(y_hat, np.load('tests/approximators/data/test_numpy_torch_1.npy'))
 
     y_members = np.stack([approximator[i].predict(x[:2]) for i in range(3)])
     assert np.allclose(y_hat, y_members.mean(0))
-    assert np.allclose(approximator.predict(x[:2], idx=1), np.array([[-0.5792092, 0.17651889],
-                                                                     [-0.33411986, -0.15423518]]))
+    assert np.allclose(approximator.predict(x[:2], idx=1), np.load('tests/approximators/data/test_numpy_torch_2.npy'))
     assert np.array_equal(approximator.predict(x[:2], prediction='all'), y_members)
 
 
-def test_numpy_torch_approximator_save_load(tmpdir):
+def test_save_and_logger(tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -109,8 +102,6 @@ def test_numpy_torch_approximator_save_load(tmpdir):
     assert np.array_equal(approximator_load.predict(x), approximator.predict(x))
     assert np.array_equal(ensemble_load.predict(x), ensemble.predict(x))
 
-
-def test_numpy_torch_approximator_logger(tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
 

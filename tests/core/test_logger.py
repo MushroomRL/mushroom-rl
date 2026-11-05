@@ -69,22 +69,33 @@ def test_logger(tmpdir):
     assert np.array_equal(b_2, np.arange(3))
 
 
-def test_default_wandb_kwargs():
-    kwargs = Logger.default_wandb_kwargs('proj', config={'a': 1}, name='run', group='g')
+def test_log_agent(tmpdir):
+    mdp = SimpleChain(n_states=3, goal_states=[2], prob=1., goal_reward=1, gamma=.9)
+    agent = QLearning(mdp.info, EpsGreedy(Parameter(0.)), Parameter(.1))
+    logger = Logger('', results_dir=tmpdir, log_console=True)
 
-    assert kwargs['project'] == 'proj'
-    assert kwargs['config'] == {'a': 1}
-    assert kwargs['name'] == 'run'
-    assert kwargs['group'] == 'g'
-    assert kwargs['entity'] is None
-    assert kwargs['tags'] is None
-    assert kwargs['mode'] == 'online'
+    logger.log_agent(agent)
+    logger.log_agent(agent, epoch=2)
+    logger.log_best_agent(agent, 1.)
+    agent.Q.table[:] = 5.
+    logger.log_best_agent(agent, 0.)
 
-    default_kwargs = Logger.default_wandb_kwargs('proj')
-    assert default_kwargs['config'] == dict()
+    assert sorted(path.name for path in logger.path.glob('*.msh')) == ['agent-2.msh', 'agent-best.msh', 'agent.msh']
+    assert np.all(QLearning.load(logger.path / 'agent-best.msh').Q.table == 0.)
+
+    logger.log_best_agent(agent, 1.)
+
+    assert np.all(QLearning.load(logger.path / 'agent-best.msh').Q.table == 5.)
+    assert logger.log_video(1) is None
+
+    logger.log_wandb_video('evaluation', tmpdir / 'missing.mp4', 1)
+    logger.finish()
+
+    with raises(AssertionError):
+        Logger('no_results_dir', results_dir=None, log_console=True)
 
 
-def test_logger_training_evaluation(tmpdir):
+def test_training_evaluation(tmpdir):
     logger = Logger('test_logger_training_evaluation', results_dir=tmpdir)
 
     assert not logger.wandb_active
@@ -103,8 +114,23 @@ def test_logger_training_evaluation(tmpdir):
     y = np.load(str(tmpdir / 'test_log_numpy' / 'training' / 'y.npy'))
     assert np.array_equal(y, np.array([2.0]))
 
+    logger = Logger('test_log', results_dir=None, force_numpy=True)
 
-def test_logger_append_evaluation(tmpdir):
+    assert not logger.wandb_active
+
+    logger.log_training(x=1.0)
+    logger.log_wandb_training(x=1.0)
+    logger.advance_step()
+
+    logger = Logger('test_duplicated_name', results_dir=None)
+
+    with raises(AssertionError):
+        Logger('test_duplicated_name', results_dir=None)
+
+    logger.info('the first logger still works')
+
+
+def test_append(tmpdir):
     logger = Logger('test_logger_append_evaluation', results_dir=tmpdir)
 
     for i in range(3):
@@ -120,8 +146,6 @@ def test_logger_append_evaluation(tmpdir):
     J = np.load(str(tmpdir / 'test_logger_append_evaluation' / 'J.npy'))
     assert np.array_equal(J, np.array([0.0, 1.0, 2.0, 3.0]))
 
-
-def test_logger_append_ignores_other_seeds(tmpdir):
     logger_seeded = Logger('test_logger_append_ignores_other_seeds', results_dir=tmpdir, seed=1)
 
     for value in (10.0, 11.0, 12.0):
@@ -136,8 +160,6 @@ def test_logger_append_ignores_other_seeds(tmpdir):
     assert np.array_equal(a, np.array([99.0]))
     assert np.array_equal(a_1, np.array([10.0, 11.0, 12.0]))
 
-
-def test_logger_append_training(tmpdir):
     logger = Logger('test_logger_append_training', results_dir=tmpdir, force_numpy=True)
 
     for i in range(3):
@@ -157,26 +179,7 @@ def test_logger_append_training(tmpdir):
     assert np.array_equal(y, np.array([1.0, 3.0, 5.0, 7.0]))
 
 
-def test_logger_no_results_dir():
-    logger = Logger('test_log', results_dir=None, force_numpy=True)
-
-    assert not logger.wandb_active
-
-    logger.log_training(x=1.0)
-    logger.log_wandb_training(x=1.0)
-    logger.advance_step()
-
-
-def test_logger_duplicated_name():
-    logger = Logger('test_duplicated_name', results_dir=None)
-
-    with raises(AssertionError):
-        Logger('test_duplicated_name', results_dir=None)
-
-    logger.info('the first logger still works')
-
-
-def test_wandb_offline(tmpdir):
+def test_wandb(tmpdir):
     importorskip('wandb')
 
     wandb_kwargs = Logger.default_wandb_kwargs('test_project', config={'lr': 0.1},
@@ -196,16 +199,6 @@ def test_wandb_offline(tmpdir):
 
     assert logger._wandb_run.summary['training/actor_loss'] in (0.5, 0.25)
 
-    logger.finish()
-    assert not logger.wandb_active
-
-
-def test_wandb_vector(tmpdir):
-    importorskip('wandb')
-
-    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
-    logger = Logger('test_wandb_vector', results_dir=None, wandb_kwargs=wandb_kwargs)
-
     logger.log_training('policy', std=np.array([0.3, 0.5]), mean=torch.tensor([1., 2., 3.]), scalar=np.array(4.),
                         small=np.arange(31.), large=np.arange(32.))
 
@@ -222,31 +215,12 @@ def test_wandb_vector(tmpdir):
     assert summary['training/policy/large']['_type'] == 'histogram'
     assert not any(key.startswith('training/policy/large/') for key in keys)
 
+    logger.log_video(1)
     logger.finish()
+    assert not logger.wandb_active
 
 
-def test_wandb_group_auto_set(tmpdir):
-    importorskip('wandb')
-
-    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
-    logger = Logger('test_wandb_group_auto_set', results_dir=None, wandb_kwargs=wandb_kwargs)
-
-    assert logger._wandb_run.group == 'test_wandb_group_auto_set'
-    logger.finish()
-
-
-def test_wandb_group_not_overridden(tmpdir):
-    importorskip('wandb')
-
-    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline',
-                                               dir=str(tmpdir), group='custom_group')
-    logger = Logger('test_wandb_group_not_overridden', results_dir=None, wandb_kwargs=wandb_kwargs)
-
-    assert logger._wandb_run.group == 'custom_group'
-    logger.finish()
-
-
-def test_wandb_seed(tmpdir):
+def test_wandb_naming(tmpdir):
     importorskip('wandb')
 
     wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
@@ -257,25 +231,21 @@ def test_wandb_seed(tmpdir):
     assert logger._wandb_run.group == 'test_wandb_seed'
     logger.finish()
 
-
-def test_wandb_seed_name_not_overridden(tmpdir):
-    importorskip('wandb')
-
-    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline',
-                                               dir=str(tmpdir), name='custom_name')
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir), name='custom_name',
+                                               group='custom_group')
     logger = Logger('test_wandb_seed_name_not_overridden', results_dir=None, seed=42, wandb_kwargs=wandb_kwargs)
 
     assert logger._wandb_run.config['seed'] == 42
     assert logger._wandb_run.name == 'custom_name'
+    assert logger._wandb_run.group == 'custom_group'
     logger.finish()
 
 
-def test_wandb_append_offline(tmpdir):
+def test_wandb_append(tmpdir):
     importorskip('wandb')
 
-    wandb_kwargs = Logger.default_wandb_kwargs('test_project', config={'lr': 0.1},
-                                               mode='offline', dir=str(tmpdir))
-    logger = Logger('wandb_append', results_dir=tmpdir, wandb_kwargs=wandb_kwargs)
+    wandb_kwargs = Logger.default_wandb_kwargs('test_project', config={'lr': 0.1}, mode='offline')
+    logger = Logger('wandb_append', results_dir=tmpdir, append=True, wandb_kwargs=wandb_kwargs)
 
     assert logger.wandb_active
     run_id = logger._wandb_run.id
@@ -304,7 +274,7 @@ def test_wandb_append_offline(tmpdir):
     logger_append.finish()
 
 
-def test_video_logger_lazy_creation(tmpdir):
+def test_video_lazy(tmpdir):
     logger = Logger('test_video_logger_lazy_creation', results_dir=tmpdir)
 
     assert logger.video_recorder is None
@@ -317,8 +287,6 @@ def test_video_logger_lazy_creation(tmpdir):
 
     logger.stop_recording()
 
-
-def test_video_logger_ignores_missing_frames(tmpdir):
     logger = Logger('test_video_logger_ignores_missing_frames', results_dir=tmpdir)
 
     logger.set_video_fps(30)
@@ -330,7 +298,7 @@ def test_video_logger_ignores_missing_frames(tmpdir):
     assert logger.stop_recording() is None
 
 
-def test_video_logger_custom_recorder():
+def test_video_recorder_class():
     class FrameRecorder:
         def __init__(self, fps=None, **kwargs):
             self.frames = []
@@ -355,8 +323,6 @@ def test_video_logger_custom_recorder():
 
     logger.stop_recording()
 
-
-def test_video_logger_set_fps():
     class FrameRecorder:
         def __init__(self, fps=None, **kwargs):
             self.fps = fps
@@ -378,7 +344,7 @@ def test_video_logger_set_fps():
     assert logger.video_recorder.fps == 30
 
 
-def test_video_logger_video_path(tmpdir):
+def test_video_path(tmpdir):
     logger = Logger('test_video_logger_video_path', results_dir=tmpdir, fps=30)
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -394,8 +360,6 @@ def test_video_logger_video_path(tmpdir):
     assert path == videos[0]
     assert logger.recorded_videos == [path]
 
-
-def test_video_logger_append(tmpdir):
     logger = Logger('test_video_logger_append', results_dir=tmpdir, fps=30)
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -407,7 +371,7 @@ def test_video_logger_append(tmpdir):
     assert logger_append.recorded_videos == [path]
 
 
-def test_video_logger_vectorized_dispatch(tmpdir):
+def test_video_dispatch(tmpdir):
     logger = Logger('test_video_logger_vectorized_dispatch', results_dir=tmpdir, fps=30)
 
     frames = np.zeros((2, 100, 100, 3), dtype=np.uint8)
@@ -427,8 +391,17 @@ def test_video_logger_vectorized_dispatch(tmpdir):
 
     logger_single.stop_recording()
 
+    logger = Logger('test_video_logger_single_env_dispatch', results_dir=tmpdir, fps=30)
 
-def test_video_logger_vectorized_concatenation(tmpdir):
+    logger.record_frame(np.zeros((1, 100, 100, 3), dtype=np.uint8), np.array([True]))
+
+    assert isinstance(logger.video_recorder, VideoRecorder)
+    assert not isinstance(logger.video_recorder, VectorizedVideoRecorder)
+
+    logger.stop_recording()
+
+
+def test_video_vectorized(tmpdir):
     logger = Logger('test_video_logger_vectorized_concatenation', results_dir=tmpdir, fps=30)
 
     for step in range(1, 4):
@@ -450,8 +423,6 @@ def test_video_logger_vectorized_concatenation(tmpdir):
     assert len(values) == 9
     assert all(value > 0 for value in values)
 
-
-def test_video_logger_vectorized_partial_mask(tmpdir):
     logger = Logger('test_video_logger_vectorized_partial_mask', results_dir=tmpdir, fps=30)
 
     first = np.stack([np.full((100, 100, 3), value, dtype=np.uint8) for value in (10, 20, 30)])
@@ -468,18 +439,7 @@ def test_video_logger_vectorized_partial_mask(tmpdir):
     assert all(value > 0 for value in values)
 
 
-def test_video_logger_single_env_dispatch(tmpdir):
-    logger = Logger('test_video_logger_single_env_dispatch', results_dir=tmpdir, fps=30)
-
-    logger.record_frame(np.zeros((1, 100, 100, 3), dtype=np.uint8), np.array([True]))
-
-    assert isinstance(logger.video_recorder, VideoRecorder)
-    assert not isinstance(logger.video_recorder, VectorizedVideoRecorder)
-
-    logger.stop_recording()
-
-
-def test_video_logger_vectorized_lone_active_env(tmpdir):
+def test_video_lone_active_env(tmpdir):
     logger = Logger('test_video_logger_vectorized_lone_active_env', results_dir=tmpdir, fps=30,
                     recorder_kwargs=dict(codec='ffv1', extension='.mkv'))
 
@@ -497,7 +457,7 @@ def test_video_logger_vectorized_lone_active_env(tmpdir):
     assert read_frame_values(path) == [21.0, 22.0, 121.0, 122.0, 123.0, 124.0, 125.0]
 
 
-def test_video_logger_vectorized_after_lone_active_env(tmpdir):
+def test_video_reuse(tmpdir):
     logger = Logger('test_video_logger_vectorized_after_lone_active_env', results_dir=tmpdir, fps=30)
 
     logger.record_frame(np.zeros((1, 100, 100, 3), dtype=np.uint8), np.array([True, False]))
@@ -509,8 +469,6 @@ def test_video_logger_vectorized_after_lone_active_env(tmpdir):
     assert first.name == 'recording.mp4'
     assert second.name == 'recording-1.mp4'
 
-
-def test_video_logger_vectorized_reuse(tmpdir):
     logger = Logger('test_video_logger_vectorized_reuse', results_dir=tmpdir, fps=30)
 
     frames = np.zeros((2, 100, 100, 3), dtype=np.uint8)
@@ -551,7 +509,7 @@ def test_log_dataset(tmpdir):
     assert (logger_seed.path / 'dataset-42.msh').exists()
 
 
-def test_log_video_wandb_offline(tmpdir):
+def test_wandb_video(tmpdir):
     importorskip('wandb')
 
     wandb_kwargs = Logger.default_wandb_kwargs('test_project', mode='offline', dir=str(tmpdir))
@@ -579,23 +537,17 @@ def test_log_hyperparameters(tmpdir):
 
     assert params == dict(gamma=0.99, horizon=200, name='experiment')
 
-
-def test_log_hyperparameters_seed(tmpdir):
-    logger = Logger('test_params', results_dir=tmpdir, seed=42)
+    logger = Logger('test_params_seed', results_dir=tmpdir, seed=42)
 
     logger.log_hyperparameters(gamma=0.99)
 
-    assert (tmpdir / 'test_params' / 'params-42.json').exists()
-    assert not (tmpdir / 'test_params' / 'params.json').exists()
+    assert (tmpdir / 'test_params_seed' / 'params-42.json').exists()
+    assert not (tmpdir / 'test_params_seed' / 'params.json').exists()
 
-
-def test_log_hyperparameters_no_results_dir():
     logger = Logger('test_log_hyperparameters_no_results_dir', results_dir=None)
 
     logger.log_hyperparameters(gamma=0.99)
 
-
-def test_log_hyperparameters_non_serializable(tmpdir):
     logger = Logger('test_log_hyperparameters_non_serializable', results_dir=tmpdir)
 
     logger.log_hyperparameters(optimizer=optim.Adam)
@@ -605,8 +557,6 @@ def test_log_hyperparameters_non_serializable(tmpdir):
 
     assert params['optimizer'] == 'torch.optim.adam.Adam'
 
-
-def test_log_hyperparameters_nested_classes(tmpdir):
     logger = Logger('test_log_hyperparameters_nested_classes', results_dir=tmpdir)
 
     logger.log_hyperparameters(optimizer={'class': optim.Adam, 'params': dict(lr=3e-4)},
@@ -622,8 +572,6 @@ def test_log_hyperparameters_nested_classes(tmpdir):
                           pair=['torch.optim.rmsprop.RMSprop', 3],
                           n_features=64)
 
-
-def test_log_hyperparameters_functions(tmpdir):
     logger = Logger('test_log_hyperparameters_functions', results_dir=tmpdir)
 
     logger.log_hyperparameters(activation=F.relu, method=optim.Adam.step, alpha=Parameter(value=.1))
@@ -647,8 +595,6 @@ def test_log_experiment_info(tmpdir):
 
     assert params == dict(gamma=0.9, n_steps=100)
 
-
-def test_log_experiment_info_instance(tmpdir):
     logger = Logger('test_log_experiment_info_instance', results_dir=tmpdir)
     mdp = SimpleChain(n_states=5, goal_states=[2])
     agent = QLearning(mdp.info, EpsGreedy(epsilon=Parameter(value=.1)), Parameter(value=.1))
@@ -660,8 +606,6 @@ def test_log_experiment_info_instance(tmpdir):
 
     assert params == dict()
 
-
-def test_log_experiment_info_no_mdp(tmpdir):
     logger = Logger('test_log_experiment_info_no_mdp', results_dir=tmpdir)
 
     logger.log_experiment_info(QLearning, n_epochs=3)

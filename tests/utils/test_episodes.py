@@ -1,5 +1,9 @@
-import torch
 import numpy as np
+import pytest
+import torch
+
+from helper.arrays import assert_equal, make_array, to_numpy
+from helper.cases import backend_devices
 
 from mushroom_rl.core import Core, Agent
 from mushroom_rl.policy import DeterministicPolicy
@@ -25,75 +29,32 @@ def get_episodes(mdp, n_episodes=100, to='numpy'):
     return dataset.parse(to=to)
 
 
-def test_torch_split():
-    torch.manual_seed(42)
-    mdp = Segway()
-    state, action, reward, next_state, absorbing, last = get_episodes(mdp, to='torch')
-
-    last_flags, *ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
-    un_state, un_action, un_reward, un_next_state, un_absorbing, un_last = unsplit_episodes(last, *ep_arrays)
-
-    expected_flags = last.clone()
-    expected_flags[-1] = True
-
-    assert (last_flags.sum(-1) == 1).all()
-    assert torch.equal(unsplit_episodes(last, last_flags), expected_flags)
-    assert torch.allclose(state, un_state)
-    assert torch.allclose(action, un_action)
-    assert torch.allclose(reward, un_reward)
-    assert torch.allclose(next_state, un_next_state)
-    assert torch.allclose(absorbing, un_absorbing)
-    assert torch.allclose(last, un_last)
-
-
-def test_numpy_split():
+@pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))
+def test_split(backend, device):
     torch.manual_seed(42)
     np.random.seed(42)
+    arrays = get_episodes(Segway(), to=backend)
+    if backend == 'torch':
+        arrays = [array.to(device) for array in arrays]
+    last = arrays[-1]
 
-    mdp = Segway()
-    state, action, reward, next_state, absorbing, last = get_episodes(mdp)
+    last_flags, *ep_arrays = split_episodes(last, *arrays)
+    unsplit = unsplit_episodes(last, *ep_arrays)
 
-    last_flags, *ep_arrays = split_episodes(last, state, action, reward, next_state, absorbing, last)
-    un_state, un_action, un_reward, un_next_state, un_absorbing, un_last = unsplit_episodes(last, *ep_arrays)
-
-    expected_flags = last.copy()
+    expected_flags = to_numpy(last).copy()
     expected_flags[-1] = True
 
-    assert (last_flags.sum(-1) == 1).all()
-    assert np.array_equal(unsplit_episodes(last, last_flags), expected_flags)
-    assert np.allclose(state, un_state)
-    assert np.allclose(action, un_action)
-    assert np.allclose(reward, un_reward)
-    assert np.allclose(next_state, un_next_state)
-    assert np.allclose(absorbing, un_absorbing)
-    assert np.allclose(last, un_last)
+    assert (to_numpy(last_flags).sum(-1) == 1).all()
+    assert_equal(unsplit_episodes(last, last_flags), expected_flags, backend, device)
+    for array, restored in zip(arrays, unsplit):
+        assert_equal(restored, array, backend, device)
 
-
-def test_torch_split_truncated_episode():
-    last = torch.tensor([False, False, True, False, False])
-    reward = torch.arange(1., 6.)
+    last = make_array(backend, [False, False, True, False, False], device)
+    reward = make_array(backend, [1., 2., 3., 4., 5.], device)
 
     last_flags, reward_ep = split_episodes(last, reward)
 
-    expected_flags = last.clone()
-    expected_flags[-1] = True
-
-    assert last_flags.shape == (2, 3)
-    assert torch.equal(last_flags.sum(-1), torch.tensor([1, 1]))
-    assert torch.equal(unsplit_episodes(last, last_flags), expected_flags)
-    assert torch.equal(unsplit_episodes(last, reward_ep), reward)
-
-
-def test_numpy_split_truncated_episode():
-    last = np.array([False, False, True, False, False])
-    reward = np.arange(1., 6.)
-
-    last_flags, reward_ep = split_episodes(last, reward)
-
-    expected_flags = last.copy()
-    expected_flags[-1] = True
-
-    assert last_flags.shape == (2, 3)
-    assert np.array_equal(last_flags.sum(-1), np.array([1, 1]))
-    assert np.array_equal(unsplit_episodes(last, last_flags), expected_flags)
-    assert np.array_equal(unsplit_episodes(last, reward_ep), reward)
+    assert tuple(last_flags.shape) == (2, 3)
+    assert_equal(last_flags.sum(-1), [1, 1], backend, device)
+    assert_equal(unsplit_episodes(last, last_flags), [False, False, True, False, True], backend, device)
+    assert_equal(unsplit_episodes(last, reward_ep), reward, backend, device)

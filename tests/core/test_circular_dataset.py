@@ -55,7 +55,7 @@ def make_linked_buffer():
     return buffer
 
 
-def test_append_batch_writes_at_the_write_head_and_wraps():
+def test_append_batch():
     first = make_block([10, 11, 12], [False, False, True])
     second = make_block([20, 21, 22, 23], [False, False, False, True])
     buffer = CircularDataset(first._dataset_info, 5)
@@ -68,7 +68,7 @@ def test_append_batch_writes_at_the_write_head_and_wraps():
     assert buffer.write_head == 2 and buffer.full and len(buffer) == 5
 
 
-def test_append_batch_of_an_empty_dataset_keeps_the_open_episode():
+def test_append_empty():
     buffer = CircularDataset(make_block([0], [False])._dataset_info, 4)
     buffer.append_batch(make_block([0, 1], [False, False]))
 
@@ -79,8 +79,6 @@ def test_append_batch_of_an_empty_dataset_keeps_the_open_episode():
     assert np.array_equal(buffer.last, np.array([False, False, True]))
     assert np.array_equal(buffer.episodes_length, np.array([3]))
 
-
-def test_append_replay_batch_of_an_empty_dataset_writes_nothing():
     buffer = CircularDataset(make_block([0], [False])._dataset_info, 4)
     buffer.append_replay_batch(make_block([0, 1], [False, False]))
 
@@ -94,7 +92,7 @@ def test_append_replay_batch_of_an_empty_dataset_writes_nothing():
     assert np.array_equal(buffer.episodes_length, np.array([3]))
 
 
-def test_iadd_writes_in_place_and_add_writes_in_a_copy():
+def test_add():
     buffer = make_wrapped_buffer()
     block = make_block([30, 31], [False, True])
 
@@ -112,7 +110,7 @@ def test_iadd_writes_in_place_and_add_writes_in_a_copy():
     assert buffer.write_head == 4
 
 
-def test_joins_put_a_circular_dataset_in_time_order():
+def test_join_order():
     source = make_wrapped_buffer()
     plain = make_block([0, 1], [False, True])
     in_place = make_block([0, 1], [False, True])
@@ -130,7 +128,7 @@ def test_joins_put_a_circular_dataset_in_time_order():
     assert np.array_equal(buffer.episodes_length, np.array([1, 4]))
 
 
-def test_a_joined_circular_dataset_keeps_its_open_episodes():
+def test_join_open_episodes():
     states = np.arange(3.)[:, None]
     source = CircularDataset.from_array(states, np.zeros((3, 1)), np.zeros(3), states, np.zeros(3, dtype=bool),
                                         np.zeros(3, dtype=bool), max_size=5)
@@ -142,7 +140,7 @@ def test_a_joined_circular_dataset_keeps_its_open_episodes():
     assert np.array_equal(joined.episodes_length, np.array([1, 5]))
 
 
-def test_appending_a_circular_dataset_raises():
+def test_unsupported():
     source = make_wrapped_buffer()
     buffer = CircularDataset(source._dataset_info, 8)
 
@@ -153,8 +151,28 @@ def test_appending_a_circular_dataset_raises():
     with pytest.raises(AssertionError):
         buffer.append_replay_batch(source)
 
+    buffer = CircularDataset(make_block([0], [False])._dataset_info, 3)
 
-def test_append_continues_the_open_episode_and_wraps():
+    buffer.append(make_step(1, False), {'value': 1.})
+
+    assert buffer.info == {}
+    assert buffer.episode_info == {}
+    assert buffer.theta is None
+
+    buffer = CircularDataset(make_block([0], [False])._dataset_info, 3)
+
+    with pytest.raises(TypeError):
+        buffer.append_episode_info({'seed': 1})
+    with pytest.raises(TypeError):
+        buffer.append_theta(np.ones(2))
+
+    buffer = make_wrapped_buffer()
+
+    with pytest.raises(NotImplementedError):
+        buffer.reserve(10)
+
+
+def test_append():
     buffer = CircularDataset(make_block([0], [False])._dataset_info, 3)
 
     for value, last in [(1, False), (2, False), (3, True), (4, False), (5, False)]:
@@ -173,7 +191,7 @@ def test_append_continues_the_open_episode_and_wraps():
     assert np.array_equal(buffer.compute_J(), np.array([15.]))
 
 
-def test_append_stores_the_policy_state():
+def test_append_policy_state():
     states = np.array([[1.], [2.]])
     buffer = CircularDataset.from_array(states, np.zeros((2, 1)), np.zeros(2), states, np.zeros(2, dtype=bool),
                                         np.array([False, False]), policy_state=np.array([[10.], [20.]]),
@@ -186,7 +204,7 @@ def test_append_stores_the_policy_state():
     assert np.array_equal(buffer.policy_next_state[:, 0], np.array([40., 30.]))
 
 
-def test_append_replay_batch_wraps_the_policy_state():
+def test_append_replay_batch_policy_state():
     states = np.array([[1.], [2.]])
     buffer = CircularDataset.from_array(states, np.zeros((2, 1)), np.zeros(2), states, np.zeros(2, dtype=bool),
                                         np.array([False, True]), policy_state=np.array([[10.], [20.]]),
@@ -203,40 +221,14 @@ def test_append_replay_batch_wraps_the_policy_state():
     assert np.array_equal(buffer.policy_next_state[:, 0], np.array([41., 21., 31.]))
 
 
-def test_append_after_a_write_leaving_several_episodes_open_raises():
+def test_append_linked_raises():
     buffer = make_linked_buffer()
 
     with pytest.raises(ValueError):
         buffer.append(make_step(4, False), {})
 
 
-def test_step_info_is_dropped():
-    buffer = CircularDataset(make_block([0], [False])._dataset_info, 3)
-
-    buffer.append(make_step(1, False), {'value': 1.})
-
-    assert buffer.info == {}
-    assert buffer.episode_info == {}
-    assert buffer.theta is None
-
-
-def test_append_episode_info_and_append_theta_raise():
-    buffer = CircularDataset(make_block([0], [False])._dataset_info, 3)
-
-    with pytest.raises(TypeError):
-        buffer.append_episode_info({'seed': 1})
-    with pytest.raises(TypeError):
-        buffer.append_theta(np.ones(2))
-
-
-def test_reserve_raises():
-    buffer = make_wrapped_buffer()
-
-    with pytest.raises(NotImplementedError):
-        buffer.reserve(10)
-
-
-def test_clear_moves_the_write_head_back_to_the_start():
+def test_clear():
     buffer = make_wrapped_buffer()
 
     buffer.clear()
@@ -250,8 +242,6 @@ def test_clear_moves_the_write_head_back_to_the_start():
     assert np.array_equal(buffer.episodes_length, np.array([3]))
     assert np.array_equal(buffer.get_init_states()[:, 0], np.array([10.]))
 
-
-def test_clear_drops_the_links_of_a_linked_ring():
     buffer = make_linked_buffer()
 
     buffer.clear()
@@ -261,7 +251,7 @@ def test_clear_drops_the_links_of_a_linked_ring():
     assert np.array_equal(buffer.links[1], np.zeros(6, dtype=int))
 
 
-def test_views_are_plain_datasets_with_the_episode_structure_of_the_ring():
+def test_views():
     buffer = make_wrapped_buffer()
 
     across_the_wrap = buffer[0:3]
@@ -276,7 +266,7 @@ def test_views_are_plain_datasets_with_the_episode_structure_of_the_ring():
     assert np.array_equal(across_the_head.get_init_states()[:, 0], np.array([20.]))
 
 
-def test_per_episode_methods_follow_the_time_order():
+def test_episodes():
     buffer = make_wrapped_buffer()
 
     assert np.array_equal(buffer.episodes_length, np.array([1, 4]))
@@ -295,7 +285,7 @@ def test_per_episode_methods_follow_the_time_order():
         buffer.select_first_episodes(3)
 
 
-def test_per_episode_methods_follow_the_episodes_of_a_linked_ring():
+def test_episodes_linked():
     buffer = make_linked_buffer()
 
     assert np.array_equal(buffer.state[:, 0], np.array([12., 13., 10., 11., 2., 3.]))
@@ -305,7 +295,7 @@ def test_per_episode_methods_follow_the_episodes_of_a_linked_ring():
     assert np.array_equal(buffer[0:6].compute_J(skip_incomplete=False), np.array([205., 201., 5.]))
 
 
-def test_parse_returns_the_episodes_in_time_order():
+def test_parse():
     wrapped = make_wrapped_buffer().parse()
     linked = make_linked_buffer().parse()
 
@@ -316,7 +306,7 @@ def test_parse_returns_the_episodes_in_time_order():
     assert np.array_equal(linked[5], np.array([False, False, False, True, False, True]))
 
 
-def test_last_or_boundary_marks_every_break_in_buffer_order():
+def test_last_or_boundary():
     wrapped = make_wrapped_buffer()
     linked = make_linked_buffer()
 
@@ -324,7 +314,7 @@ def test_last_or_boundary_marks_every_break_in_buffer_order():
     assert np.array_equal(linked.last_or_boundary, np.array([False, True, False, True, False, True]))
 
 
-def test_parse_and_to_backend_keep_the_policy_state_of_every_row():
+def test_policy_state_conversion():
     states = np.array([[1.], [2.]])
     buffer = CircularDataset.from_array(states, np.zeros((2, 1)), np.zeros(2), states, np.zeros(2, dtype=bool),
                                         np.array([False, True]), policy_state=np.array([[10.], [20.]]),
@@ -345,7 +335,7 @@ def test_parse_and_to_backend_keep_the_policy_state_of_every_row():
                        torch.tensor([41., 21., 31.], dtype=converted.policy_next_state.dtype))
 
 
-def test_to_backend_keeps_the_ring():
+def test_to_backend():
     buffer = make_wrapped_buffer()
 
     converted = buffer.to_backend('torch')
@@ -360,8 +350,6 @@ def test_to_backend_keeps_the_ring():
 
     assert torch.equal(converted.state[:, 0], torch.tensor([22., 23., 30., 31., 21.], dtype=converted.state.dtype))
 
-
-def test_to_backend_shares_no_links_with_the_ring():
     buffer = make_linked_buffer()
     buffer._dataset_info.agent_backend_name = 'torch'
     links = [link.copy() for link in buffer.links]
@@ -372,8 +360,6 @@ def test_to_backend_shares_no_links_with_the_ring():
     assert converted is not buffer
     assert all(np.array_equal(link, original) for link, original in zip(buffer.links, links))
 
-
-def test_to_backend_keeps_the_links_of_a_linked_ring():
     buffer = make_linked_buffer()
 
     converted = buffer.to_backend('torch')
@@ -384,7 +370,7 @@ def test_to_backend_keeps_the_links_of_a_linked_ring():
 
 
 @pytest.mark.parametrize('backend', ['numpy', 'torch'])
-def test_save_and_load_keep_the_links_of_a_linked_ring(tmpdir, backend):
+def test_save_load_links(tmpdir, backend):
     buffer = make_linked_buffer().to_backend(backend)
     path = tmpdir / 'linked_ring.msh'
 
@@ -402,7 +388,7 @@ def test_save_and_load_keep_the_links_of_a_linked_ring(tmpdir, backend):
         assert bool((restored == original).all())
 
 
-def test_from_array_writes_the_transitions_from_the_start_of_the_buffer():
+def test_from_array():
     states = np.arange(3.)[:, None]
     buffer = CircularDataset.from_array(states, np.zeros((3, 1)), np.ones(3), states, np.zeros(3, dtype=bool),
                                         np.array([False, True, False]), max_size=5)
@@ -421,7 +407,7 @@ def test_from_array_writes_the_transitions_from_the_start_of_the_buffer():
                                    np.array([False, True, False]), max_size=2)
 
 
-def test_generate_builds_an_empty_buffer():
+def test_generate():
     mdp_info = MDPInfo(Box(-np.ones(1), np.ones(1), (1,)), Box(-np.ones(1), np.ones(1), (1,)), 0.9, 10)
     agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='numpy')
 

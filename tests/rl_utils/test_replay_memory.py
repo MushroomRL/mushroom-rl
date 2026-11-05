@@ -89,7 +89,7 @@ def windows(rm, anchors):
     return rm._history_manager.parse_history(rm._dataset, anchor_idxs=np.array(anchors))[0]
 
 
-def test_replay_memory_add_get():
+def test_add():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -110,11 +110,8 @@ def test_replay_memory_add_get():
     s, a, r, ss, ab, last = rm.get(4)
 
     expected_idxs = np.array([4, 9, 6, 3])
-    s_test = np.array([[-1.01283112,  0.31424733, -0.90802408, -1.4123037],
-                       [0.2088636,  -1.95967012, -1.32818605,  0.19686124],
-                       [-0.54438272,  0.11092259, -1.15099358,  0.37569802],
-                       [0.24196227, -1.91328024, -1.72491783, -0.56228753]])
-    r_test = np.array([0.81252582, -0.64511975, -0.07201012, -1.19620662])
+    s_test = np.load('tests/rl_utils/data/test_add_s.npy')
+    r_test = np.load('tests/rl_utils/data/test_add_r.npy')
 
     assert np.allclose(s, states[expected_idxs])
     assert np.allclose(a, actions[expected_idxs])
@@ -124,7 +121,7 @@ def test_replay_memory_add_get():
     assert np.allclose(r, r_test)
 
 
-def test_replay_memory_not_initialized():
+def test_initialization():
     obs_shape = (4,)
     act_shape = (2,)
 
@@ -139,8 +136,6 @@ def test_replay_memory_not_initialized():
     assert rm.size == 10
     assert not rm.initialized
 
-
-def test_replay_memory_initialized_at_boundary():
     obs_shape = (4,)
     act_shape = (2,)
 
@@ -155,8 +150,6 @@ def test_replay_memory_initialized_at_boundary():
     assert rm.size == 10
     assert rm.initialized
 
-
-def test_replay_memory_initial_size_covers_the_n_step_return():
     mdp_info = make_mdp_info((4,), (2,))
     agent_info = make_agent_info()
 
@@ -169,7 +162,7 @@ def test_replay_memory_initial_size_covers_the_n_step_return():
     assert not ReplayMemory(mdp_info, agent_info, initial_size=3, max_size=50, n_steps_return=3).initialized
 
 
-def test_replay_memory_wrapping_when_full():
+def test_wrap():
     obs_shape = (4,)
     act_shape = (2,)
     max_size = 15
@@ -194,8 +187,55 @@ def test_replay_memory_wrapping_when_full():
     assert np.allclose(rm._dataset.reward[:5], rewards_b[5:10])
     assert np.allclose(rm._dataset.next_state[10:15], next_states_b[0:5])
 
+    obs_shape = (4,)
+    act_shape = (2,)
+    max_size = 10
 
-def test_replay_memory_n_steps_return():
+    rng = np.random.RandomState(42)
+    ds_a, states_a, _, _, _, _, _ = make_dataset(10, rng, obs_shape, act_shape)
+    ds_b, states_b, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
+    ds_c, states_c, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
+    rm.add(ds_a)
+    rm.add(ds_b)
+    rm.add(ds_c)
+
+    assert rm._dataset.full
+    assert rm.size == max_size
+    assert rm._dataset.write_head == 2
+
+    assert np.allclose(rm._dataset.state[6:10], states_c[:4])
+    assert np.allclose(rm._dataset.state[:2], states_c[4:6])
+
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (3,)
+    max_size = 10
+
+    rng = np.random.RandomState(42)
+    ds_a, _, _, _, _, ps_a, _ = make_dataset(10, rng, obs_shape, act_shape, policy_state_shape)
+    ds_b, _, _, _, _, ps_b, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
+    ds_c, _, _, _, _, ps_c, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size, store_policy_state=True)
+    rm.add(ds_a)
+    rm.add(ds_b)
+    rm.add(ds_c)
+
+    assert rm._dataset.full
+    assert rm.size == max_size
+    assert rm._dataset.write_head == 2
+
+    assert np.allclose(rm._dataset.policy_state[6:10], ps_c[:4])
+    assert np.allclose(rm._dataset.policy_state[:2], ps_c[4:6])
+
+
+def test_n_steps():
     obs_shape = (4,)
     act_shape = (2,)
     n, n_steps, gamma = 10, 3, 0.9
@@ -228,8 +268,6 @@ def test_replay_memory_n_steps_return():
     assert np.allclose(ab, absorbings[anchors + n_steps - 1])
     assert np.allclose(last, lasts[anchors + n_steps - 1])
 
-
-def test_replay_memory_n_steps_history_absorbing():
     obs_shape = (1,)
     act_shape = (1,)
     history_length = 3
@@ -268,8 +306,6 @@ def test_replay_memory_n_steps_history_absorbing():
     assert np.allclose(ab[absorbing_rows], 1.0)
     assert np.allclose(ss[absorbing_rows][:, :, 0], np.array([length - 2, length - 1, length]))
 
-
-def test_replay_memory_n_steps_truncation_masked():
     obs_shape = (1,)
     act_shape = (1,)
     n_steps = 3
@@ -296,7 +332,7 @@ def test_replay_memory_n_steps_truncation_masked():
     assert sampled == set(range(length)) - {3, 4}
 
 
-def test_replay_memory_stateful():
+def test_stateful():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -318,21 +354,29 @@ def test_replay_memory_stateful():
     s, a, r, ss, ab, last, ps, nps = rm.get(4)
 
     expected_idxs = np.array([4, 9, 6, 3])
-    ps_test = np.array([[1.21228341, -0.6346525, -1.5996985, 0.87715281, -0.09383245,
-                         -0.05567103, -0.88942073, -1.30095145],
-                        [-0.14312642, -0.22418983, -1.03849524, -0.17170905, 0.47634618,
-                         -0.41417827, -1.26408334, -0.57321556],
-                        [-1.27962318, 0.03654264, -0.64635659, 0.54856784, 0.21054246,
-                         0.34650175, -0.56705117, 0.41367881],
-                        [0.92751621, 1.63995407, 2.07361553, 0.70979786, 0.74715259,
-                         1.46309548, 1.73844881, 1.46520488]])
+    ps_test = np.load('tests/rl_utils/data/test_stateful.npy')
 
     assert np.allclose(ps, policy_states[expected_idxs])
     assert np.allclose(ps, ps_test)
     assert np.allclose(s, states[expected_idxs])
 
+    obs_shape = (4,)
+    act_shape = (2,)
+    policy_state_shape = (3,)
 
-def test_replay_memory_reset():
+    rng = np.random.RandomState(0)
+    ds, *_ = make_dataset(8, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+
+    assert not rm._dataset.is_stateful
+
+    rm.add(ds)
+    assert rm.size == 8
+    assert len(rm.get(4)) == 6
+
     obs_shape = (4,)
     act_shape = (2,)
 
@@ -353,7 +397,7 @@ def test_replay_memory_reset():
     assert rm._dataset.write_head == 0
 
 
-def test_replay_memory_torch_backend():
+def test_torch():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -379,8 +423,34 @@ def test_replay_memory_torch_backend():
     assert np.allclose(s.numpy(), states[idxs])
     assert np.allclose(r.numpy(), rewards[idxs])
 
+    np.random.seed(42)
 
-def test_sequence_replay_memory_shapes_and_values():
+    obs_shape = (4, 8)
+    obs_space = Box(low=0, high=255, shape=obs_shape, data_type=np.uint8)
+    act_space = Discrete(3)
+    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100)
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
+
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
+
+    states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
+    actions = np.random.randint(0, 3, (10, 1))
+    rewards = np.random.randn(10).astype(np.float32)
+    next_states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
+    absorbings = np.zeros(10)
+    lasts = np.zeros(10)
+    lasts[-1] = 1.0
+
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, backend='numpy')
+    rm.add(dataset)
+
+    assert rm.initialized
+    state, action, reward, next_state, absorbing, last = rm.get(5)
+    assert state.dtype == torch.uint8
+    assert state.shape == (5, *obs_shape)
+
+
+def test_sequence():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -419,7 +489,7 @@ def test_sequence_replay_memory_shapes_and_values():
         assert np.allclose(ps_seq[i, :length], rm._dataset.policy_state[begin:idx + 1])
 
 
-def test_sequence_replay_memory_episode_boundary():
+def test_sequence_history():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -440,8 +510,6 @@ def test_sequence_replay_memory_episode_boundary():
         *_, lengths = rm.get(1)
         assert lengths[0] <= episode_length
 
-
-def test_sequence_replay_memory_history_composition():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -483,8 +551,6 @@ def test_sequence_replay_memory_history_composition():
             else:
                 assert np.allclose(s_seq[k, t, 0], 0.0)
 
-
-def test_sequence_replay_memory_action_history_return_extra():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -528,7 +594,7 @@ def test_sequence_replay_memory_action_history_return_extra():
                     assert np.allclose(prev_actions[k, t, j], 0.0)
 
 
-def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
+def test_sequence_write_head():
     obs_shape = (1,)
     act_shape = (1,)
     policy_state_shape = (2,)
@@ -567,7 +633,7 @@ def test_sequence_replay_memory_history_reduced_sampling_across_write_head():
         assert not np.any(current == 3.0)
 
 
-def test_history_manager_default_streams_identity():
+def test_streams():
     mdp_info = make_mdp_info((4,), (2,))
     agent_info = make_agent_info()
 
@@ -580,8 +646,6 @@ def test_history_manager_default_streams_identity():
     assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=1).uses_action
     assert HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2).action_history_length == 2
 
-
-def test_history_manager_nstep_return_dataset():
     obs_shape = (2,)
     act_shape = (1,)
     n_steps, gamma, n = 3, 0.9, 8
@@ -608,8 +672,6 @@ def test_history_manager_nstep_return_dataset():
     assert np.allclose(reduced_reward, np.array([full_return, full_return, full_return, full_return,
                                                  1.0 + gamma, 1.0]))
 
-
-def test_build_nstep_return_slicing_matches_anchor_walk():
     obs_shape = (2,)
     act_shape = (1,)
     size = 20
@@ -636,8 +698,6 @@ def test_build_nstep_return_slicing_matches_anchor_walk():
             assert np.array_equal(endpoint, endpoint_buf)
             assert np.array_equal(reduced, reduced_buf)
 
-
-def test_replay_memory_rebuilds_only_stored_streams():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -661,7 +721,7 @@ def test_replay_memory_rebuilds_only_stored_streams():
     assert 'command' not in extra
 
 
-def test_prioritized_replay_memory_add_get():
+def test_prioritized():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -682,17 +742,12 @@ def test_prioritized_replay_memory_add_get():
 
     assert np.allclose(is_weight, 1.0)
 
-    s_test = np.array([[-0.00828463, -0.31963136, -0.53662936,  0.31540267],
-                       [0.73683739,  1.57463407, -0.03107509, -0.68344663],
-                       [1.0956297,  -0.30957664,  0.72575222,  1.54907163],
-                       [-0.18577532, -0.38053642,  0.08897764,  0.06367166]])
-    r_test = np.array([1.31094364, 2.15667443, -0.82943725, -1.08019383])
+    s_test = np.load('tests/rl_utils/data/test_prioritized_s.npy')
+    r_test = np.load('tests/rl_utils/data/test_prioritized_r.npy')
 
     assert np.allclose(s, s_test)
     assert np.allclose(r, r_test)
 
-
-def test_prioritized_replay_memory_add_default_priority():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -722,8 +777,6 @@ def test_prioritized_replay_memory_add_default_priority():
     assert np.isclose(rm._tree.max_p, expected_max)
     assert np.isclose(rm._tree.total_p, total_before + n * expected_max)
 
-
-def test_prioritized_replay_memory_update_changes_priorities():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -746,8 +799,6 @@ def test_prioritized_replay_memory_update_changes_priorities():
     expected_total = 10.0 - 4.0 + np.sum(new_priorities)
     assert np.isclose(rm._tree.total_p, expected_total)
 
-
-def test_prioritized_replay_memory_max_priority_before_init():
     obs_shape = (4,)
     act_shape = (2,)
 
@@ -757,8 +808,6 @@ def test_prioritized_replay_memory_max_priority_before_init():
 
     assert rm.max_priority == 1.0
 
-
-def test_prioritized_replay_memory_max_priority_after_add():
     obs_shape = (4,)
     act_shape = (2,)
 
@@ -774,7 +823,7 @@ def test_prioritized_replay_memory_max_priority_after_add():
     assert np.isclose(rm.max_priority, 3.0)
 
 
-def test_prioritized_replay_memory_history_masks_write_head():
+def test_prioritized_history():
     obs_shape = (1,)
     act_shape = (1,)
     history_length = 3
@@ -812,35 +861,7 @@ def test_prioritized_replay_memory_history_masks_write_head():
     assert not np.any(np.isin(anchors, [3.0, 4.0]))
 
 
-def test_replay_memory_torch_uint8_obs():
-    np.random.seed(42)
-
-    obs_shape = (4, 8)
-    obs_space = Box(low=0, high=255, shape=obs_shape, data_type=np.uint8)
-    act_space = Discrete(3)
-    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100)
-    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
-
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
-
-    states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
-    actions = np.random.randint(0, 3, (10, 1))
-    rewards = np.random.randn(10).astype(np.float32)
-    next_states = np.random.randint(0, 256, (10, *obs_shape), dtype=np.uint8)
-    absorbings = np.zeros(10)
-    lasts = np.zeros(10)
-    lasts[-1] = 1.0
-
-    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, backend='numpy')
-    rm.add(dataset)
-
-    assert rm.initialized
-    state, action, reward, next_state, absorbing, last = rm.get(5)
-    assert state.dtype == torch.uint8
-    assert state.shape == (5, *obs_shape)
-
-
-def test_replay_memory_history():
+def test_history():
     obs_shape = (4,)
     act_shape = (2,)
     n = 10
@@ -866,8 +887,6 @@ def test_replay_memory_history():
     assert np.allclose(s[:, history_length - 1], states[expected_idxs])
     assert np.allclose(ss[:, history_length - 1], next_states[expected_idxs])
 
-
-def test_replay_memory_history_reduced_sampling_excludes_write_head():
     obs_shape = (1,)
     act_shape = (1,)
     history_length = 3
@@ -899,77 +918,7 @@ def test_replay_memory_history_reduced_sampling_excludes_write_head():
     assert not np.any(np.isin(anchors, [3.0, 4.0]))
 
 
-def test_replay_memory_wrap_after_full():
-    obs_shape = (4,)
-    act_shape = (2,)
-    max_size = 10
-
-    rng = np.random.RandomState(42)
-    ds_a, states_a, _, _, _, _, _ = make_dataset(10, rng, obs_shape, act_shape)
-    ds_b, states_b, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
-    ds_c, states_c, _, _, _, _, _ = make_dataset(6, rng, obs_shape, act_shape)
-
-    mdp_info = make_mdp_info(obs_shape, act_shape)
-    agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size)
-    rm.add(ds_a)
-    rm.add(ds_b)
-    rm.add(ds_c)
-
-    assert rm._dataset.full
-    assert rm.size == max_size
-    assert rm._dataset.write_head == 2
-
-    assert np.allclose(rm._dataset.state[6:10], states_c[:4])
-    assert np.allclose(rm._dataset.state[:2], states_c[4:6])
-
-
-def test_replay_memory_wrap_after_full_stateful():
-    obs_shape = (4,)
-    act_shape = (2,)
-    policy_state_shape = (3,)
-    max_size = 10
-
-    rng = np.random.RandomState(42)
-    ds_a, _, _, _, _, ps_a, _ = make_dataset(10, rng, obs_shape, act_shape, policy_state_shape)
-    ds_b, _, _, _, _, ps_b, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
-    ds_c, _, _, _, _, ps_c, _ = make_dataset(6, rng, obs_shape, act_shape, policy_state_shape)
-
-    mdp_info = make_mdp_info(obs_shape, act_shape)
-    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=max_size, store_policy_state=True)
-    rm.add(ds_a)
-    rm.add(ds_b)
-    rm.add(ds_c)
-
-    assert rm._dataset.full
-    assert rm.size == max_size
-    assert rm._dataset.write_head == 2
-
-    assert np.allclose(rm._dataset.policy_state[6:10], ps_c[:4])
-    assert np.allclose(rm._dataset.policy_state[:2], ps_c[4:6])
-
-
-def test_replay_memory_opt_out_drops_policy_state():
-    obs_shape = (4,)
-    act_shape = (2,)
-    policy_state_shape = (3,)
-
-    rng = np.random.RandomState(0)
-    ds, *_ = make_dataset(8, rng, obs_shape, act_shape, policy_state_shape=policy_state_shape)
-
-    mdp_info = make_mdp_info(obs_shape, act_shape)
-    agent_info = make_agent_info(policy_state_shape=policy_state_shape)
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50)
-
-    assert not rm._dataset.is_stateful
-
-    rm.add(ds)
-    assert rm.size == 8
-    assert len(rm.get(4)) == 6
-
-
-def test_standalone_block_closes_the_open_episode_of_the_previous_run():
+def test_blocks():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=3, max_size=100,
                       history_manager=history_manager, n_steps_return=3)
@@ -985,8 +934,6 @@ def test_standalone_block_closes_the_open_episode_of_the_previous_run():
     assert np.array_equal(rm._compute_mask(np.arange(12)),
                           np.array([False, False, False, False, False, True, True, False, False, False, True, True]))
 
-
-def test_continuing_block_keeps_the_episode_of_the_previous_block():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=100,
                       history_manager=history_manager)
@@ -998,8 +945,6 @@ def test_continuing_block_keeps_the_episode_of_the_previous_block():
     assert not rm._dataset.last[2]
     assert np.array_equal(windows(rm, [3])[:, :, 0], np.array([[2., 3., 4.]]))
 
-
-def test_empty_block_keeps_the_episode_of_the_previous_block():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=100,
                       history_manager=history_manager)
@@ -1011,8 +956,6 @@ def test_empty_block_keeps_the_episode_of_the_previous_block():
     assert rm.size == 5 and not rm._dataset.last[2]
     assert np.array_equal(windows(rm, [3])[:, :, 0], np.array([[2., 3., 4.]]))
 
-
-def test_vectorized_blocks_continue_every_environment_in_the_ring():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
                       history_manager=history_manager, n_steps_return=2)
@@ -1028,8 +971,17 @@ def test_vectorized_blocks_continue_every_environment_in_the_ring():
     assert np.array_equal(reward, np.array([2., 152.]))
     assert np.array_equal(state[:, :, 0], np.array([[0., 0., 1.], [0., 10., 11.]]))
 
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=5)
 
-def test_link_to_an_overwritten_step_ends_the_window():
+    rm.add(make_block([0, 1, 2], [False, False, False]))
+    with pytest.raises(ValueError):
+        rm.add(make_block(np.arange(3, 9), [False] * 6, continuing=True))
+
+    assert rm.size == 3 and rm._dataset.write_head == 3
+    assert np.array_equal(rm._dataset.state[:3, 0], np.array([0., 1., 2.]))
+
+
+def test_links():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=6,
                       history_manager=history_manager)
@@ -1041,8 +993,6 @@ def test_link_to_an_overwritten_step_ends_the_window():
     assert rm._dataset.full and rm._dataset.write_head == 2
     assert np.array_equal(windows(rm, [4, 0])[:, :, 0], np.array([[0., 0., 2.], [10., 11., 12.]]))
 
-
-def test_link_mode_mask_excludes_only_anchors_whose_history_was_overwritten():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=6,
                       history_manager=history_manager)
@@ -1056,8 +1006,6 @@ def test_link_mode_mask_excludes_only_anchors_whose_history_was_overwritten():
     assert np.array_equal(windows(rm, [0, 1, 2, 3])[:, :, 0],
                           np.array([[10., 11., 12.], [11., 12., 13.], [0., 0., 10.], [0., 10., 11.]]))
 
-
-def test_prioritized_link_mode_tree_mask_follows_the_overwritten_history():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     beta = LinearParameter(1.0, threshold_value=0.0, n=100)
     rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=6, alpha=0.6,
@@ -1069,8 +1017,6 @@ def test_prioritized_link_mode_tree_mask_follows_the_overwritten_history():
 
     assert np.array_equal(rm._tree._masked[5:], np.array([False, False, False, False, True, True]))
 
-
-def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=10, n_steps_return=2)
     first, second = vectorized_blocks([0, 1, 2], [3, 4, 5, 6])
 
@@ -1083,19 +1029,6 @@ def test_overwritten_open_tail_keeps_the_links_of_the_new_rows():
     assert np.array_equal(state[:, 0], np.array([13., 14., 15., 11., 12., 3., 4., 5.]))
     assert np.array_equal(reward, np.array([155., 156.5, 158., 152., 153.5, 5., 6.5, 8.]))
 
-
-def test_block_larger_than_the_buffer_is_refused():
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=1, max_size=5)
-
-    rm.add(make_block([0, 1, 2], [False, False, False]))
-    with pytest.raises(ValueError):
-        rm.add(make_block(np.arange(3, 9), [False] * 6, continuing=True))
-
-    assert rm.size == 3 and rm._dataset.write_head == 3
-    assert np.array_equal(rm._dataset.state[:3, 0], np.array([0., 1., 2.]))
-
-
-def test_link_mode_sequences_skip_steps_whose_history_was_overwritten():
     policy_state_shape = (1,)
     agent_info = make_agent_info(policy_state_shape)
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), agent_info, history_length=2)
@@ -1115,53 +1048,6 @@ def test_link_mode_sequences_skip_steps_whose_history_was_overwritten():
     assert sequences == {((2., 3.),), ((0., 10.),), ((0., 10.), (10., 11.)), ((10., 11.), (11., 12.)),
                          ((11., 12.), (12., 13.))}
 
-
-def test_sequences_follow_the_environment_across_vectorized_blocks():
-    policy_state_shape = (1,)
-    agent_info = make_agent_info(policy_state_shape)
-    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), agent_info)
-    rm = SequenceReplayMemory(make_scalar_mdp_info(), agent_info, initial_size=1, max_size=100, truncation_length=3,
-                              history_manager=history_manager)
-    first, second = vectorized_blocks([0, 1], [2], policy_state_shape)
-
-    rm.add(first)
-    rm.add(second)
-    np.random.seed(1)
-    s, a, r, ss, ab, last, ps, nps, lengths = rm.get(40)
-
-    sequences = {tuple(s[k, :length, 0]) for k, length in enumerate(lengths)}
-    assert sequences == {(0.,), (0., 1.), (0., 1., 2.), (10.,), (10., 11.), (10., 11., 12.)}
-
-
-def test_contiguous_follows_every_environment_across_joined_blocks():
-    first, second = vectorized_blocks([0, 1], [2, 3])
-
-    joined = first + second
-    glued = joined.contiguous()
-
-    assert first.contiguous() is first
-    assert np.array_equal(joined.state[:, 0], np.array([0., 1., 10., 11., 2., 3., 12., 13.]))
-    assert np.array_equal(glued.state[:, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
-    assert np.array_equal(glued.reward, np.array([0., 1., 2., 3., 100., 101., 102., 103.]))
-    assert np.array_equal(glued.last_or_boundary, np.array([False, False, False, True, False, False, False, True]))
-    assert glued._layout.open_tails.tolist() == [3, 7]
-
-
-def test_replay_memory_add_of_joined_blocks_keeps_every_window():
-    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
-    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
-                      history_manager=history_manager)
-    first, second = vectorized_blocks([0, 1], [2, 3])
-
-    rm.add(first + second)
-
-    assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
-    assert np.array_equal(windows(rm, np.arange(8))[:, :, 0],
-                          np.array([[0., 0., 0.], [0., 0., 1.], [0., 1., 2.], [1., 2., 3.],
-                                    [0., 0., 10.], [0., 10., 11.], [10., 11., 12.], [11., 12., 13.]]))
-
-
-def test_history_cut_marks_the_windows_reaching_an_overwritten_step():
     history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=6,
                       history_manager=history_manager)
@@ -1178,7 +1064,46 @@ def test_history_cut_marks_the_windows_reaching_an_overwritten_step():
                                            [True, False, False], [True, True, False], [True, True, True]]))
 
 
-def test_flattening_a_view_leaves_the_parent_mask():
+def test_joined_blocks():
+    policy_state_shape = (1,)
+    agent_info = make_agent_info(policy_state_shape)
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), agent_info)
+    rm = SequenceReplayMemory(make_scalar_mdp_info(), agent_info, initial_size=1, max_size=100, truncation_length=3,
+                              history_manager=history_manager)
+    first, second = vectorized_blocks([0, 1], [2], policy_state_shape)
+
+    rm.add(first)
+    rm.add(second)
+    np.random.seed(1)
+    s, a, r, ss, ab, last, ps, nps, lengths = rm.get(40)
+
+    sequences = {tuple(s[k, :length, 0]) for k, length in enumerate(lengths)}
+    assert sequences == {(0.,), (0., 1.), (0., 1., 2.), (10.,), (10., 11.), (10., 11., 12.)}
+
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    joined = first + second
+    glued = joined.contiguous()
+
+    assert first.contiguous() is first
+    assert np.array_equal(joined.state[:, 0], np.array([0., 1., 10., 11., 2., 3., 12., 13.]))
+    assert np.array_equal(glued.state[:, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
+    assert np.array_equal(glued.reward, np.array([0., 1., 2., 3., 100., 101., 102., 103.]))
+    assert np.array_equal(glued.last_or_boundary, np.array([False, False, False, True, False, False, False, True]))
+    assert glued._layout.open_tails.tolist() == [3, 7]
+
+    history_manager = HistoryManager.default_streams(make_scalar_mdp_info(), make_agent_info(), history_length=3)
+    rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100,
+                      history_manager=history_manager)
+    first, second = vectorized_blocks([0, 1], [2, 3])
+
+    rm.add(first + second)
+
+    assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
+    assert np.array_equal(windows(rm, np.arange(8))[:, :, 0],
+                          np.array([[0., 0., 0.], [0., 0., 1.], [0., 1., 2.], [1., 2., 3.],
+                                    [0., 0., 10.], [0., 10., 11.], [10., 11., 12.], [11., 12., 13.]]))
+
     grid = make_grid(2)
     fill_grid(grid, [0, 1, 2])
 
@@ -1186,8 +1111,6 @@ def test_flattening_a_view_leaves_the_parent_mask():
 
     assert np.array_equal(grid.mask, np.ones((3, 2), dtype=bool))
 
-
-def test_consumed_steps_join_without_reserving():
     grid = make_grid(2)
     fill_grid(grid, [0, 1, 2])
 
@@ -1198,8 +1121,6 @@ def test_consumed_steps_join_without_reserving():
     assert np.array_equal(joined.mask, np.array([[True, True], [False, False], [False, False],
                                                  [False, False], [True, True], [True, True]]))
 
-
-def test_prioritized_replay_memory_keeps_the_priorities_of_joined_blocks():
     rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100, alpha=1.,
                                  beta=1.)
     first, second = vectorized_blocks([0, 1], [2, 3])
@@ -1210,8 +1131,6 @@ def test_prioritized_replay_memory_keeps_the_priorities_of_joined_blocks():
     assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
     assert np.array_equal(rm._tree._tree[99:107], np.array([1., 2., 3., 4., 11., 12., 13., 14.]))
 
-
-def test_prioritized_replay_memory_add_of_an_empty_block_changes_nothing():
     rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100, alpha=1.,
                                  beta=1.)
     rm.add(make_block([1, 2, 3], [False, False, False]), p=np.array([1., 2., 3.]))

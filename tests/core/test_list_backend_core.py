@@ -151,7 +151,7 @@ class StaggeredListVecEnv(VectorizedEnvironment):
         return [np.array([float(t), float(t)]) for t in self._t]
 
 
-def test_variable_length_state_action():
+def test_ragged_states():
     mdp = VariableLengthEnv()
     agent = dummy_agent(mdp.info, lambda state: list(range(len(state))))
     core = Core(agent, mdp)
@@ -170,7 +170,7 @@ def test_variable_length_state_action():
     assert np.array_equal(dataset.compute_J(), np.array([4.0, 4.0]))
 
 
-def test_object_state_action():
+def test_object_states():
     mdp = ObjectEnv()
     agent = dummy_agent(mdp.info, lambda state: {'move': state['id']})
     core = Core(agent, mdp)
@@ -188,12 +188,12 @@ def test_object_state_action():
     assert list(dataset.info.keys()) == []
 
 
-def test_vectorized_extra_info():
+def test_vectorized_info():
     mdp = ListVecEnv(with_info=True)
-    agent = dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state])
-    core = Core(agent, mdp)
+    core = Core(dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state]), mdp)
 
     dataset = core.evaluate(n_steps=30, quiet=True)
+    empty = core.evaluate(n_steps=0, quiet=True)
 
     assert dataset.backend.get_backend_name() == 'list'
     assert len(dataset) == 30
@@ -201,36 +201,22 @@ def test_vectorized_extra_info():
                                  1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
                                  1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0]
     assert np.array_equal(dataset.compute_J(), np.array([4., 4., 4., 4., 4., 4.]))
+    assert len(empty) == 0
+    assert empty.n_episodes == 0
+    assert empty.backend.get_backend_name() == 'list'
 
     core.learn(n_steps=40, n_steps_per_fit=7, quiet=True)
     core.learn(n_episodes=6, n_episodes_per_fit=2, quiet=True)
 
-
-def test_vectorized_no_extra_info():
     mdp = ListVecEnv(with_info=False)
-    agent = dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state])
-    core = Core(agent, mdp)
-
+    core = Core(dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state]), mdp)
     dataset = core.evaluate(n_steps=30, quiet=True)
 
-    assert dataset.backend.get_backend_name() == 'list'
     assert len(dataset) == 30
     assert list(dataset.info.keys()) == []
 
 
-def test_vectorized_empty_dataset():
-    mdp = ListVecEnv(with_info=True)
-    agent = dummy_agent(mdp.info, lambda state: [np.array([0.0]) for _ in state])
-    core = Core(agent, mdp)
-
-    dataset = core.evaluate(n_steps=0, quiet=True)
-
-    assert len(dataset) == 0
-    assert dataset.n_episodes == 0
-    assert dataset.backend.get_backend_name() == 'list'
-
-
-def test_vectorized_reset_preprocessing():
+def test_reset_preprocessing():
     np.random.seed(42)
 
     mdp = StaggeredListVecEnv()
@@ -252,7 +238,8 @@ def test_vectorized_reset_preprocessing():
                 assert np.array_equal(recorder.next_states[t - 1][e], recorder.states[t][e])
 
 
-def test_infinite_horizon_uses_list_backend():
+def test_infinite_horizon():
+    pytest.importorskip('gymnasium')
     mdp = Gymnasium(name='MountainCar-v0', horizon=np.inf, gamma=1.)
     mdp.seed(1)
 
@@ -280,7 +267,7 @@ class FitRecorderAgent(Agent):
         self.fit_actions.append([float(a[0]) for a in dataset.action])
 
 
-def test_vectorized_list_agent_learns_through_episode_resets():
+def test_learn_through_resets():
     mdp = ListVecEnv(with_info=False)
     agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
     core = Core(agent, mdp)
@@ -291,24 +278,12 @@ def test_vectorized_list_agent_learns_through_episode_resets():
                                  [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.]]
 
 
-def test_list_agent_history_stacking_is_not_supported():
-    mdp = ListVecEnv(with_info=False)
-
-    with pytest.raises(NotImplementedError):
-        FitRecorderAgent(mdp.info, ListActionPolicy('numpy'), history_length=2)
-
-
-def test_list_agent_nstep_parsing_is_not_supported():
+def test_unsupported():
     mdp = ListVecEnv(with_info=False)
     agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
-    dataset = Dataset.from_array([[0.], [1.]], [[0.], [0.]], [1., 1.], [[1.], [2.]], [False, False], [False, True],
-                                 gamma=0.9, backend='list')
+    list_dataset = Dataset.from_array([[0.], [1.]], [[0.], [0.]], [1., 1.], [[1.], [2.]], [False, False],
+                                      [False, True], gamma=0.9, backend='list')
 
-    with pytest.raises(NotImplementedError):
-        agent.history_manager.parse_nstep_history(dataset, gamma=0.9, n_steps_return=1)
-
-
-def test_agent_data_conversion_to_list_is_not_supported():
     states = np.array([[0.], [1.]])
     actions = np.array([[0.], [0.]])
     rewards = np.array([1., 1.])
@@ -321,13 +296,17 @@ def test_agent_data_conversion_to_list_is_not_supported():
     plain = Dataset.from_array(states, actions, rewards, states + 1, absorbings, lasts, gamma=0.9)
 
     with pytest.raises(NotImplementedError):
+        FitRecorderAgent(mdp.info, ListActionPolicy('numpy'), history_length=2)
+    with pytest.raises(NotImplementedError):
+        agent.history_manager.parse_nstep_history(list_dataset, gamma=0.9, n_steps_return=1)
+    with pytest.raises(NotImplementedError):
         stateful.to_backend('list')
     with pytest.raises(NotImplementedError):
         with_history.to_backend('list')
     assert plain.to_backend('list').state == [[0.], [1.]]
 
 
-def test_list_agent_reset_clears_the_last_action_of_the_reset_envs_only():
+def test_reset_last_action():
     history_manager = HistoryManager(AgentInfo(is_episodic=False, policy_state_shape=None, backend='list'))
     action = [{'move': 0}, {'move': 1}, {'move': 2}]
 

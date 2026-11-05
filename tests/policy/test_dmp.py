@@ -20,13 +20,11 @@ def _make_dmp(action_dim=1, goal=None):
                alpha_z=np.ones(action_dim), beta_z=np.ones(action_dim) * 0.25)
 
 
-def test_policy_state_shape():
+def test_state_and_weights():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     assert pi.policy_state_shape == (4, 1)
 
-
-def test_reset_returns_initial_state():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
@@ -40,8 +38,6 @@ def test_reset_returns_initial_state():
     assert pi.policy_state.shape == (4, 1)
     assert np.all(pi.policy_state == 0.0)
 
-
-def test_weights_size_and_roundtrip():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     assert pi.weights_size == 4
@@ -49,8 +45,14 @@ def test_weights_size_and_roundtrip():
     pi.set_weights(w)
     assert np.allclose(pi.get_weights(), w)
 
+    np.random.seed(1)
+    pi = _make_dmp(action_dim=2)
+    new_goal = np.array([3.0, 4.0])
+    pi.set_goal(new_goal)
+    assert np.allclose(pi.get_goal(state=None), new_goal)
 
-def test_draw_action_dynamics():
+
+def test_draw_action():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
@@ -64,8 +66,6 @@ def test_draw_action_dynamics():
     assert np.allclose(a2, np.array([2.5e-05]))
     assert np.allclose(a3, np.array([7.475e-05]))
 
-
-def test_draw_action_greedy_matches_draw_action():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
@@ -79,8 +79,6 @@ def test_draw_action_greedy_matches_draw_action():
     assert np.allclose(a2, np.array([2.5e-05]))
     assert np.allclose(a3, np.array([7.475e-05]))
 
-
-def test_draw_action_explicit_state_does_not_mutate_or_advance():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)
@@ -92,8 +90,6 @@ def test_draw_action_explicit_state_does_not_mutate_or_advance():
     assert np.allclose(ps, ps_before)
     assert np.all(pi.policy_state == 0.0)
 
-
-def test_draw_action_vectorized():
     np.random.seed(1)
     n_envs = 3
     pi = _make_dmp(action_dim=1)
@@ -116,16 +112,6 @@ def test_draw_action_vectorized():
     assert np.all(pi.policy_state[2] == 0.0)
     assert np.allclose(pi.policy_state[1], before[1])
 
-
-def test_set_get_goal():
-    np.random.seed(1)
-    pi = _make_dmp(action_dim=2)
-    new_goal = np.array([3.0, 4.0])
-    pi.set_goal(new_goal)
-    assert np.allclose(pi.get_goal(state=None), new_goal)
-
-
-def test_call_matches_deterministic_action():
     np.random.seed(1)
     pi = _make_dmp(action_dim=1)
     state = np.zeros(1)

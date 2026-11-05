@@ -2,6 +2,9 @@ import numpy as np
 import pytest
 import torch
 
+from helper.cases import needs_cuda
+from helper.dummies import ZeroPolicy
+
 from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.dataset_info import DatasetInfo
@@ -9,7 +12,7 @@ from mushroom_rl.core.extra_info import ExtraInfo
 from mushroom_rl.algorithms.value import SARSA
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.policy import EpsGreedy, Policy, StatefulPolicy
+from mushroom_rl.policy import EpsGreedy, StatefulPolicy
 
 from mushroom_rl.core._impl.layout import StreamLayout, CodedLayout
 from mushroom_rl.core._impl.history_state import HistoryState
@@ -34,9 +37,7 @@ def test_dataset():
     assert dataset.n_episodes == 10
 
     J = dataset.compute_J(mdp.info.gamma)
-    J_test = np.array([5.3144100000000005, 5.3144100000000005, 6.561, 0.25031555049932436,
-                       1.6677181699666577, 3.486784401000001, 1.0941898913151242, 3.874204890000001,
-                       1.5009463529699918, 0.033813919135227306])
+    J_test = np.load('tests/core/data/test_dataset.npy')
     assert np.allclose(J, J_test)
 
     L = dataset.episodes_length
@@ -78,7 +79,7 @@ def test_dataset():
     assert metrics['n_episodes'] == 3
 
 
-def test_dataset_creation():
+def test_from_array_backends():
     np.random.seed(42)
 
     mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
@@ -86,8 +87,6 @@ def test_dataset_creation():
 
     parsed = tuple(dataset.parse())
     parsed_torch = (torch.from_numpy(array) for array in parsed)
-
-    print(len(parsed))
 
     new_numpy_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma)
     new_list_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='list')
@@ -110,8 +109,26 @@ def test_dataset_creation():
     for array_1, array_2 in zip(parsed_torch, new_torch_dataset.parse(to='torch')):
         assert torch.equal(array_1, array_2)
 
+    np.random.seed(42)
 
-def test_dataset_loading(tmpdir):
+    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
+    dataset = generate_dataset(mdp, 5)
+
+    parsed = tuple(dataset.parse())
+    list_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='list')
+
+    assert np.allclose(list_dataset.compute_J(), dataset.compute_J())
+    assert np.allclose(list_dataset.compute_J(mdp.info.gamma), dataset.compute_J(mdp.info.gamma))
+
+    metrics_numpy = dataset.compute_metrics(mdp.info.gamma)
+    metrics_list = list_dataset.compute_metrics(mdp.info.gamma)
+
+    assert metrics_list.keys() == metrics_numpy.keys()
+    for name in metrics_numpy:
+        assert np.allclose(metrics_list[name], metrics_numpy[name])
+
+
+def test_save_load(tmpdir):
     np.random.seed(42)
 
     mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
@@ -137,28 +154,33 @@ def test_dataset_loading(tmpdir):
     for key in dataset.info:
         assert np.array_equal(dataset.info[key], new_dataset.info[key])
 
+    n = 5
+    states = np.arange(n * 2).reshape(n, 2).astype(float)
+    actions = np.arange(n).reshape(n, 1).astype(float)
+    rewards = np.arange(n).astype(float)
+    next_states = states + 1
+    absorbings = np.zeros(n, dtype=bool)
+    lasts = np.array([False, False, True, False, True])
+    policy_states = np.arange(n).reshape(n, 1).astype(float)
+    policy_next_states = policy_states + 1
 
-def test_list_dataset_compute_j_metrics():
-    np.random.seed(42)
+    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
+                                 policy_state=policy_states, policy_next_state=policy_next_states,
+                                 backend='numpy', policy_backend='torch', gamma=0.9)
 
-    mdp = GridWorld.from_size(3, 3, (2, 2), goal_reward=10.)
-    dataset = generate_dataset(mdp, 5)
+    path = tmpdir / 'dataset_split.msh'
+    dataset.save(path)
+    new_dataset = Dataset.load(path)
 
-    parsed = tuple(dataset.parse())
-    list_dataset = Dataset.from_array(*parsed, gamma=mdp.info.gamma, backend='list')
-
-    assert np.allclose(list_dataset.compute_J(), dataset.compute_J())
-    assert np.allclose(list_dataset.compute_J(mdp.info.gamma), dataset.compute_J(mdp.info.gamma))
-
-    metrics_numpy = dataset.compute_metrics(mdp.info.gamma)
-    metrics_list = list_dataset.compute_metrics(mdp.info.gamma)
-
-    assert metrics_list.keys() == metrics_numpy.keys()
-    for name in metrics_numpy:
-        assert np.allclose(metrics_list[name], metrics_numpy[name])
+    assert vars(dataset).keys() == vars(new_dataset).keys()
+    assert new_dataset.is_stateful
+    assert isinstance(new_dataset.policy_state, torch.Tensor)
+    assert np.array_equal(new_dataset.state, states)
+    assert torch.equal(new_dataset.policy_state, torch.from_numpy(policy_states))
+    assert new_dataset.n_episodes == 2
 
 
-def test_compute_j_skips_incomplete_episode():
+def test_compute_j_incomplete():
     states = np.arange(12).reshape(6, 2).astype(float)
     actions = np.zeros((6, 1))
     rewards = np.ones(6)
@@ -175,8 +197,6 @@ def test_compute_j_skips_incomplete_episode():
     assert np.array_equal(dataset.episodes_length, np.array([3]))
     assert dataset.compute_metrics() == dict(min_J=3.0, max_J=3.0, mean_J=3.0, median_J=3.0, n_episodes=1)
 
-
-def test_compute_j_without_complete_episodes():
     states = np.arange(6).reshape(3, 2).astype(float)
     actions = np.zeros((3, 1))
     rewards = np.ones(3)
@@ -194,7 +214,7 @@ def test_compute_j_without_complete_episodes():
     assert dataset.compute_metrics() == dict(n_episodes=0)
 
 
-def test_from_array_list_backend():
+def test_from_array_list():
     states = np.arange(12).reshape(6, 2).astype(float)
     actions = np.zeros((6, 1))
     rewards = np.ones(6)
@@ -217,8 +237,6 @@ def test_from_array_list_backend():
                                   dataset.parse(to='numpy')):
         assert np.array_equal(original, restored)
 
-
-def test_from_array_list_backend_stateful():
     states = np.arange(8).reshape(4, 2).astype(float)
     actions = np.zeros((4, 1))
     rewards = np.ones(4)
@@ -237,8 +255,6 @@ def test_from_array_list_backend_stateful():
     assert np.array_equal(np.array(dataset.policy_state), policy_states)
     assert np.array_equal(np.array(dataset.policy_next_state), policy_next_states)
 
-
-def test_from_array_list_backend_ragged():
     states = [np.array([0.0]), np.array([0.0, 1.0]), np.array([0.0, 1.0, 2.0])]
     actions = [{'a': 0}, {'a': 1}, {'a': 2}]
     rewards = [1.0, 1.0, 1.0]
@@ -256,8 +272,6 @@ def test_from_array_list_backend_ragged():
     assert dataset.action[2] == {'a': 2}
     assert np.array_equal(dataset.compute_J(), np.array([3.0]))
 
-
-def test_list_dataset_parse_to_torch():
     states = np.arange(12).reshape(6, 2).astype(float)
     actions = np.zeros((6, 1))
     rewards = np.ones(6)
@@ -279,7 +293,7 @@ def test_list_dataset_parse_to_torch():
         assert np.array_equal(from_list, from_numpy)
 
 
-def test_dataset_policy_backend_split():
+def test_policy_backend_split():
     n = 4
     states = np.arange(n * 2).reshape(n, 2).astype(float)
     actions = np.arange(n).reshape(n, 1).astype(float)
@@ -310,8 +324,24 @@ def test_dataset_policy_backend_split():
     assert isinstance(ps_np, np.ndarray)
     assert np.array_equal(ps_np, policy_states)
 
+    assert dataset.capacity == n
 
-def test_dataset_add_leaves_last_untouched():
+    appended = dataset.copy()
+    appended.reserve(2 * n)
+    appended.append_batch(dataset)
+
+    assert len(appended) == 2 * n
+    assert torch.equal(appended.policy_state, torch.from_numpy(np.concatenate([policy_states, policy_states])))
+
+    dataset.reserve(16)
+
+    assert dataset.capacity == 16
+    assert dataset._agent_data.capacity == 16
+    assert torch.equal(dataset.policy_state, torch.from_numpy(policy_states))
+    assert torch.equal(dataset.policy_next_state, torch.from_numpy(policy_next_states))
+
+
+def test_add():
     n = 3
     states = np.arange(n * 2).reshape(n, 2).astype(float)
     actions = np.arange(n).reshape(n, 1).astype(float)
@@ -328,6 +358,44 @@ def test_dataset_add_leaves_last_untouched():
     assert np.array_equal(result.last, np.zeros(2 * n, dtype=bool))
     assert np.array_equal(a.last, np.zeros(n, dtype=bool))
     assert np.array_equal(b.last, np.zeros(n, dtype=bool))
+
+    a = build_info_dataset(3, 0.0, capacity=8)
+    b = build_info_dataset(2, 10.0, capacity=8)
+
+    reference = a + b
+
+    a += b
+
+    assert len(a) == 5
+    assert np.array_equal(a.last, reference.last)
+    assert np.array_equal(a.reward, reference.reward)
+    assert np.array_equal(a.info['idx'], reference.info['idx'])
+    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
+    assert np.array_equal(a.theta, reference.theta)
+
+    a = build_info_dataset(3, 0.0, capacity=8)
+    b = build_info_dataset(2, 10.0, capacity=8)
+
+    original = a
+    a += b
+
+    assert a is original
+    assert len(a) == 5
+
+    a = build_info_dataset(3, 0.0, capacity=3)
+    b = build_info_dataset(2, 10.0, capacity=3)
+
+    reference = a + b
+
+    original = a
+    a += b
+
+    assert a is not original
+    assert len(a) == 5
+    assert np.array_equal(a.last, reference.last)
+    assert np.array_equal(a.reward, reference.reward)
+    assert np.array_equal(a.info['idx'], reference.info['idx'])
+    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
 
 
 def build_info_dataset(n, first_reward, capacity):
@@ -351,51 +419,7 @@ def build_info_dataset(n, first_reward, capacity):
     return dataset
 
 
-def test_dataset_iadd_matches_add_in_place():
-    a = build_info_dataset(3, 0.0, capacity=8)
-    b = build_info_dataset(2, 10.0, capacity=8)
-
-    reference = a + b
-
-    a += b
-
-    assert len(a) == 5
-    assert np.array_equal(a.last, reference.last)
-    assert np.array_equal(a.reward, reference.reward)
-    assert np.array_equal(a.info['idx'], reference.info['idx'])
-    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
-    assert np.array_equal(a.theta, reference.theta)
-
-
-def test_dataset_iadd_in_place_when_capacity_available():
-    a = build_info_dataset(3, 0.0, capacity=8)
-    b = build_info_dataset(2, 10.0, capacity=8)
-
-    original = a
-    a += b
-
-    assert a is original
-    assert len(a) == 5
-
-
-def test_dataset_iadd_falls_back_when_over_capacity():
-    a = build_info_dataset(3, 0.0, capacity=3)
-    b = build_info_dataset(2, 10.0, capacity=3)
-
-    reference = a + b
-
-    original = a
-    a += b
-
-    assert a is not original
-    assert len(a) == 5
-    assert np.array_equal(a.last, reference.last)
-    assert np.array_equal(a.reward, reference.reward)
-    assert np.array_equal(a.info['idx'], reference.info['idx'])
-    assert np.array_equal(a.episode_info['ep'], reference.episode_info['ep'])
-
-
-def test_dataset_capacity_and_reserve():
+def test_capacity():
     a = build_info_dataset(3, 0.0, capacity=4)
 
     assert a.capacity == 4
@@ -408,8 +432,6 @@ def test_dataset_capacity_and_reserve():
     assert len(a) == 3
     assert np.array_equal(a.reward, np.array([0.0, 1.0, 2.0]))
 
-
-def test_dataset_capacity_none_for_list_backend():
     states = np.arange(6).reshape(3, 2).astype(float)
     actions = np.zeros((3, 1))
     rewards = np.ones(3)
@@ -424,60 +446,16 @@ def test_dataset_capacity_none_for_list_backend():
     assert dataset.capacity is None
     assert len(dataset) == 3
 
+    info = build_info_dataset(3, 0.0, capacity=3)
 
-def test_dataset_reserve_grows_agent_data():
-    n = 4
-    states = np.arange(n * 2).reshape(n, 2).astype(float)
-    actions = np.arange(n).reshape(n, 1).astype(float)
-    rewards = np.arange(n).astype(float)
-    next_states = states + 1
-    absorbings = np.zeros(n, dtype=bool)
-    lasts = np.array([False, False, False, True])
-    policy_states = np.arange(n).reshape(n, 1).astype(float)
-    policy_next_states = policy_states + 1
-
-    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                 policy_state=policy_states, policy_next_state=policy_next_states,
-                                 backend='numpy', policy_backend='torch', gamma=0.9)
-
-    assert dataset.capacity == n
-
-    dataset.reserve(16)
-
-    assert dataset.capacity == 16
-    assert dataset._agent_data.capacity == 16
-    assert torch.equal(dataset.policy_state, torch.from_numpy(policy_states))
-    assert torch.equal(dataset.policy_next_state, torch.from_numpy(policy_next_states))
+    assert np.array_equal(info.get_info('idx'), [0., 1., 2.])
+    assert info.get_info('idx', 1) == 1.
+    assert info.select_random_samples(0).shape == (1, 0)
+    with pytest.raises(NotImplementedError):
+        info.parse(to='jax')
 
 
-def test_dataset_save_load_policy_split(tmpdir):
-    n = 5
-    states = np.arange(n * 2).reshape(n, 2).astype(float)
-    actions = np.arange(n).reshape(n, 1).astype(float)
-    rewards = np.arange(n).astype(float)
-    next_states = states + 1
-    absorbings = np.zeros(n, dtype=bool)
-    lasts = np.array([False, False, True, False, True])
-    policy_states = np.arange(n).reshape(n, 1).astype(float)
-    policy_next_states = policy_states + 1
-
-    dataset = Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts,
-                                 policy_state=policy_states, policy_next_state=policy_next_states,
-                                 backend='numpy', policy_backend='torch', gamma=0.9)
-
-    path = tmpdir / 'dataset_split.msh'
-    dataset.save(path)
-    new_dataset = Dataset.load(path)
-
-    assert vars(dataset).keys() == vars(new_dataset).keys()
-    assert new_dataset.is_stateful
-    assert isinstance(new_dataset.policy_state, torch.Tensor)
-    assert np.array_equal(new_dataset.state, states)
-    assert torch.equal(new_dataset.policy_state, torch.from_numpy(policy_states))
-    assert new_dataset.n_episodes == 2
-
-
-def test_to_backend_converts_the_extra_info():
+def test_to_backend():
     extras = ExtraInfo(1, 'torch')
     extras.append_step({'x': torch.tensor(1.)})
     extras.append_step({'x': torch.tensor(2.)})
@@ -498,6 +476,20 @@ def test_to_backend_converts_the_extra_info():
     assert isinstance(converted.info['x'], np.ndarray)
     assert np.array_equal(converted.info['x'], np.array([1., 2.]))
 
+    dataset = Dataset.from_array(np.zeros((3, 2)), np.zeros((3, 1)), np.ones(3), np.zeros((3, 2)),
+                                 np.zeros(3, dtype=bool), np.array([False, False, True]), horizon=50, gamma=0.5)
+
+    converted = dataset.to_backend('torch')
+
+    assert converted._dataset_info.horizon == 50
+    assert converted._dataset_info.gamma == 0.5
+    assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))
+
+    dataset = make_stream([0, 1, 2], [0, 0, 1]).to_backend('torch')
+
+    assert dataset.to_backend('torch', device='cpu') is dataset
+    assert dataset.to_backend('torch') is dataset
+
 
 def make_stream(states, lasts, continuing=False):
     n = len(states)
@@ -506,7 +498,7 @@ def make_stream(states, lasts, continuing=False):
                               np.array(lasts, dtype=bool), gamma=0.5, continuing=continuing)
 
 
-def test_walk_back_and_forward_stop_at_the_episode_ends():
+def test_walk():
     dataset = make_stream([0, 1, 2, 3, 4, 5], [0, 0, 1, 0, 0, 1])
 
     back, back_valid = dataset.walk_back(np.array([1, 4, 5]), 3)
@@ -519,7 +511,7 @@ def test_walk_back_and_forward_stop_at_the_episode_ends():
     assert np.array_equal(forward_valid, np.array([[True, True, True, False], [True, True, True, False]]))
 
 
-def test_boundary_codes_are_stored_only_for_a_break():
+def test_layout():
     stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
     closed_then_fresh = make_stream([0, 1], [0, 1]) + make_stream([2], [1])
     open_then_fresh = make_stream([0, 1], [0, 0]) + make_stream([2], [1])
@@ -532,8 +524,6 @@ def test_boundary_codes_are_stored_only_for_a_break():
     assert np.array_equal(closed_then_fresh.last_or_boundary, np.array([False, True, True]))
     assert np.array_equal(open_then_fresh.last_or_boundary, np.array([False, True, True]))
 
-
-def test_contiguous_without_joins_is_the_dataset_itself():
     dataset = make_stream([0, 1, 2], [0, 0, 1])
     stitched = make_stream([0, 1], [0, 0]) + make_stream([2], [1], continuing=True)
 
@@ -541,22 +531,32 @@ def test_contiguous_without_joins_is_the_dataset_itself():
     assert stitched.contiguous() is stitched
 
 
-def test_to_backend_keeps_the_horizon_and_the_discount_factor():
-    dataset = Dataset.from_array(np.zeros((3, 2)), np.zeros((3, 1)), np.ones(3), np.zeros((3, 2)),
-                                 np.zeros(3, dtype=bool), np.array([False, False, True]), horizon=50, gamma=0.5)
+def test_layout_edges():
+    info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None, horizon=10,
+                       gamma=0.9, state_shape=(1,), state_dtype=np.float64, action_shape=(1,),
+                       action_dtype=np.float64, policy_state_shape=None)
+    coded = make_stream([0, 1], [0, 0]) + make_stream([2, 3], [0, 1])
 
-    converted = dataset.to_backend('torch')
+    for empty in (Dataset(info, n_steps=10), coded[0:0]):
+        assert len(empty.compute_J(0.5)) == 0
+        assert len(empty.episodes_length) == 0
+        assert len(empty.get_init_states()) == 0
+        assert len(empty.last_or_boundary) == 0
 
-    assert converted._dataset_info.horizon == 50
-    assert converted._dataset_info.gamma == 0.5
-    assert torch.allclose(converted.discounted_return, torch.tensor([1.75]))
+    strided = coded[::2]
 
+    assert isinstance(coded._layout, CodedLayout)
+    assert np.array_equal(coded.episodes_length, [2])
+    assert np.array_equal(strided.state[:, 0], [0., 2.])
+    assert np.array_equal(strided.last_or_boundary, [True, True])
+    assert len(strided.episodes_length) == 0
+    assert np.array_equal(make_stream([0, 1, 2, 3], [0, 1, 0, 1])[::2].last_or_boundary, [True, True])
 
-def test_to_backend_returns_the_dataset_when_the_resolved_device_matches():
-    dataset = make_stream([0, 1, 2], [0, 0, 1]).to_backend('torch')
+    coded.reserve(8)
+    coded.append((np.array([9.]), np.zeros(1), 0., np.array([9.5]), False, True), {})
 
-    assert dataset.to_backend('torch', device='cpu') is dataset
-    assert dataset.to_backend('torch') is dataset
+    assert np.array_equal(coded.state[:, 0], [0., 1., 2., 3., 9.])
+    assert np.array_equal(coded.last_or_boundary, [False, True, False, True, True])
 
 
 def make_list_stream(states, lasts, continuing=False):
@@ -566,7 +566,7 @@ def make_list_stream(states, lasts, continuing=False):
                               [bool(last) for last in lasts], gamma=0.5, backend='list', continuing=continuing)
 
 
-def test_contiguous_of_a_joined_list_dataset():
+def test_list_layout():
     joined = make_list_stream([1, 2, 3], [0, 1, 0]) + make_list_stream([5, 6], [1, 0])
 
     glued = joined.contiguous()
@@ -574,8 +574,6 @@ def test_contiguous_of_a_joined_list_dataset():
     assert np.array_equal(np.array(glued.state)[:, 0], np.array([1., 2., 3., 5., 6.]))
     assert np.array_equal(glued.last_or_boundary, np.array([False, True, True, True, True]))
 
-
-def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
     joined = make_list_stream([0, 1], [0, 0]) + make_list_stream([2, 3], [0, 1])
 
     converted = joined.to_backend('torch')
@@ -584,11 +582,23 @@ def test_list_dataset_converted_to_torch_keeps_int8_boundary_codes():
     assert converted._layout.array().dtype == torch.int8
     assert torch.equal(glued.state[:, 0], torch.tensor([0., 1., 2., 3.]))
 
+    env = CountingVecEnv()
+    agent = StatelessFitCollectingAgent(env.info)
+    Core(agent, env).learn(n_steps=27, n_steps_per_fit=9, quiet=True)
 
-def test_history_state_takes_row_indices_from_another_device():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
+    joined = agent.fits[1].to_backend('list') + agent.fits[2].to_backend('list')
+    glued = joined.contiguous()
 
+    assert joined._layout.open_tails.tolist() == [14, 17]
+    assert [float(state[0]) for state in glued.state] == [100., 101., 102., 203., 200., 201., 202., 203., 200., 303.,
+                                                          304., 300., 301., 302., 303., 100., 101., 102.]
+    assert [bool(last) for last in glued.last] == [False, False, True, True, False, False, False, True, False, False,
+                                                   True, False, False, False, False, False, False, True]
+    assert glued._layout.pending_tails(glued._last_array()).tolist() == [8, 14]
+
+
+@needs_cuda()
+def test_history_state_cross_device():
     entries = HistoryState('numpy', None, np.array([0, 3]), {'obs_history': np.array([[1.], [2.]])})
 
     view = entries.get_view(torch.tensor([3, 1], device='cuda'), 5)
@@ -639,10 +649,8 @@ class FitCollectingAgent(Agent):
         self.fits.append(dataset)
 
 
-def test_policy_states_follow_row_indices_from_the_env_device():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
+@needs_cuda()
+def test_policy_states_cross_device():
     env = CudaCountingVecEnv()
     agent = FitCollectingAgent(env.info)
     Core(agent, env).learn(n_steps=30, n_steps_per_fit=7, quiet=True)
@@ -656,7 +664,7 @@ def test_policy_states_follow_row_indices_from_the_env_device():
     assert np.array_equal(glued.policy_next_state[:, 0], glued.state[:, 0].cpu().numpy())
 
 
-def test_history_state_takes_boolean_row_masks():
+def test_history_state_masks():
     entries = HistoryState('torch', None, torch.tensor([0, 3]), {'obs_history': torch.tensor([[1.], [2.]])})
 
     torch_view = entries.get_view(torch.tensor([False, True, False, True, True]), 5)
@@ -667,7 +675,7 @@ def test_history_state_takes_boolean_row_masks():
         assert torch.equal(view.windows('obs_history'), torch.tensor([[2.]]))
 
 
-def test_integer_index_reads_only_the_stored_steps():
+def test_integer_index():
     info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None, horizon=10,
                        gamma=0.9, state_shape=(1,), state_dtype=np.float64, action_shape=(1,),
                        action_dtype=np.float64, policy_state_shape=None)
@@ -700,31 +708,10 @@ class CountingVecEnv(VectorizedEnvironment):
         return self._s.copy(), np.ones(3), (self._t >= 3 + np.arange(3)) & env_mask, [{}] * 3
 
 
-class ZeroPolicy(Policy):
-    def draw_action(self, state):
-        return np.zeros((len(state), 1))
-
-
 class StatelessFitCollectingAgent(Agent):
     def __init__(self, mdp_info):
-        super().__init__(mdp_info, ZeroPolicy('numpy'), backend='numpy')
+        super().__init__(mdp_info, ZeroPolicy(), backend='numpy')
         self.fits = list()
 
     def fit(self, dataset):
         self.fits.append(dataset)
-
-
-def test_joining_flattened_datasets_converted_to_the_list_backend():
-    env = CountingVecEnv()
-    agent = StatelessFitCollectingAgent(env.info)
-    Core(agent, env).learn(n_steps=27, n_steps_per_fit=9, quiet=True)
-
-    joined = agent.fits[1].to_backend('list') + agent.fits[2].to_backend('list')
-    glued = joined.contiguous()
-
-    assert joined._layout.open_tails.tolist() == [14, 17]
-    assert [float(state[0]) for state in glued.state] == [100., 101., 102., 203., 200., 201., 202., 203., 200., 303.,
-                                                          304., 300., 301., 302., 303., 100., 101., 102.]
-    assert [bool(last) for last in glued.last] == [False, False, True, True, False, False, False, True, False, False,
-                                                   True, False, False, False, False, False, False, True]
-    assert glued._layout.pending_tails(glued._last_array()).tolist() == [8, 14]

@@ -15,3 +15,8 @@ def test_car_on_hill():
                        0.5688000922764597])
 
     assert np.allclose(q, q_test)
+
+    q = solve_car_on_hill(mdp, np.array([[.99, 1.], [-.99, -2.], [.5, 0.]]), np.array([[1], [0], [0]]), .95, max_k=2)
+
+    assert np.allclose(q, [1., -1., -.95])
+    assert np.allclose(solve_car_on_hill(mdp, np.array([[.9, 1.]]), np.array([[0]]), .95), [.95])

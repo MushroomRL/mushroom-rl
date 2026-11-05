@@ -4,7 +4,7 @@ import pytest
 from mushroom_rl.rl_utils.eligibility_trace import EligibilityTrace, ReplacingTrace, AccumulatingTrace
 
 
-def test_replacing_trace():
+def test_traces():
     trace = EligibilityTrace((2, 2), 'replacing')
     assert isinstance(trace, ReplacingTrace)
 
@@ -17,8 +17,6 @@ def test_replacing_trace():
     trace.reset()
     assert np.allclose(trace.table, np.zeros((2, 2)))
 
-
-def test_accumulating_trace():
     trace = EligibilityTrace((2, 2), 'accumulating')
     assert isinstance(trace, AccumulatingTrace)
 
@@ -31,7 +29,5 @@ def test_accumulating_trace():
     trace.reset()
     assert np.allclose(trace.table, np.zeros((2, 2)))
 
-
-def test_unknown_trace():
     with pytest.raises(ValueError):
         EligibilityTrace((2, 2), 'unknown')

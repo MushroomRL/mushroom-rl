@@ -1,5 +1,6 @@
 from mushroom_rl.core import ArrayBackend
 from mushroom_rl.core._impl.extra_info import StepInfo, EpisodeInfoReset, EpisodeInfoParameters
+from mushroom_rl.core._impl.extra_info.episode_info import EpisodeInfo
 import pytest
 import torch
 import numpy as np
@@ -155,7 +156,6 @@ def test_empty_dict_in_list():
     }
     info.append([data1, data2, data3])
     info = info.flatten()
-    print(info)
     content = info.parse()
     assert len(content) == 2
 
@@ -186,7 +186,6 @@ def test_empty_dict():
     info.append(data2)
     info.append(data3)
     info = info.flatten()
-    print(info)
 
     content = info.parse()
     assert len(content) == 1
@@ -202,7 +201,7 @@ def test_empty_dict():
     assert content["prop1"][5] == 121
 
 
-def test_changing_properties_dict():
+def test_changing_keys():
     info = StepInfo(2, 'numpy')
     data1 = {
         'prop2': np.arange(200, 202),
@@ -221,8 +220,6 @@ def test_changing_properties_dict():
     info.append(data3)
     info = info.to_backend('torch')
     info = info.flatten()
-
-    print(info)
 
     content = info.parse()
     assert len(content) == 3
@@ -268,7 +265,6 @@ def test_one_environment():
     info.append(data2)
     info.append(data3)
     content = info.parse('torch')
-    print(info)
 
     assert len(content) == 3
 
@@ -286,7 +282,7 @@ def test_one_environment():
     assert content["prop3"].dim() == 1 and content["prop3"].size(0) == 3
 
 
-def test_copy_survives_parse():
+def test_copy():
     info = StepInfo(1, 'numpy')
 
     for i in range(4):
@@ -312,7 +308,7 @@ def test_copy_survives_parse():
     assert np.array_equal(content['b_x'], np.array([21, 22]))
 
 
-def test_merge_keeps_the_row_order():
+def test_merge():
     unparsed = StepInfo(1, 'numpy')
     for i in range(4):
         unparsed.append({'x': float(i)})
@@ -332,8 +328,6 @@ def test_merge_keeps_the_row_order():
 
     assert np.array_equal(content['x'], np.array([0., 1., 2., 3., 4., 5.]))
 
-
-def test_merge_keeps_the_destination_backend():
     torch_info = StepInfo(1, 'torch')
 
     for value in (1., 2.):
@@ -350,7 +344,67 @@ def test_merge_keeps_the_destination_backend():
     assert torch.equal(content['x'], torch.tensor([1., 2.]))
 
 
-def test_get_view_slice():
+def test_merge_parsed_combinations():
+    for own_parsed in (False, True):
+        for other_parsed in (False, True):
+            first = StepInfo(1, 'numpy')
+            for i in range(3):
+                first.append({'x': float(i)})
+            if own_parsed:
+                first.parse()
+
+            second = StepInfo(1, 'numpy')
+            for i in (3, 4):
+                second.append({'x': float(i)})
+            if other_parsed:
+                second.parse()
+
+            merged = first + second
+
+            assert np.array_equal(merged.parse()['x'], np.array([0., 1., 2., 3., 4.]))
+            assert np.array_equal(first.parse()['x'], np.array([0., 1., 2.]))
+
+            first += second
+
+            assert np.array_equal(first.parse()['x'], np.array([0., 1., 2., 3., 4.]))
+
+
+def test_merge_parsed_combinations_columns():
+    for own_parsed in (False, True):
+        for other_parsed in (False, True):
+            first = StepInfo(2, 'numpy')
+            for i in range(3):
+                first.append({'x': np.array([float(i), float(i) + 0.5])})
+            if own_parsed:
+                first.parse()
+
+            second = StepInfo(2, 'numpy')
+            for i in (3, 4):
+                second.append({'x': np.array([float(i), float(i) + 0.5])})
+            if other_parsed:
+                second.parse()
+
+            first += second
+
+            assert np.array_equal(first.parse()['x'],
+                                  np.array([[0., 0.5], [1., 1.5], [2., 2.5], [3., 3.5], [4., 4.5]]))
+
+    info = StepInfo(1, 'torch', device='meta')
+    info.append({'x': torch.tensor(1.)})
+    info.parse()
+
+    other = StepInfo(1, 'torch', device='meta')
+    other.append({'x': torch.tensor(2.), 'extra': torch.tensor(3.)})
+    other.parse()
+
+    info += other
+    content = info.parse()
+
+    assert content['x'].device.type == 'meta'
+    assert content['extra'].device.type == 'meta'
+
+
+def test_view():
     info = StepInfo(3, 'torch')
     data1 = {
         'prop1': torch.arange(100, 103),
@@ -384,8 +438,6 @@ def test_get_view_slice():
     assert content["prop1"][2] == 101
     assert content["prop1"][3] == 111
 
-
-def test_get_view_array():
     info = StepInfo(3, 'torch')
     data1 = {
         'prop1': torch.arange(100, 103),
@@ -402,7 +454,6 @@ def test_get_view_array():
     info = info.flatten()
     info = info.get_view(np.array([1, 2, 5]), True)
     content = info.parse('torch')
-    print(info)
 
     assert len(content) == 2
 
@@ -418,6 +469,20 @@ def test_get_view_array():
     assert content["prop1"][0] == 110
     assert content["prop1"][1] == 101
     assert content["prop1"][2] == 112
+
+
+def test_view_index():
+    info = StepInfo(1, 'numpy')
+    empty = StepInfo(1, 'numpy')
+    for value in (1., 2., 3.):
+        info.append({'x': value})
+        empty.append({})
+
+    assert np.array_equal(info.get_view(1).parse()['x'], [2.])
+    assert np.array_equal(info.get_view(-1).parse()['x'], [3.])
+    assert empty.get_view(1).n_steps == 1
+    assert empty.get_view(np.array([True, False, True])).n_steps == 2
+    assert empty.get_view(np.array([0, 2, 2])).n_steps == 3
 
 
 def test_add():
@@ -543,7 +608,7 @@ def test_flatten_with_mask():
     assert np.array_equal(np.array([200, 210, 212, 204]), content["prop2"])
 
 
-def test_list_backend_sequential():
+def test_list_backend():
     info = StepInfo(1, 'list')
 
     info.append({'a': 1.0, 'nested': {'v': np.array([1.0, 2.0])}})
@@ -566,8 +631,6 @@ def test_list_backend_sequential():
     content = view.parse()
     assert content['a'] == [3.0, 1.0]
 
-
-def test_list_backend_vectorized():
     info = StepInfo(2, 'list', vectorized=True)
 
     info.append([{'a': 1.0}, {'a': 2.0}])
@@ -587,7 +650,7 @@ def test_list_backend_vectorized():
     assert content['a'] == [1.0, 3.0, 2.0]
 
 
-def test_records_layout_defers_everything():
+def test_layout():
     info = StepInfo(2, 'numpy')
 
     for t in range(3):
@@ -601,8 +664,6 @@ def test_records_layout_defers_everything():
 
     assert np.array_equal(content['a'], np.array([[0., 1.], [10., 11.], [20., 21.]]))
 
-
-def test_columns_layout_stores_one_entry_per_key():
     info = StepInfo(2, 'numpy')
 
     for t in range(3):
@@ -618,8 +679,6 @@ def test_columns_layout_stores_one_entry_per_key():
     assert np.array_equal(content['a'], np.array([[0., 1.], [10., 11.], [20., 21.]]))
     assert np.array_equal(content['nested_x'], np.array([[0., 0.], [1., 1.], [2., 2.]]))
 
-
-def test_columns_layout_pads_the_missing_steps():
     info = StepInfo(2, 'numpy')
 
     info.append({'a': np.array([1., 2.])})
@@ -636,7 +695,7 @@ def test_columns_layout_pads_the_missing_steps():
     assert np.all(np.isnan(content['rare'][2]))
 
 
-def test_parse_is_cached_until_an_append():
+def test_lazy():
     info = StepInfo(1, 'numpy')
 
     info.append({'a': 1.})
@@ -651,8 +710,6 @@ def test_parse_is_cached_until_an_append():
     assert np.array_equal(first['a'], np.array([1.]))
     assert np.array_equal(second['a'], np.array([1., 2.]))
 
-
-def test_flatten_is_deferred_and_snapshots_the_source():
     info = StepInfo(2, 'numpy')
 
     for t in range(3):
@@ -670,8 +727,6 @@ def test_flatten_is_deferred_and_snapshots_the_source():
     assert np.array_equal(copied.parse()['a'], np.array([0., 10., 20., 1., 11., 21.]))
     assert flat._source is None
 
-
-def test_key_appearing_after_a_parse():
     info = StepInfo(1, 'numpy')
 
     info.append({'x': 1.})
@@ -683,6 +738,18 @@ def test_key_appearing_after_a_parse():
     assert np.array_equal(content['x'], np.array([1., 2.]))
     assert np.isnan(content['y'][0])
     assert content['y'][1] == 3.
+
+    info = StepInfo(2, 'numpy')
+    info.append({'t': np.array([1., 2.])})
+
+    flat = info.flatten()
+    flat.append({'t': 5., 'final': 7.})
+    content = flat.parse()
+
+    assert np.array_equal(content['t'], np.array([1., 2., 5.]))
+    assert np.isnan(content['final'][0])
+    assert np.isnan(content['final'][1])
+    assert content['final'][2] == 7.
 
 
 def test_save_and_load(tmpdir):
@@ -702,7 +769,7 @@ def test_save_and_load(tmpdir):
     assert np.array_equal(loaded.flatten().parse()['a'], np.array([0., 100., 1., 101., 2., 102.]))
 
 
-def test_episode_info_keeps_one_entry_per_episode_and_environment():
+def test_episode_info():
     info = EpisodeInfoReset(3, 'numpy')
 
     info.append([{'ep': float(j)} for j in range(3)], np.ones(3, dtype=bool))
@@ -714,8 +781,6 @@ def test_episode_info_keeps_one_entry_per_episode_and_environment():
 
     assert np.array_equal(content['ep'], np.array([0., 10., 1., 2., 12.]))
 
-
-def test_episode_info_of_a_single_environment_takes_the_dictionary_as_is():
     info = EpisodeInfoReset(1, 'numpy')
 
     info.append({'ep': 1.})
@@ -725,8 +790,6 @@ def test_episode_info_of_a_single_environment_takes_the_dictionary_as_is():
 
     assert np.array_equal(content['ep'], np.array([1., 2.]))
 
-
-def test_episode_info_flatten_concatenates_the_environments():
     info = EpisodeInfoReset(2, 'numpy')
 
     info.append([{'ep': 0.}, {'ep': 1.}], np.ones(2, dtype=bool))
@@ -737,8 +800,6 @@ def test_episode_info_flatten_concatenates_the_environments():
     assert flat.n_envs == 1
     assert np.array_equal(flat.parse()['ep'], np.array([0., 2., 1.]))
 
-
-def test_episode_info_keeps_raw_entries_apart():
     info = EpisodeInfoParameters(3, 'numpy')
 
     info.append(np.arange(3.)[:, None], np.array([True, False, True]))
@@ -749,8 +810,6 @@ def test_episode_info_keeps_raw_entries_apart():
     assert np.array_equal(info.parse(), np.array([[0.], [10.], [11.], [2.]]))
     assert np.array_equal(info.flatten().parse(), np.array([[0.], [10.], [11.], [2.]]))
 
-
-def test_episode_info_of_a_single_environment_takes_the_entry_as_is():
     info = EpisodeInfoParameters(1, 'numpy')
 
     info.append(np.array([1.]))
@@ -760,8 +819,6 @@ def test_episode_info_of_a_single_environment_takes_the_entry_as_is():
     assert np.array_equal(info.parse(), np.array([[1.], [2.]]))
     assert np.array_equal(info.flatten().parse(), np.array([[1.], [2.]]))
 
-
-def test_episode_info_merges_environment_by_environment():
     first = EpisodeInfoParameters(2, 'numpy')
     first.append(np.array([[0.], [1.]]), np.ones(2, dtype=bool))
 
@@ -778,21 +835,6 @@ def test_episode_info_merges_environment_by_environment():
 
     assert np.array_equal(first.parse(), np.array([[0.], [2.], [1.], [3.], [5.]]))
 
-
-@pytest.mark.parametrize('backend', ['numpy', 'torch'])
-def test_episode_info_masked_append_keeps_the_environment_order(backend):
-    array = ArrayBackend.get_array_backend(backend)
-    info = EpisodeInfoReset(3, backend)
-
-    info.append({'ep': array.from_list([0., 1., 2.])}, array.from_list([True, False, True]))
-    info.append({'ep': array.from_list([10., 11., 12.])}, array.from_list([False, True, True]))
-    info.append({'ep': array.from_list([20., 21., 22.])}, array.from_list([False, False, False]))
-
-    assert len(info) == 4
-    assert array.to_list(info.parse()['ep']) == [0., 11., 2., 12.]
-
-
-def test_episode_info_copy_and_clear_are_independent():
     info = EpisodeInfoParameters(2, 'numpy')
     info.append(np.array([[1.], [2.]]), np.ones(2, dtype=bool))
 
@@ -806,53 +848,20 @@ def test_episode_info_copy_and_clear_are_independent():
     assert info.parse() is None
 
 
-def test_merge_keeps_the_row_order_for_every_parsed_combination():
-    for own_parsed in (False, True):
-        for other_parsed in (False, True):
-            first = StepInfo(1, 'numpy')
-            for i in range(3):
-                first.append({'x': float(i)})
-            if own_parsed:
-                first.parse()
+@pytest.mark.parametrize('backend', ['numpy', 'torch'])
+def test_episode_info_masked(backend):
+    array = ArrayBackend.get_array_backend(backend)
+    info = EpisodeInfoReset(3, backend)
 
-            second = StepInfo(1, 'numpy')
-            for i in (3, 4):
-                second.append({'x': float(i)})
-            if other_parsed:
-                second.parse()
+    info.append({'ep': array.from_list([0., 1., 2.])}, array.from_list([True, False, True]))
+    info.append({'ep': array.from_list([10., 11., 12.])}, array.from_list([False, True, True]))
+    info.append({'ep': array.from_list([20., 21., 22.])}, array.from_list([False, False, False]))
 
-            merged = first + second
-
-            assert np.array_equal(merged.parse()['x'], np.array([0., 1., 2., 3., 4.]))
-            assert np.array_equal(first.parse()['x'], np.array([0., 1., 2.]))
-
-            first += second
-
-            assert np.array_equal(first.parse()['x'], np.array([0., 1., 2., 3., 4.]))
+    assert len(info) == 4
+    assert array.to_list(info.parse()['ep']) == [0., 11., 2., 12.]
 
 
-def test_merge_keeps_the_row_order_for_the_columns_layout():
-    for own_parsed in (False, True):
-        for other_parsed in (False, True):
-            first = StepInfo(2, 'numpy')
-            for i in range(3):
-                first.append({'x': np.array([float(i), float(i) + 0.5])})
-            if own_parsed:
-                first.parse()
-
-            second = StepInfo(2, 'numpy')
-            for i in (3, 4):
-                second.append({'x': np.array([float(i), float(i) + 0.5])})
-            if other_parsed:
-                second.parse()
-
-            first += second
-
-            assert np.array_equal(first.parse()['x'],
-                                  np.array([[0., 0.5], [1., 1.5], [2., 2.5], [3., 3.5], [4., 4.5]]))
-
-
-def test_merge_of_an_unparsed_side_stays_unparsed():
+def test_merge_partial():
     first = StepInfo(1, 'numpy')
     first.append({'x': 1.})
 
@@ -865,8 +874,6 @@ def test_merge_of_an_unparsed_side_stays_unparsed():
     assert not first._parsed
     assert np.array_equal(first.parse()['x'], np.array([1., 2.]))
 
-
-def test_merge_with_a_missing_key_on_one_side():
     first = StepInfo(1, 'numpy')
     first.append({'x': 1.})
 
@@ -880,85 +887,6 @@ def test_merge_with_a_missing_key_on_one_side():
     assert np.isnan(content['y'][0])
     assert content['y'][1] == 3.
 
-
-def test_drop_before_keeps_the_remaining_steps_unparsed():
-    for layout in ('records', 'columns'):
-        info = StepInfo(2, 'numpy')
-        for t in range(4):
-            if layout == 'records':
-                info.append([{'x': float(10 * t + j)} for j in range(2)])
-            else:
-                info.append({'x': np.array([float(10 * t), float(10 * t + 1)])})
-
-        info.drop_before(2)
-
-        assert not info._parsed
-        assert info._pending_steps == 2
-        assert np.array_equal(info.parse()['x'], np.array([[20., 21.], [30., 31.]]))
-
-
-def test_drop_before_slices_the_already_parsed_steps():
-    info = StepInfo(1, 'numpy')
-    for t in range(4):
-        info.append({'x': float(t)})
-    info.parse()
-    info.append({'x': 4.})
-
-    info.drop_before(2)
-
-    assert np.array_equal(info.parse()['x'], np.array([2., 3., 4.]))
-
-
-def test_drop_before_forgets_a_key_left_without_steps():
-    for layout in ('records', 'columns'):
-        info = StepInfo(2, 'numpy')
-        for t in range(4):
-            entry = {'x': float(t)} if layout == 'records' else {'x': np.array([float(t), float(t)])}
-            if t == 0:
-                if layout == 'records':
-                    entry['rare'] = 1.
-                else:
-                    entry['rare'] = np.array([1., 1.])
-            info.append([entry, entry] if layout == 'records' else entry)
-
-        info.drop_before(2)
-
-        assert 'rare' not in info.parse()
-
-
-def test_a_key_forgotten_by_drop_before_comes_back_padded():
-    info = StepInfo(1, 'numpy')
-    info.append({'x': 0., 'rare': 9.})
-    info.append({'x': 1.})
-    info.drop_before(1)
-
-    info.append({'x': 2., 'rare': 8.})
-    content = info.parse()
-
-    assert np.array_equal(content['x'], np.array([1., 2.]))
-    assert np.isnan(content['rare'][0])
-    assert content['rare'][1] == 8.
-
-
-def test_merging_after_drop_before_pads_the_missing_key():
-    dropped = StepInfo(1, 'numpy')
-    dropped.append({'x': 0., 'rare': 9.})
-    dropped.append({'x': 1.})
-    dropped.drop_before(1)
-
-    other = StepInfo(1, 'numpy')
-    other.append({'x': 2., 'rare': 8.})
-    other.parse()
-
-    dropped += other
-    content = dropped.parse()
-
-    assert np.array_equal(content['x'], np.array([1., 2.]))
-    assert np.isnan(content['rare'][0])
-    assert content['rare'][1] == 8.
-
-
-def test_merging_an_unparsed_flattened_info_keeps_its_rows():
     first = StepInfo(2, 'numpy')
     first.append({'x': np.array([0., 1.])})
     first.append({'x': np.array([2., 3.])})
@@ -972,8 +900,6 @@ def test_merging_an_unparsed_flattened_info_keeps_its_rows():
 
     assert np.array_equal(flat.parse()['x'], np.array([0., 2., 1., 3., 10., 12., 11., 13.]))
 
-
-def test_merging_an_unparsed_flattened_info_keeps_its_rows_when_parsed_first():
     first = StepInfo(2, 'numpy')
     first.append({'x': np.array([0., 1.])})
 
@@ -986,8 +912,6 @@ def test_merging_an_unparsed_flattened_info_keeps_its_rows_when_parsed_first():
 
     assert np.array_equal(flat.parse()['x'], np.array([0., 1., 10., 11.]))
 
-
-def test_a_key_merged_into_a_flattened_info_survives_the_resolution():
     info = StepInfo(2, 'numpy')
     info.append({'t': np.array([1., 2.])})
 
@@ -1004,21 +928,74 @@ def test_a_key_merged_into_a_flattened_info_survives_the_resolution():
     assert content['final'][2] == 7.
 
 
-def test_a_key_appended_to_a_flattened_info_survives_the_resolution():
-    info = StepInfo(2, 'numpy')
-    info.append({'t': np.array([1., 2.])})
+def test_drop_before():
+    for layout in ('records', 'columns'):
+        info = StepInfo(2, 'numpy')
+        for t in range(4):
+            if layout == 'records':
+                info.append([{'x': float(10 * t + j)} for j in range(2)])
+            else:
+                info.append({'x': np.array([float(10 * t), float(10 * t + 1)])})
 
-    flat = info.flatten()
-    flat.append({'t': 5., 'final': 7.})
-    content = flat.parse()
+        info.drop_before(2)
 
-    assert np.array_equal(content['t'], np.array([1., 2., 5.]))
-    assert np.isnan(content['final'][0])
-    assert np.isnan(content['final'][1])
-    assert content['final'][2] == 7.
+        assert not info._parsed
+        assert info._pending_steps == 2
+        assert np.array_equal(info.parse()['x'], np.array([[20., 21.], [30., 31.]]))
 
+    info = StepInfo(1, 'numpy')
+    for t in range(4):
+        info.append({'x': float(t)})
+    info.parse()
+    info.append({'x': 4.})
 
-def test_drop_before_forgets_a_key_of_a_copy():
+    info.drop_before(2)
+
+    assert np.array_equal(info.parse()['x'], np.array([2., 3., 4.]))
+
+    for layout in ('records', 'columns'):
+        info = StepInfo(2, 'numpy')
+        for t in range(4):
+            entry = {'x': float(t)} if layout == 'records' else {'x': np.array([float(t), float(t)])}
+            if t == 0:
+                if layout == 'records':
+                    entry['rare'] = 1.
+                else:
+                    entry['rare'] = np.array([1., 1.])
+            info.append([entry, entry] if layout == 'records' else entry)
+
+        info.drop_before(2)
+
+        assert 'rare' not in info.parse()
+
+    info = StepInfo(1, 'numpy')
+    info.append({'x': 0., 'rare': 9.})
+    info.append({'x': 1.})
+    info.drop_before(1)
+
+    info.append({'x': 2., 'rare': 8.})
+    content = info.parse()
+
+    assert np.array_equal(content['x'], np.array([1., 2.]))
+    assert np.isnan(content['rare'][0])
+    assert content['rare'][1] == 8.
+
+    dropped = StepInfo(1, 'numpy')
+    dropped.append({'x': 0., 'rare': 9.})
+    dropped.append({'x': 1.})
+    dropped.drop_before(1)
+
+    other = StepInfo(1, 'numpy')
+    other.append({'x': 2., 'rare': 8.})
+    other.parse()
+
+    dropped += other
+    content = dropped.parse()
+
+    assert np.array_equal(content['x'], np.array([1., 2.]))
+    assert np.isnan(content['rare'][0])
+    assert content['rare'][1] == 8.
+
     info = StepInfo(1, 'numpy')
     info.append({'x': 1.})
     info.append({'y': 2.})
@@ -1029,8 +1006,6 @@ def test_drop_before_forgets_a_key_of_a_copy():
     assert np.array_equal(duplicate.parse()['y'], np.array([2.]))
     assert 'x' not in duplicate.parse()
 
-
-def test_drop_before_forgets_a_key_taken_from_a_merge():
     info = StepInfo(1, 'numpy')
     info.append({'x': 1.})
 
@@ -1044,33 +1019,6 @@ def test_drop_before_forgets_a_key_taken_from_a_merge():
     assert np.array_equal(info.parse()['x'], np.array([3.]))
     assert 'y' not in info.parse()
 
-
-def test_parse_to_another_backend_drops_the_device():
-    info = StepInfo(1, 'torch', device='cpu')
-    info.append({'x': 1.})
-
-    content = info.parse(to='numpy')
-
-    assert np.array_equal(content['x'], np.array([1.]))
-
-
-def test_merging_a_missing_key_keeps_the_device():
-    info = StepInfo(1, 'torch', device='meta')
-    info.append({'x': torch.tensor(1.)})
-    info.parse()
-
-    other = StepInfo(1, 'torch', device='meta')
-    other.append({'x': torch.tensor(2.), 'extra': torch.tensor(3.)})
-    other.parse()
-
-    info += other
-    content = info.parse()
-
-    assert content['x'].device.type == 'meta'
-    assert content['extra'].device.type == 'meta'
-
-
-def test_drop_before_refuses_an_unresolved_flattened_info():
     info = StepInfo(2, 'numpy')
     info.append({'x': np.array([1., 2.])})
 
@@ -1080,7 +1028,7 @@ def test_drop_before_refuses_an_unresolved_flattened_info():
         flat.drop_before(1)
 
 
-def test_a_parse_without_keys_keeps_the_step_count():
+def test_no_keys():
     info = StepInfo(1, 'numpy')
     for _ in range(5):
         info.append({})
@@ -1096,8 +1044,6 @@ def test_a_parse_without_keys_keeps_the_step_count():
     assert np.isnan(content['episode_r'][:5]).all()
     assert np.array_equal(content['episode_r'][5:], np.array([0., 1., 2.]))
 
-
-def test_drop_before_after_a_parse_without_keys():
     info = StepInfo(1, 'numpy')
     for _ in range(4):
         info.append({})
@@ -1113,8 +1059,6 @@ def test_drop_before_after_a_parse_without_keys():
     assert content['k'].shape == (4,)
     assert np.array_equal(content['k'][2:], np.array([7., 8.]))
 
-
-def test_merging_an_info_without_keys_keeps_its_steps():
     keyless = StepInfo(1, 'numpy')
     for _ in range(3):
         keyless.append({})
@@ -1131,7 +1075,7 @@ def test_merging_an_info_without_keys_keeps_its_steps():
     assert content['k'][3] == 5.
 
 
-def test_to_backend_converts_the_parsed_arrays():
+def test_to_backend():
     info = StepInfo(1, 'torch')
     info.append({'x': torch.tensor(1.)})
 
@@ -1140,8 +1084,6 @@ def test_to_backend_converts_the_parsed_arrays():
     assert isinstance(converted.parse()['x'], np.ndarray)
     assert isinstance(info.parse()['x'], torch.Tensor)
 
-
-def test_to_backend_defers_the_conversion():
     info = StepInfo(1, 'numpy')
     info.append({'x': 1.})
 
@@ -1152,8 +1094,6 @@ def test_to_backend_defers_the_conversion():
     assert isinstance(converted.parse()['x'], torch.Tensor)
     assert isinstance(info.parse()['x'], np.ndarray)
 
-
-def test_to_backend_converts_the_episode_info():
     info = EpisodeInfoReset(1, 'numpy')
     info.append({'ep': np.array([3.])})
 
@@ -1162,8 +1102,6 @@ def test_to_backend_converts_the_episode_info():
     assert isinstance(converted.parse()['ep'], torch.Tensor)
     assert isinstance(info.parse()['ep'], np.ndarray)
 
-
-def test_flatten_after_to_backend():
     info = StepInfo(2, 'numpy')
     info.append({'x': np.array([1., 2.])})
     info.append({'x': np.array([3., 4.])})
@@ -1173,3 +1111,19 @@ def test_flatten_after_to_backend():
 
     assert isinstance(content['x'], torch.Tensor)
     assert torch.equal(content['x'], torch.tensor([1., 3., 2., 4.]))
+
+    info = StepInfo(1, 'torch', device='cpu')
+    info.append({'x': 1.})
+
+    content = info.parse(to='numpy')
+
+    assert np.array_equal(content['x'], np.array([1.]))
+
+
+def test_episode_info_base():
+    info = EpisodeInfo(1, 'numpy')
+
+    with pytest.raises(NotImplementedError):
+        info.parse()
+    with pytest.raises(NotImplementedError):
+        info.copy()

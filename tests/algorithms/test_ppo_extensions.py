@@ -1,12 +1,13 @@
 import numpy as np
+import pytest
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from datetime import datetime
+from helper.cases import devices
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent, Core
+from mushroom_rl.core import Core
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO_BPTT, RudinPPO
 from mushroom_rl.environments import InvertedPendulum, LQR
 from mushroom_rl.policy import GaussianTorchPolicy, RecurrentGaussianTorchPolicy
@@ -141,16 +142,18 @@ def make_rudin_action_history_setup(action_history_length):
     return policy, alg_params
 
 
-def test_PPO_BPTT():
+def test_PPO_BPTT(tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup()
 
-    w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights().numpy()
-    w_test = np.load('tests/algorithms/test_ppo_bptt.npy')
+    agent = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
+    w = agent.policy.get_weights()
 
-    assert np.allclose(w, w_test, atol=1e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
+    tu.assert_recorded(w, 'test_PPO_BPTT', 'cpu')
+
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
 def test_PPO_BPTT_prev_action():
@@ -159,55 +162,29 @@ def test_PPO_BPTT_prev_action():
     torch.cuda.manual_seed(1)
     policy, alg_params = make_bptt_setup(use_prev_action=True)
 
-    w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights().numpy()
-    w_test = np.load('tests/algorithms/test_ppo_bptt_prev_action.npy')
+    w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights()
 
-    assert np.allclose(w, w_test, atol=6e-4), f'max discrepancy: {np.max(np.abs(w - w_test))}, w[:5]={w[:5]}'
-
-
-def test_PPO_BPTT_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed(1)
-    policy, alg_params = make_bptt_setup()
-
-    agent_save = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att in vars(agent_save):
-        tu.assert_eq(getattr(agent_save, att), getattr(agent_load, att))
+    tu.assert_recorded(w, 'test_PPO_BPTT_prev_action', 'cpu')
 
 
-def test_RudinPPO():
+@pytest.mark.parametrize('device', devices())
+def test_RudinPPO(device, tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
-    w = learn(RudinPPO, *make_rudin_setup(), InvertedPendulum(horizon=50)).policy.get_weights()
-    assert torch.allclose(w, torch.tensor([0.6614, -1.3338, -0.1395, -0.0024]), atol=1e-4)
+    agent = learn(RudinPPO, *make_rudin_setup(), InvertedPendulum(horizon=50))
+    w = agent.policy.get_weights()
+    tu.assert_recorded(w, 'test_RudinPPO_0', device)
+
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
     w = learn(RudinPPO, *make_rudin_setup(2e-4), InvertedPendulum(horizon=50), n_steps=150).policy.get_weights()
-    assert torch.allclose(w, torch.tensor([1.25708532, -0.23323905, 0.12646803, -0.00139929]), atol=1e-4), w
+    tu.assert_recorded(w, 'test_RudinPPO_1', device)
 
 
-def test_RudinPPO_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed(1)
-    policy, alg_params = make_rudin_setup()
-
-    agent_save = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att in vars(agent_save):
-        tu.assert_eq(getattr(agent_save, att), getattr(agent_load, att))
-
-
-def test_RudinPPO_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_RudinPPO_history_length(device):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -215,14 +192,13 @@ def test_RudinPPO_history_length():
 
     agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
     w = agent.policy.get_weights()
-    w_test = torch.tensor([0.46858000, 0.12627189, -0.11577988, 0.25435323,
-                           0.04324655, 0.33570240, -0.08642038, -0.00241854])
 
     assert agent.history_length == 3
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_RudinPPO_history_length', device)
 
 
-def test_RudinPPO_action_history_length():
+@pytest.mark.parametrize('device', devices())
+def test_RudinPPO_action_history_length(device):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -230,10 +206,9 @@ def test_RudinPPO_action_history_length():
 
     agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50))
     w = agent.policy.get_weights()
-    w_test = torch.tensor([-1.15545774, 0.73206282, -0.24952325, 0.26855272, -0.00243832])
 
     assert agent._history_manager.uses_action
-    assert torch.allclose(w, w_test, atol=1e-4), f"actual={w}, expected={w_test}, diff={w - w_test}"
+    tu.assert_recorded(w, 'test_RudinPPO_action_history_length', device)
 
 
 def test_PPO_BPTT_lstm():

@@ -1,60 +1,34 @@
+import numpy as np
 import pytest
 
-pytest.importorskip("mushroom_rl.environments.mujoco_envs")
+from helper.envs import rollout, scalar_action
 
-import numpy as np
+pytest.importorskip("mujoco")
 
-from mushroom_rl.environments import Ant, HalfCheetah, Hopper, Walker2D
-
-import os
-
-os.environ["SDL_VIDEODRIVER"] = "dummy"
+from mushroom_rl.environments import Ant, HalfCheetah, Hopper, Walker2D  # noqa: E402
 
 
-def test_ant():
+@pytest.mark.parametrize('env, name', [(Ant, 'ant'), (HalfCheetah, 'half_cheetah'), (Hopper, 'hopper'),
+                                       (Walker2D, 'walker2d')])
+def test_locomotion(env, name):
     np.random.seed(1)
-    mdp = Ant()
+    ns = rollout(env(), scalar_action)
+
+    assert np.allclose(ns, np.load(f'tests/environments/mujoco_envs/data/test_locomotion_{name}.npy'))
+
+
+def test_ant_contact_forces():
+    np.random.seed(4)
+    mdp = Ant(use_contact_forces=True, exclude_current_positions_from_observation=False, terminate_when_unhealthy=False)
     mdp.reset()
-    for i in range(10):
-        ns, r, ab, _ = mdp.step([np.random.rand()])
-    ns_test = np.load('tests/environments/mujoco_envs/locomotion_ant_data.npy')
+    rewards, contact_costs = list(), list()
+    for _ in range(90):
+        observation, reward, _, info = mdp.step(np.random.uniform(-1, 1, 8))
+        rewards.append(reward)
+        contact_costs.append(info['contact_cost'])
 
-    assert np.allclose(ns, ns_test)
+    expected = np.load('tests/environments/mujoco_envs/data/test_ant_contact_forces.npy')
 
-
-def test_half_cheetah():
-    np.random.seed(1)
-    mdp = HalfCheetah()
-    mdp.reset()
-    states, snapshots = [], []
-    for i in range(10):
-        ns, *_ = mdp.step([np.random.rand()])
-        states.append(ns)
-        snapshots.append(np.copy(ns))
-    for state, snapshot in zip(states, snapshots):
-        assert np.allclose(state, snapshot)
-    ns_test = np.load('tests/environments/mujoco_envs/locomotion_half_cheetah_data.npy')
-
-    assert np.allclose(ns, ns_test)
-
-
-def test_hopper():
-    np.random.seed(1)
-    mdp = Hopper()
-    mdp.reset()
-    for i in range(10):
-        ns, *_ = mdp.step([np.random.rand()])
-    ns_test = np.load('tests/environments/mujoco_envs/locomotion_hopper_data.npy')
-
-    assert np.allclose(ns, ns_test)
-
-
-def test_walker_2d():
-    np.random.seed(1)
-    mdp = Walker2D()
-    mdp.reset()
-    for i in range(10):
-        ns, *_ = mdp.step([np.random.rand()])
-    ns_test = np.load('tests/environments/mujoco_envs/locomotion_walker2d_data.npy')
-
-    assert np.allclose(ns, ns_test)
+    assert mdp.info.observation_space.shape == (35,)
+    assert np.count_nonzero(contact_costs) > 0
+    assert np.allclose(np.concatenate([rewards, contact_costs, observation]), expected)

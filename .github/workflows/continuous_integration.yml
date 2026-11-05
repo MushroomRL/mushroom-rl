@@ -42,7 +42,7 @@ jobs:
     - name: Test with pytest
       timeout-minutes: 10
       run: |
-        pytest --cov=mushroom_rl --cov-report=xml
+        pytest --cov=mushroom_rl --cov-branch --cov-report=xml
     - uses: qltysh/qlty-action/coverage@v2
       if: matrix.python-version == '3.11'
       with:
