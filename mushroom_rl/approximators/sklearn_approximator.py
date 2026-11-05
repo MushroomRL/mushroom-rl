@@ -9,7 +9,7 @@ class SklearnApproximator(Approximator):
 
     """
 
-    def __init__(self, model_class, input_shape, output_shape=(1,), n_models=1, **model_params):
+    def __init__(self, model_class, input_shape, output_shape=(1,), *, n_models=1, **model_params):
         """
         Constructor.
 
@@ -43,7 +43,8 @@ class SklearnApproximator(Approximator):
         target_shape = () if tuple(output_shape) == (1,) else (int(np.prod(output_shape)),)
 
         x = np.asarray(x)
-        x = x.reshape(len(x), int(np.prod(self._input_shape)))
+        assert x.shape[1:] == tuple(self._input_shape)
+        x = x.reshape(len(x), -1)
         y = np.asarray(y)
         y = y.reshape((len(y),) + target_shape)
 
@@ -69,7 +70,10 @@ class SklearnApproximator(Approximator):
         """
         x = np.asarray(x)
         single = x.ndim == len(self._input_shape)
-        x = x.reshape(1 if single else len(x), int(np.prod(self._input_shape)))
+        if single:
+            x = x[None]
+        assert x.shape[1:] == tuple(self._input_shape)
+        x = x.reshape(len(x), -1)
 
         prediction = self._model.predict(x, **predict_params)
 
