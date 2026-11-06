@@ -2,9 +2,11 @@ import os
 
 import pytest
 
-# Pin the MKL and ATen kernel paths before torch loads, so that every CPU computes the same numbers
+# Pin the MKL, ATen and OpenBLAS kernel paths before torch and numpy load, so that every AVX2 CPU picks the same
+# kernels
 os.environ['MKL_CBWR'] = 'COMPATIBLE'
 os.environ['ATEN_CPU_CAPABILITY'] = 'avx2'
+os.environ['OPENBLAS_CORETYPE'] = 'Haswell'
 os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
 if 'DISPLAY' not in os.environ:
     os.environ.setdefault('MUJOCO_GL', 'disable')
