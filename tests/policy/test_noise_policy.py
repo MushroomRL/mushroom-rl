@@ -3,13 +3,15 @@ import numpy as np
 
 import pytest
 
+from helper.dummies import FakeLogger
+
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
 from mushroom_rl.rl_utils.parameters import LinearParameter
 
 
-def test_ornstein_uhlenbeck_policy():
+def test_ornstein_uhlenbeck():
     torch.manual_seed(42)
 
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
@@ -35,8 +37,6 @@ def test_ornstein_uhlenbeck_policy():
     with pytest.raises(NotImplementedError):
         pi(state, action)
 
-
-def test_ornstein_uhlenbeck_greedy():
     torch.manual_seed(42)
 
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
@@ -55,8 +55,6 @@ def test_ornstein_uhlenbeck_greedy():
 
     assert torch.allclose(pi.draw_action_greedy(state), action_test)
 
-
-def test_ornstein_uhlenbeck_vectorized():
     torch.manual_seed(42)
 
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
@@ -77,7 +75,7 @@ def test_ornstein_uhlenbeck_vectorized():
     assert torch.equal(pi.policy_state[1], before[1])
 
 
-def test_clipped_gaussian_policy():
+def test_clipped_gaussian(tmpdir):
     torch.manual_seed(1)
 
     low = -torch.ones(2)
@@ -103,8 +101,6 @@ def test_clipped_gaussian_policy():
     with pytest.raises(NotImplementedError):
         pi(state, action)
 
-
-def test_clipped_gaussian_greedy():
     torch.manual_seed(1)
 
     low = -torch.ones(2)
@@ -124,8 +120,6 @@ def test_clipped_gaussian_greedy():
 
     assert torch.allclose(pi.draw_action_greedy(state), action_test)
 
-
-def test_clipped_gaussian_std_schedule(tmpdir):
     torch.manual_seed(1)
 
     low = -10 * torch.ones(2)
@@ -143,9 +137,7 @@ def test_clipped_gaussian_std_schedule(tmpdir):
     assert torch.allclose(action, action_test)
 
     actions = torch.stack([pi.draw_action(state) for _ in range(3)])
-    actions_test = torch.tensor([[-2.2994337082, 3.2956271172],
-                                 [-1.7830481529, 2.9229989052],
-                                 [-2.1347045898, 2.7911171913]])
+    actions_test = torch.tensor(np.load('tests/policy/data/test_clipped_gaussian.npy'))
     assert torch.allclose(actions, actions_test)
 
     path = tmpdir / 'policy.msh'
@@ -157,15 +149,6 @@ def test_clipped_gaussian_std_schedule(tmpdir):
     torch.manual_seed(2)
     action_load = pi_load.draw_action(state)
     assert torch.equal(action, action_load)
-
-
-def test_clipped_gaussian_logs_sigma():
-    class FakeLogger:
-        def __init__(self):
-            self.calls = list()
-
-        def log_training(self, prefix=None, **kwargs):
-            self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
 
     torch.manual_seed(1)
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
@@ -182,8 +165,6 @@ def test_clipped_gaussian_logs_sigma():
     assert np.allclose(logger.calls[0]['policy/sigma'], np.array([.55, .3]))
     assert np.allclose(logger.calls[1]['policy/sigma'], np.array([.1, .1]))
 
-
-def test_clipped_gaussian_set_updates():
     torch.manual_seed(1)
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
     std = LinearParameter(np.array([1., .5]), np.array([.1, .1]), n=2)

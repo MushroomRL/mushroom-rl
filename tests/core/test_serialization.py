@@ -1,5 +1,8 @@
-import torch
 import numpy as np
+import pytest
+import torch
+
+from helper.cases import needs_cuda
 
 from mushroom_rl.core import MushroomObject
 from mushroom_rl.utils import TorchUtils
@@ -39,6 +42,12 @@ class DummyLeaf(MushroomObject):
         return isinstance(other, DummyLeaf) and self.value == other.value
 
 
+class DummyMethod(MushroomObject):
+    def __init__(self, method):
+        self.data = {'a': [1, 2], 'b': 'text'}
+        self._add_save_attr(data=method)
+
+
 class DummyListClass(MushroomObject):
     def __init__(self):
         self.numpy_list = [np.arange(2.0), np.arange(3.0)]
@@ -74,21 +83,24 @@ class DummyListClass(MushroomObject):
         return all(self._eq(getattr(self, a), getattr(other, a)) for a in attributes)
 
 
-def test_serialization(tmpdir):
-    TorchUtils.set_default_device('cpu')
-
+@pytest.mark.parametrize('save_device, load_device', [('cpu', 'cpu'),
+                                                      pytest.param('cuda', 'cpu', marks=needs_cuda()),
+                                                      pytest.param('cpu', 'cuda', marks=needs_cuda())])
+def test_serialization(tmpdir, save_device, load_device):
+    TorchUtils.set_default_device(save_device)
     a = DummyClass()
     a.save(tmpdir / 'test.msh')
 
+    TorchUtils.set_default_device(load_device)
     b = MushroomObject.load(tmpdir / 'test.msh')
 
+    assert a.torch_tensor.device.type == save_device
+    assert b.torch_tensor.device.type == load_device
     assert a == b
     assert b.not_saved is None
 
 
 def test_serialization_lists(tmpdir):
-    TorchUtils.set_default_device('cpu')
-
     a = DummyListClass()
     a.save(tmpdir / 'test_lists.msh')
 
@@ -102,39 +114,29 @@ def test_serialization_lists(tmpdir):
     assert isinstance(b.mushroom_nested[0], list) and isinstance(b.mushroom_nested[0][0], DummyLeaf)
 
 
-def test_serialization_cuda_cpu(tmpdir):
-    if torch.cuda.is_available():
-        TorchUtils.set_default_device('cuda')
+def test_save_methods(tmpdir):
+    DummyMethod('json').save(tmpdir / 'json.msh')
 
-        a = DummyClass()
-        a.save(tmpdir / 'test.msh')
+    assert MushroomObject.load(tmpdir / 'json.msh').data == {'a': [1, 2], 'b': 'text'}
 
-        TorchUtils.set_default_device('cpu')
-
-        assert a.torch_tensor.device.type == 'cuda'
-
-        b = MushroomObject.load(tmpdir / 'test.msh')
-
-        assert b.torch_tensor.device.type == 'cpu'
-
-        assert a == b
+    with pytest.raises(NotImplementedError):
+        DummyMethod('unknown').save(tmpdir / 'unknown.msh')
+    with pytest.raises(ValueError):
+        MushroomObject.load(tmpdir / 'missing.msh')
 
 
-def test_serialization_cpu_cuda(tmpdir):
-    if torch.cuda.is_available():
-        TorchUtils.set_default_device('cpu')
+def test_logger_forwarding():
+    class Node(MushroomObject):
+        def __init__(self, child=None, other=None):
+            self.child = child
+            self.other = other
+            self._add_logger_attr('child', 'other', group='inner')
 
-        a = DummyClass()
-        a.save(tmpdir / 'test.msh')
+    leaf = Node()
+    root = Node(Node(leaf))
+    root.set_logger('logger', prefix='outer')
 
-        TorchUtils.set_default_device('cuda')
-
-        assert a.torch_tensor.device.type == 'cpu'
-
-        b = MushroomObject.load(tmpdir / 'test.msh')
-
-        assert b.torch_tensor.device.type == 'cuda'
-
-        assert a == b
-
-        TorchUtils.set_default_device('cpu')
+    assert root.child._log_prefix == 'outer/inner'
+    assert leaf._log_prefix == 'outer/inner/inner'
+    assert leaf.logger == 'logger'
+    assert root.other is None

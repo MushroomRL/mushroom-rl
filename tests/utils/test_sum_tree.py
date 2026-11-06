@@ -3,7 +3,7 @@ import numpy as np
 from mushroom_rl.utils.sum_tree import SumTree
 
 
-def test_sum_tree_update_priorities():
+def test_update():
     n = 5
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
@@ -14,8 +14,6 @@ def test_sum_tree_update_priorities():
     assert np.isclose(tree.total_p, 6.0)
     assert np.isclose(tree.max_p, 2.0)
 
-
-def test_sum_tree_update_propagates():
     n = 5
 
     tree = SumTree(max_size=20)
@@ -29,8 +27,6 @@ def test_sum_tree_update_propagates():
     assert np.isclose(tree.max_p, 5.0)
     assert np.isclose(tree._tree[first_leaf], 5.0)
 
-
-def test_sum_tree_get_retrieves_correct_priority():
     n = 5
     priorities = np.array([1.0, 2.0, 1.0, 1.5, 0.5])
 
@@ -47,7 +43,7 @@ def test_sum_tree_get_retrieves_correct_priority():
     assert np.isclose(p2, 2.0)
 
 
-def test_sum_tree_mask_never_sampled():
+def test_mask():
     n = 8
     leaf0 = n - 1
 
@@ -64,8 +60,6 @@ def test_sum_tree_mask_never_sampled():
 
     assert drawn.isdisjoint(set(masked.tolist()))
 
-
-def test_sum_tree_update_unmasks():
     n = 8
     leaf0 = n - 1
 

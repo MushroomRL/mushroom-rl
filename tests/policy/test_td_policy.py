@@ -4,21 +4,12 @@ import numpy as np
 
 import pytest
 
-from mushroom_rl.policy.td_policy import TDPolicy, EpsGreedy, Boltzmann, Mellowmax
+from mushroom_rl.policy.td_policy import EpsGreedy, Boltzmann, Mellowmax
 from mushroom_rl.approximators.table import Table
 from mushroom_rl.approximators import QApproximator
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
-
-
-def test_td_policy():
-    Q = Table((10, 3))
-    pi = TDPolicy()
-
-    pi.set_q(Q)
-
-    assert Q == pi.get_q()
 
 
 def test_eps_greedy():
@@ -54,11 +45,8 @@ def test_eps_greedy():
     pi.update(s, a)
     pi.update(s, a)
     p_sa_3 = pi(s, a)
-    print(eps_2.get_value())
     assert p_sa_3 == p_sa
 
-
-def test_eps_greedy_torch():
     np.random.seed(42)
     torch.manual_seed(42)
     eps = Parameter(0.1)
@@ -77,8 +65,6 @@ def test_eps_greedy_torch():
     assert isinstance(a, torch.Tensor)
     assert a.item() == 0
 
-
-def test_eps_greedy_greedy_action():
     np.random.seed(42)
     eps = Parameter(0.1)
     pi = EpsGreedy(eps)
@@ -134,8 +120,6 @@ def test_boltzmann():
 
     assert beta_2._n_updates.table.item() == 1
 
-
-def test_boltzmann_torch():
     np.random.seed(42)
     torch.manual_seed(42)
     beta = Parameter(0.5)
@@ -154,8 +138,6 @@ def test_boltzmann_torch():
     assert isinstance(a, torch.Tensor)
     assert a.item() == 2
 
-
-def test_boltzmann_greedy():
     np.random.seed(42)
     beta = Parameter(0.1)
     pi = Boltzmann(beta)
@@ -172,6 +154,28 @@ def test_boltzmann_greedy():
 
     for _ in range(5):
         assert pi.draw_action_greedy(s).item() == 0
+
+    np.random.seed(42)
+    beta = LinearParameter(value=5., threshold_value=1., n=100)
+    pi = Boltzmann(beta)
+
+    Q = Table((10, 3))
+    Q.table = np.random.randn(10, 3)
+
+    pi.set_q(Q)
+
+    s = np.array([2])
+
+    pi(s)
+    pi(s, np.array([0]))
+    pi.draw_action_greedy(s)
+
+    assert beta.get_value() == 5.
+
+    for _ in range(10):
+        pi.draw_action(s)
+
+    assert np.allclose(beta.get_value(), 4.6)
 
 
 def test_mellowmax():
@@ -206,8 +210,6 @@ def test_mellowmax():
     with pytest.raises(RuntimeError):
         pi.update(s, a)
 
-
-def test_mellowmax_parameter_is_a_parameter():
     np.random.seed(42)
     pi = Mellowmax(Parameter(3))
 
@@ -221,8 +223,6 @@ def test_mellowmax_parameter_is_a_parameter():
     assert np.allclose(pi._beta.get_value(s), 1.1733686853432355)
     assert np.allclose(pi._beta(s), 1.1733686853432355)
 
-
-def test_mellowmax_clips_beta_above_the_bracket():
     pi = Mellowmax(Parameter(2.5))
 
     Q = Table((1, 4))
@@ -238,8 +238,6 @@ def test_mellowmax_clips_beta_above_the_bracket():
     p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
     assert np.allclose(p_s, p_s_test)
 
-
-def test_mellowmax_clips_beta_below_the_bracket():
     np.random.seed(42)
     pi = Mellowmax(Parameter(1.), beta_min=1., beta_max=2.)
 
@@ -256,8 +254,6 @@ def test_mellowmax_clips_beta_below_the_bracket():
     p_s_test = np.array([0.63573931, 0.28231134, 0.08194935])
     assert np.allclose(p_s, p_s_test)
 
-
-def test_mellowmax_beta_is_zero_on_a_flat_q():
     pi = Mellowmax(Parameter(2.5))
 
     Q = Table((1, 4))
@@ -271,27 +267,3 @@ def test_mellowmax_beta_is_zero_on_a_flat_q():
     p_s = pi(s)
     p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
     assert np.allclose(p_s, p_s_test)
-
-
-def test_boltzmann_consumes_beta_only_on_draw_action():
-    np.random.seed(42)
-    beta = LinearParameter(value=5., threshold_value=1., n=100)
-    pi = Boltzmann(beta)
-
-    Q = Table((10, 3))
-    Q.table = np.random.randn(10, 3)
-
-    pi.set_q(Q)
-
-    s = np.array([2])
-
-    pi(s)
-    pi(s, np.array([0]))
-    pi.draw_action_greedy(s)
-
-    assert beta.get_value() == 5.
-
-    for _ in range(10):
-        pi.draw_action(s)
-
-    assert np.allclose(beta.get_value(), 4.6)

@@ -1,101 +1,33 @@
-import pytest
-
-pytest.importorskip("mushroom_rl.environments.mujoco_envs")
-
-from mushroom_rl.environments.mujoco_envs.manipulation import Reach, Pick, Push, PegInsertion
-import numpy as np
 import random
+
+import numpy as np
+import pytest
 import torch
 
+from helper.envs import constant_rollout
 
-def test_reach():
+pytest.importorskip("mujoco")
+
+from mushroom_rl.environments.mujoco_envs.manipulation import Reach, Pick, Push, PegInsertion  # noqa: E402
+
+
+def seed_all():
     np.random.seed(42)
     random.seed(42)
     torch.manual_seed(42)
 
-    obs = []
-    mdp = Reach()
-    mdp.reset()
-    action = np.zeros(7)
 
-    for _ in range(20):
-        observation, _, _, _ = mdp.step(action)
-        assert len(observation) == len(mdp._mdp_info.observation_space.low)
-        assert len(observation) == len(mdp._mdp_info.observation_space.high)
-        obs.append(observation)
+@pytest.mark.parametrize('env, n_actions, name', [(Reach, 7, 'reach'), (Pick, 8, 'pick'), (Push, 7, 'push'),
+                                                  (PegInsertion, 7, 'peg_insertion')])
+def test_rollout(env, n_actions, name):
+    seed_all()
+    observations = constant_rollout(env(), np.zeros(n_actions))
 
-    obs_test = np.load("tests/environments/mujoco_envs/reach_data.npy")
-
-    assert np.allclose(obs, obs_test)
+    assert np.allclose(observations, np.load(f'tests/environments/mujoco_envs/data/test_rollout_{name}.npy'))
 
 
-def test_pick():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-
-    obs = []
-    mdp = Pick()
-    mdp.reset()
-    action = np.zeros(8)
-
-    for _ in range(20):
-        observation, _, _, _ = mdp.step(action)
-        assert len(observation) == len(mdp._mdp_info.observation_space.low)
-        assert len(observation) == len(mdp._mdp_info.observation_space.high)
-        obs.append(observation)
-
-    obs_test = np.load("tests/environments/mujoco_envs/pick_data.npy")
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_push():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-
-    obs = []
-    mdp = Push()
-    mdp.reset()
-    action = np.zeros(7)
-
-    for _ in range(20):
-        observation, _, _, _ = mdp.step(action)
-        assert len(observation) == len(mdp._mdp_info.observation_space.low)
-        assert len(observation) == len(mdp._mdp_info.observation_space.high)
-        obs.append(observation)
-
-    obs_test = np.load("tests/environments/mujoco_envs/push_data.npy")
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_peg_insertion():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-
-    obs = []
-    mdp = PegInsertion()
-    mdp.reset()
-    action = np.zeros(7)
-
-    for _ in range(20):
-        observation, _, _, _ = mdp.step(action)
-        assert len(observation) == len(mdp._mdp_info.observation_space.low)
-        assert len(observation) == len(mdp._mdp_info.observation_space.high)
-        obs.append(observation)
-
-    obs_test = np.load("tests/environments/mujoco_envs/peg_insertion_data.npy")
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_peg_insertion_additional_data():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
+def test_additional_data():
+    seed_all()
 
     mdp = PegInsertion()
     mdp.reset()
@@ -107,10 +39,8 @@ def test_peg_insertion_additional_data():
                      'finger_joint1_pos': 1, 'finger_joint2_pos': 1, 'gripper_pos': 3, 'gripper_rot': 9}
 
 
-def test_push_reward():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
+def test_rewards():
+    seed_all()
 
     mdp = Push()
     mdp.reset()
@@ -146,11 +76,7 @@ def test_push_reward():
     assert np.allclose(np.min(contact_costs), -0.0006)
     assert np.allclose(np.sum(contact_costs), -0.034047468372260595)
 
-
-def test_pick_reward():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
+    seed_all()
 
     mdp = Pick()
     mdp.reset()
@@ -186,11 +112,7 @@ def test_pick_reward():
     assert np.allclose(np.min(contact_costs), -0.0006)
     assert np.allclose(np.sum(contact_costs), -0.03443473778441179)
 
-
-def test_peg_insertion_reward():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
+    seed_all()
 
     mdp = PegInsertion()
     mdp.reset()
@@ -223,10 +145,8 @@ def test_peg_insertion_reward():
     assert np.allclose(np.sum(rewards), 4.159753405350865)
 
 
-def test_peg_insertion_alignment():
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
+def test_alignment():
+    seed_all()
 
     mdp = PegInsertion()
     observation = mdp.reset()[0]

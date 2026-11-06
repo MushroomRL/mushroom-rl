@@ -1,10 +1,13 @@
+import numpy as np
+import pytest
 import torch
+
 from mushroom_rl.distributions.torch_distribution import (
-    DiagonalGaussianTorchDistribution, CholeskyGaussianTorchDistribution
+    AbstractGaussianTorchDistribution, DiagonalGaussianTorchDistribution, CholeskyGaussianTorchDistribution
 )
 
 
-def test_diagonal_sample_log_pdf_entropy():
+def test_diagonal():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -13,12 +16,11 @@ def test_diagonal_sample_log_pdf_entropy():
 
     torch.manual_seed(1)
     theta = dist.sample()
-    assert torch.allclose(theta, torch.tensor([2.3244, 0.1066, -2.1477, 1.1512]), atol=1e-4)
+    assert torch.allclose(theta, torch.tensor(np.load('tests/distributions/data/test_diagonal.npy')), atol=1e-4)
     assert torch.isclose(dist.log_pdf(theta), torch.tensor(-3.9484), atol=1e-4)
+    assert torch.equal(dist(theta), torch.exp(dist.log_pdf(theta)))
     assert torch.isclose(dist.entropy(), torch.tensor(5.4992), atol=1e-4)
 
-
-def test_diagonal_mean():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -26,8 +28,6 @@ def test_diagonal_mean():
     dist = DiagonalGaussianTorchDistribution(mu, sigma)
     assert torch.allclose(dist.mean(), mu)
 
-
-def test_diagonal_parameters_size():
     torch.manual_seed(0)
     mu = torch.randn(4)
     sigma = torch.abs(torch.randn(4)) + 0.1
@@ -35,8 +35,6 @@ def test_diagonal_parameters_size():
     assert dist.parameters_size == 8
     assert len(dist.parameters()) == 2
 
-
-def test_diagonal_get_set_parameters():
     torch.manual_seed(0)
     mu = torch.randn(4)
     sigma = torch.abs(torch.randn(4)) + 0.1
@@ -48,7 +46,7 @@ def test_diagonal_get_set_parameters():
     assert torch.allclose(dist.get_parameters().detach(), rho)
 
 
-def test_cholesky_sample_log_pdf_entropy():
+def test_cholesky():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -58,12 +56,10 @@ def test_cholesky_sample_log_pdf_entropy():
 
     torch.manual_seed(1)
     theta = dist.sample()
-    assert torch.allclose(theta, torch.tensor([2.0947, -0.1599, -2.1404, 0.9096]), atol=1e-4)
+    assert torch.allclose(theta, torch.tensor(np.load('tests/distributions/data/test_cholesky.npy')), atol=1e-4)
     assert torch.isclose(dist.log_pdf(theta), torch.tensor(-4.1711), atol=1e-4)
     assert torch.isclose(dist.entropy(), torch.tensor(5.7219), atol=1e-4)
 
-
-def test_cholesky_mean():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -72,8 +68,6 @@ def test_cholesky_mean():
     dist = CholeskyGaussianTorchDistribution(mu, sigma)
     assert torch.allclose(dist.mean(), mu)
 
-
-def test_cholesky_parameters_size():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -83,8 +77,6 @@ def test_cholesky_parameters_size():
     assert dist.parameters_size == 14
     assert len(dist.parameters()) == 2
 
-
-def test_cholesky_get_set_parameters():
     torch.manual_seed(0)
     n = 4
     mu = torch.randn(n)
@@ -96,7 +88,7 @@ def test_cholesky_get_set_parameters():
     assert torch.allclose(dist.get_parameters().detach(), rho)
 
 
-def test_mean_does_not_expose_internal_state():
+def test_mean_copy():
     mu = torch.tensor([1., 2.])
 
     for dist in [DiagonalGaussianTorchDistribution(mu.clone(), torch.ones(2)),
@@ -110,3 +102,15 @@ def test_mean_does_not_expose_internal_state():
             dist._mu[:] = 99.
 
         assert torch.allclose(mean, mu)
+
+
+def test_abstract():
+    calls = [lambda: AbstractGaussianTorchDistribution.mle(None, None),
+             lambda: AbstractGaussianTorchDistribution.con_wmle(None, None, None, None, None),
+             lambda: AbstractGaussianTorchDistribution.diff_log(None, None),
+             lambda: AbstractGaussianTorchDistribution._get_mean_and_chol(None, None),
+             lambda: AbstractGaussianTorchDistribution.parameters(None)]
+
+    for call in calls:
+        with pytest.raises(NotImplementedError):
+            call()

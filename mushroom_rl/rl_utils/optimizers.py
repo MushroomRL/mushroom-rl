@@ -75,7 +75,7 @@ class AdaptiveOptimizer(Optimizer):
             grads = args[1]
         lr = self.get_value(*args, **kwargs)
         if not self._maximize:
-            grads *= -1
+            grads = -grads
         return params + lr * grads
 
     def get_value(self, *args, **kwargs):
@@ -114,7 +114,7 @@ class SGDOptimizer(Optimizer):
 
     def __call__(self, params, grads):
         if not self._maximize:
-            grads *= -1
+            grads = -grads
         return params + self._lr() * grads
 
 
@@ -152,7 +152,7 @@ class AdamOptimizer(Optimizer):
 
     def __call__(self, params, grads):
         if not self._maximize:
-            grads *= -1
+            grads = -grads
 
         if self._m is None:
             self._t = 0

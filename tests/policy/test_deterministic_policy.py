@@ -1,3 +1,5 @@
+from helper.cases import devices
+
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 
@@ -51,11 +53,8 @@ def test_deterministic_policy():
     assert np.allclose(pi.draw_action_greedy(s_test_1), action)
 
 
-@pytest.mark.parametrize('device', ['cpu', 'cuda'])
+@pytest.mark.parametrize('device', devices())
 def test_deterministic_policy_torch(device):
-    if device == 'cuda' and not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
     torch.manual_seed(42)
 
     approximator = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,), device=device)

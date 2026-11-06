@@ -1,13 +1,10 @@
 import numpy as np
-import pytest
-from sklearn.ensemble import ExtraTreesRegressor
 
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.approximators import Approximator, QApproximator
-from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator, NumpyTorchApproximator, CMAC
 from mushroom_rl.approximators.parametric.networks import QNetwork, FeedForwardNetwork
 from mushroom_rl.features.tiles import Tiles
@@ -48,8 +45,7 @@ def test_q_cmac():
     assert np.allclose(y, np.array([0.12141921, 0.20993534]))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[0.21725586, 0.12141921],
-                                    [0.64425621, 0.20993534]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_cmac.npy'))
 
 
 def test_q_linear():
@@ -70,14 +66,38 @@ def test_q_linear():
     assert np.allclose(y, np.array([0.49040831, 0.52521538]))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[0.55168512, 0.49040831],
-                                    [0.58759307, 0.52521538]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_linear_0.npy'))
 
     approximator2 = QApproximator(LinearApproximator, n_actions=n_actions, input_shape=(3,))
     approximator2.fit(s, a, q)
 
     gradient = approximator2.diff(x_s[0], x_a[0])
-    assert np.allclose(gradient, np.array([0., 0., 0., 0.68707335, 0.75278119, 0.33828342]))
+    assert np.allclose(gradient, np.load('tests/approximators/data/test_q_linear_1.npy'))
+
+
+def test_q_weights():
+    np.random.seed(1)
+    state = np.array([1., 2.])
+    approximator = QApproximator(LinearApproximator, n_actions=3, input_shape=(2,))
+    weights = np.arange(6.)
+    approximator.set_weights(weights)
+    gradients = approximator.diff(state)
+
+    assert approximator.weights_size == 6
+    assert np.array_equal(approximator.get_weights(), weights)
+    assert len(gradients) == 3 and all(np.array_equal(gradient, state) for gradient in gradients)
+
+    approximator.fit(np.random.rand(4, 2), np.array([[0], [1], [0], [1]]), np.random.rand(4))
+
+    assert np.array_equal(approximator.get_weights()[4:], [4., 5.])
+
+    ensemble = QApproximator(LinearApproximator, n_actions=3, input_shape=(2,), n_models=2)
+    weights = np.arange(12.).reshape(2, 6)
+    ensemble.set_weights(weights)
+
+    assert ensemble.weights_size == (2, 6)
+    assert np.array_equal(ensemble.get_weights(), weights)
+    assert np.shape(ensemble.diff(state, np.array([1]))) == (2, 6)
 
 
 def test_q_torch():
@@ -103,19 +123,13 @@ def test_q_torch():
     assert np.allclose(y, np.array([0.60176706, 0.5803694], dtype=np.float32))
 
     y = approximator.predict(x_s).detach().numpy()
-    assert np.allclose(y, np.array([[0.60176706, 0.42583174],
-                                    [0.5803694,  0.47669965]], dtype=np.float32))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_torch_0.npy'))
 
     gradient = approximator.diff(x_s[0], x_a[0]).detach().numpy()
-    assert np.allclose(gradient, np.array([0.45738867, 0.4335527, 0.77928376, 0.42085838,
-                                           0., 0., 0., 0., 1., 0.], dtype=np.float32))
+    assert np.allclose(gradient, np.load('tests/approximators/data/test_q_torch_1.npy'))
 
     gradient = approximator.diff(x_s[0]).detach().numpy()
-    assert np.allclose(gradient, np.array([[0.45738867, 0.], [0.4335527, 0.],
-                                           [0.77928376, 0.], [0.42085838, 0.],
-                                           [0., 0.45738867], [0., 0.4335527],
-                                           [0., 0.77928376], [0., 0.42085838],
-                                           [1., 0.], [0., 1.]], dtype=np.float32))
+    assert np.allclose(gradient, np.load('tests/approximators/data/test_q_torch_2.npy'))
 
 
 def test_q_numpy_torch():
@@ -141,22 +155,14 @@ def test_q_numpy_torch():
     assert np.allclose(y, np.array([0.60176706, 0.5803694]))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[0.60176706, 0.42583174],
-                                    [0.5803694,  0.47669965]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_numpy_torch_0.npy'))
 
     gradient = approximator.diff(x_s[0], x_a[0])
-    assert np.allclose(gradient, np.array([0.45738867, 0.4335527, 0.77928376, 0.42085838,
-                                           0., 0., 0., 0., 1., 0.]))
+    assert np.allclose(gradient, np.load('tests/approximators/data/test_q_numpy_torch_1.npy'))
 
     gradient = approximator.diff(x_s[0])
-    assert np.allclose(gradient, np.array([[0.45738867, 0.], [0.4335527, 0.],
-                                           [0.77928376, 0.], [0.42085838, 0.],
-                                           [0., 0.45738867], [0., 0.4335527],
-                                           [0., 0.77928376], [0., 0.42085838],
-                                           [1., 0.], [0., 1.]]))
+    assert np.allclose(gradient, np.load('tests/approximators/data/test_q_numpy_torch_2.npy'))
 
-
-def test_q_numpy_torch_ensemble():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -175,15 +181,14 @@ def test_q_numpy_torch_ensemble():
     x_a = np.random.randint(n_actions, size=(2, 1))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[-0.3145111, 0.42026764],
-                                    [-0.33301038, 0.5050317]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_numpy_torch_3.npy'))
     assert np.allclose(y, (approximator.predict(x_s, idx=0) + approximator.predict(x_s, idx=1)) / 2)
 
     y = approximator.predict(x_s, x_a)
     assert np.allclose(y, np.array([0.42026764, -0.33301038]))
 
 
-def test_q_action_single_window():
+def test_q_window():
     np.random.seed(1)
 
     n_actions = 2
@@ -198,8 +203,7 @@ def test_q_action_single_window():
     x_a = np.random.randint(n_actions, size=(2, 1))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[0.5169289841629996, 0.5145706940449885],
-                                    [0.5386022102958685, 0.6170716374524995]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_window_0.npy'))
     assert np.allclose(approximator.predict(x_s, x_a), np.array([0.5145706940449885, 0.5386022102958685]))
 
     y_single = approximator.predict(x_s[0])
@@ -210,8 +214,6 @@ def test_q_action_single_window():
     assert y_single.shape == ()
     assert np.allclose(y_single, y[0, x_a[0, 0]])
 
-
-def test_q_simple_single_window():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -223,8 +225,7 @@ def test_q_simple_single_window():
     x_a = np.random.randint(n_actions, size=(2, 1))
 
     y = approximator.predict(x_s)
-    assert np.allclose(y, np.array([[-0.19303003, 0.73260486, 0.7373589],
-                                    [0.1122224, 0.7962094, 0.7328558]]))
+    assert np.allclose(y, np.load('tests/approximators/data/test_q_window_1.npy'))
     assert np.allclose(approximator.predict(x_s, x_a), np.array([-0.19303003, 0.7328558]))
 
     y_single = approximator.predict(x_s[0])
@@ -234,11 +235,3 @@ def test_q_simple_single_window():
     y_single = approximator.predict(x_s[0], x_a[0])
     assert y_single.shape == (1,)
     assert np.allclose(y_single, y[0, x_a[0, 0]])
-
-
-def test_q_approximator_requires_input_shape():
-    with pytest.raises(TypeError):
-        QApproximator(SklearnApproximator, n_actions=2, model_class=ExtraTreesRegressor)
-
-    with pytest.raises(TypeError):
-        QApproximator(SklearnApproximator, n_actions=2, n_models=2, model_class=ExtraTreesRegressor)

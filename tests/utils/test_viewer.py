@@ -1,13 +1,11 @@
-import os
-
+import pygame
 import numpy as np
 
 from mushroom_rl.utils.viewer import Viewer
+from mushroom_rl.utils.viewer.pygame_viewer import ImageViewer
 
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
-
-def test_viewer_window_size():
+def test_window():
     square = Viewer(10, 10, min_scale=40)
     corridor = Viewer(2, 20, min_scale=40)
     wide = Viewer(48, 1, min_scale=40)
@@ -20,14 +18,10 @@ def test_viewer_window_size():
         assert viewer.fits
         assert viewer.size[0] >= 500 and viewer.size[1] >= 100
 
-
-def test_viewer_does_not_fit_the_screen():
     assert not Viewer(60, 60, min_scale=40).fits
     assert not Viewer(100, 1, min_scale=40).fits
     assert not Viewer(48, 2084, min_scale=40).fits
 
-
-def test_viewer_margin_centres_the_grid():
     padded = Viewer(48, 1, min_scale=40)
     exact = Viewer(10, 10, min_scale=40)
 
@@ -35,7 +29,7 @@ def test_viewer_margin_centres_the_grid():
     assert np.allclose(padded._margin, [0., .75])
 
 
-def test_background_image_covers_the_environment_not_the_window():
+def test_background_image():
     image = np.full((64, 64, 3), 255.)
 
     padded = Viewer(2, 20, min_scale=40)
@@ -52,7 +46,7 @@ def test_background_image_covers_the_environment_not_the_window():
     assert exact_columns.min() == 0 and exact_columns.max() == 499
 
 
-def test_grid_draws_every_border():
+def test_grid_borders():
     viewer = Viewer(5, 5, min_scale=40)
     viewer.grid(5, 5)
     frame = viewer.get_frame()
@@ -63,3 +57,19 @@ def test_grid_draws_every_border():
 
     assert rows == [0, 100, 200, 300, 400, 499]
     assert columns == [0, 100, 200, 300, 400, 499]
+
+
+def test_image_viewer():
+    image = np.zeros((30, 40, 3), dtype=np.uint8)
+    image[5, 7] = [10, 20, 30]
+    viewer = ImageViewer((40, 30), 0.)
+    viewer.display(np.full((30, 40, 3), 255, dtype=np.uint8))
+    viewer.display(image)
+
+    assert viewer.size == (40, 30)
+    assert np.array_equal(pygame.surfarray.array3d(pygame.display.get_surface()), image.transpose(1, 0, 2))
+
+    viewer.close()
+    ImageViewer((40, 30), 0., headless=True).display(image)
+
+    assert not pygame.display.get_init()

@@ -11,14 +11,12 @@ class StubClient:
         return self._points.get((model_a, model_b), [])
 
 
-def test_contact_helper_empty():
+def test_contact_helper():
     helper = ContactHelper(StubClient({}), [], {}, {})
     helper.compute_contacts()
 
     assert helper._contact_list == []
 
-
-def test_contact_helper_build_and_compute():
     model_map = {'puck': 2}
     link_map = {'mallet_tip': (5, 0), 'mallet_base': (5, 1), 'table_surf': (3, 0), 'table_rim': (3, 1)}
     contacts = ['mallet_tip<->table_surf', 'mallet_base<->table_rim', 'puck<->table_surf',
@@ -38,13 +36,9 @@ def test_contact_helper_build_and_compute():
     assert helper.get_contact('mallet_base<->table_rim') is None
     assert helper.get_contact('puck<->table_surf') is None
 
-
-def test_contact_helper_order_contact():
     assert ContactHelper._order_contact(2, 5, 0, 1) == (2, 5, 0, 1)
     assert ContactHelper._order_contact(5, 2, 0, 1) == (2, 5, 1, 0)
 
-
-def test_contact_helper_get_link_ids():
     link_map = {'paddle': (4, 0)}
     model_map = {'puck': 2}
 
@@ -52,7 +46,7 @@ def test_contact_helper_get_link_ids():
     assert ContactHelper._get_link_ids('puck', link_map, model_map) == (2, -1)
 
 
-def test_contact_helper_real_pybullet():
+def test_real_pybullet():
     p = pytest.importorskip('pybullet')
 
     p.connect(p.DIRECT)

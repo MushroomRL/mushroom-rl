@@ -511,11 +511,11 @@ class MuJoCo(Environment):
 
         """
         if 'Pre-allocated constraint buffer is full' in warning:
-            raise RuntimeError(warning + 'Increase njmax in mujoco XML')
+            raise RuntimeError(warning + ': Increase njmax in mujoco XML')
         elif 'Pre-allocated contact buffer is full' in warning:
-            raise RuntimeError(warning + 'Increase njconmax in mujoco XML')
+            raise RuntimeError(warning + ': Increase njconmax in mujoco XML')
         elif 'Unknown warning type' in warning:
-            raise RuntimeError(warning + 'Check for NaN in simulation.')
+            raise RuntimeError(warning + ': Check for NaN in simulation.')
         else:
             raise RuntimeError('Got MuJoCo Warning: ' + warning)
 

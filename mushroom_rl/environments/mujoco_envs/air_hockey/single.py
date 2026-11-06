@@ -126,8 +126,8 @@ class AirHockeySingle(AirHockeyBase):
 
         # joint_pos_constraint: stay within the robots joint position limits
         constraints["joint_pos_constraints"] = np.zeros(6)
-        constraints["joint_pos_constraints"][:3] = q_vel - self.obs_helper.get_joint_pos_limits()[1]
-        constraints["joint_pos_constraints"][3:] = self.obs_helper.get_joint_pos_limits()[0] - q_vel
+        constraints["joint_pos_constraints"][:3] = q_pos - self.obs_helper.get_joint_pos_limits()[1]
+        constraints["joint_pos_constraints"][3:] = self.obs_helper.get_joint_pos_limits()[0] - q_pos
 
         # joint_vel_constraint: stay within the robots joint velocity limits
         constraints["joint_vel_constraints"] = np.zeros(6)

@@ -1,4 +1,7 @@
 import numpy as np
+
+from helper.dummies import FakeLogger
+
 from mushroom_rl.policy.gaussian_policy import (GaussianPolicy, DiagonalGaussianPolicy,
                                                 StateStdGaussianPolicy, StateLogStdGaussianPolicy)
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -6,7 +9,7 @@ from mushroom_rl.rl_utils.parameters import LinearParameter
 from mushroom_rl.utils.numerical_gradient import numerical_diff_policy
 
 
-def test_univariate_gaussian():
+def test_univariate():
     np.random.seed(42)
     sigma = 1e-3 * np.eye(1)
 
@@ -30,8 +33,6 @@ def test_univariate_gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
-
-def test_gaussian_greedy():
     np.random.seed(42)
     n_dims = 5
     sigma = np.eye(2)
@@ -48,8 +49,6 @@ def test_gaussian_greedy():
     assert np.allclose(mean, approximator.predict(state))
     assert np.allclose(pi.draw_action_greedy(state), mean)
 
-
-def test_gaussian_std_schedule():
     np.random.seed(42)
     std = LinearParameter(np.array([1., .5]), np.array([.1, .1]), n=2)
 
@@ -60,19 +59,17 @@ def test_gaussian_std_schedule():
 
     state = np.random.randn(3)
     actions = [pi.draw_action(state) for _ in range(3)]
-    actions_test = [[1.2758453495, 0.8528825339], [0.9308643501, 1.0161040689], [0.786109301, 0.8194160585]]
+    actions_test = np.load('tests/policy/data/test_univariate_actions.npy')
 
     assert np.allclose(actions, actions_test)
     assert np.allclose(pi(state, actions[0]), 0.07054699961870194)
 
     diff_log = pi.diff_log(state, actions[0])
-    diff_log_test = [47.1249775707, 22.9008681054, -14.0094923812, -21.9550547827, -10.669284947, 6.5268821029]
+    diff_log_test = np.load('tests/policy/data/test_univariate_diff_log.npy')
 
     assert np.allclose(diff_log, diff_log_test)
     assert np.allclose(pi.diff(state, actions[0]), numerical_diff_policy(pi, state, actions[0]))
 
-
-def test_gaussian_std_vector():
     np.random.seed(42)
     approximator = LinearApproximator(input_shape=(3,), output_shape=(2,))
     approximator.set_weights(np.random.rand(approximator.weights_size))
@@ -96,8 +93,25 @@ def test_gaussian_std_vector():
     assert np.allclose(pi(state, action), pi_matrix(state, action))
     assert np.allclose(pi.diff_log(state, action), pi_matrix.diff_log(state, action))
 
+    np.random.seed(42)
+    approximator = LinearApproximator(input_shape=(3,), output_shape=(2,))
+    pi = GaussianPolicy(approximator, LinearParameter(np.array([1., .5]), np.array([.1, .1]), n=2))
 
-def test_multivariate_gaussian():
+    logger = FakeLogger()
+    pi.set_logger(logger)
+    pi.draw_action(np.ones(3))
+
+    assert len(logger.calls) == 1
+    assert np.allclose(logger.calls[0]['policy/sigma'], np.array([.55, .3]))
+
+    pi.set_sigma(np.diag([.09, .04]))
+    pi.draw_action(np.ones(3))
+
+    assert len(logger.calls) == 2
+    assert np.allclose(logger.calls[1]['policy/sigma'], np.array([.3, .2]))
+
+
+def test_multivariate():
     np.random.seed(42)
     n_dims = 5
     n_outs = 3
@@ -124,8 +138,6 @@ def test_multivariate_gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
-
-def test_multivariate_diagonal_gaussian():
     np.random.seed(42)
     n_dims = 5
     n_outs = 3
@@ -150,8 +162,6 @@ def test_multivariate_diagonal_gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
-
-def test_multivariate_state_std_gaussian():
     np.random.seed(42)
     n_dims = 5
     n_outs = 3
@@ -178,8 +188,6 @@ def test_multivariate_state_std_gaussian():
 
         assert np.allclose(exact_diff, numerical_diff)
 
-
-def test_multivariate_state_log_std_gaussian():
     np.random.seed(42)
     n_dims = 5
     n_outs = 3
@@ -205,29 +213,3 @@ def test_multivariate_state_log_std_gaussian():
         numerical_diff = numerical_diff_policy(pi, state, action)
 
         assert np.allclose(exact_diff, numerical_diff)
-
-
-def test_gaussian_logs_sigma():
-    class FakeLogger:
-        def __init__(self):
-            self.calls = list()
-
-        def log_training(self, prefix=None, **kwargs):
-            self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
-
-    np.random.seed(42)
-    approximator = LinearApproximator(input_shape=(3,), output_shape=(2,))
-    pi = GaussianPolicy(approximator, LinearParameter(np.array([1., .5]), np.array([.1, .1]), n=2))
-
-    logger = FakeLogger()
-    pi.set_logger(logger)
-    pi.draw_action(np.ones(3))
-
-    assert len(logger.calls) == 1
-    assert np.allclose(logger.calls[0]['policy/sigma'], np.array([.55, .3]))
-
-    pi.set_sigma(np.diag([.09, .04]))
-    pi.draw_action(np.ones(3))
-
-    assert len(logger.calls) == 2
-    assert np.allclose(logger.calls[1]['policy/sigma'], np.array([.3, .2]))

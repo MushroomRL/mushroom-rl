@@ -58,35 +58,19 @@ def make_history_manager(history_length):
     return HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
 
 
-def test_parse_forces_last_on_the_final_row_and_leaves_the_stored_column():
+def test_parse():
     dataset = make_dataset([False, False, True, False, False])
+    converted = dataset.to_backend('torch')
 
     assert np.array_equal(dataset.parse()[5], np.array([False, False, True, False, True]))
     assert np.array_equal(dataset.last, np.array([False, False, True, False, False]))
+    assert np.array_equal(make_dataset([False, True, False, True]).parse()[5], np.array([False, True, False, True]))
+    assert np.array_equal(dataset[1:].parse()[5], np.array([False, True, False, True]))
+    assert torch.equal(converted.last, torch.tensor([False, False, True, False, False]))
+    assert torch.equal(converted.parse()[5], torch.tensor([False, False, True, False, True]))
 
 
-def test_parse_of_a_dataset_ending_on_an_episode_end_is_the_stored_last():
-    dataset = make_dataset([False, True, False, True])
-
-    assert np.array_equal(dataset.parse()[5], np.array([False, True, False, True]))
-
-
-def test_to_backend_converts_the_stored_last():
-    dataset = make_dataset([False, False, True, False, False]).to_backend('torch')
-
-    assert torch.equal(dataset.last, torch.tensor([False, False, True, False, False]))
-    assert torch.equal(dataset.parse()[5], torch.tensor([False, False, True, False, True]))
-
-
-def test_contiguous_slice_starting_mid_episode_keeps_the_episode_structure():
-    dataset = make_dataset([False, False, True, False, False])
-
-    mid_episode = dataset[1:]
-
-    assert np.array_equal(mid_episode.parse()[5], np.array([False, True, False, True]))
-
-
-def test_add_stitches_consecutive_blocks_and_not_unrelated_ones():
+def test_add_stitching():
     dataset = Dataset(make_sequential_info(), n_steps=10)
     append_rows(dataset, [False, False, False])
     first_block = dataset.copy()
@@ -102,7 +86,7 @@ def test_add_stitches_consecutive_blocks_and_not_unrelated_ones():
     assert np.array_equal(unrelated.last, np.zeros(6, dtype=bool))
 
 
-def test_clear_after_an_episode_end_starts_a_fresh_stream():
+def test_clear_after_episode_end():
     dataset = Dataset(make_sequential_info(), n_steps=10)
     append_rows(dataset, [False, False, True])
     dataset.clear()
@@ -113,7 +97,7 @@ def test_clear_after_an_episode_end_starts_a_fresh_stream():
     assert len(dataset.episodes_length) == 0
 
 
-def test_continuing_sequential_block_has_no_initial_state_and_counts_only_its_episode_end():
+def test_continuing_sequential_block():
     dataset = Dataset(make_sequential_info(), n_steps=10)
     append_rows(dataset, [False, False, False])
     dataset.clear()
@@ -125,7 +109,7 @@ def test_continuing_sequential_block_has_no_initial_state_and_counts_only_its_ep
     assert np.array_equal(dataset.compute_J(), np.array([2.]))
 
 
-def test_flat_block_of_a_vectorized_dataset_segments_its_episodes():
+def test_flat_block_episodes():
     dataset = VectorizedDataset(make_grid_info(3), n_steps=12)
     fill_grid(dataset, active_steps=[4, 2, 3], episode_ends={(1, 0), (0, 2)})
 
@@ -148,7 +132,7 @@ def test_flat_block_of_a_vectorized_dataset_segments_its_episodes():
     assert both_episodes.n_episodes == 2
 
 
-def test_leftover_row_keeps_the_environment_memory():
+def test_leftover_row():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[3, 3], episode_ends=set())
 
@@ -161,7 +145,7 @@ def test_leftover_row_keeps_the_environment_memory():
     assert np.array_equal(rest.parse()[5], np.array([True, False, True]))
 
 
-def test_list_backend_flat_block_segments_on_the_boundary():
+def test_list_flat_block():
     info = DatasetInfo(env_backend='list', agent_backend='numpy', env_device=None, agent_device=None,
                        horizon=10, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
                        action_shape=(1,), action_dtype=np.float64, policy_state_shape=None, n_envs=2)
@@ -177,37 +161,34 @@ def test_list_backend_flat_block_segments_on_the_boundary():
     assert np.array_equal(flat.episodes_length, np.array([2]))
 
 
-def test_continuing_block_stitches_to_an_open_tail():
+def test_continuing_block():
     first = make_block([False, True, False], 0)
     second = make_block([False, True], 3, continuing=True)
 
     joined = first + second
+    converted = joined.to_backend('torch')
     first += second
 
     for dataset in (joined, first):
         assert np.array_equal(dataset.parse()[5], np.array([False, True, False, False, True]))
         assert np.array_equal(dataset.episodes_length, np.array([2, 3]))
         assert np.array_equal(dataset.get_init_states(), np.array([[0.], [2.]]))
+    assert torch.equal(converted.parse()[5], torch.tensor([False, True, False, False, True]))
+    assert torch.equal(converted.episodes_length, torch.tensor([2, 3]))
 
+    standalone = make_block([False, True, False], 0) + make_block([False, True], 3)
 
-def test_standalone_block_cuts_the_open_tail():
-    joined = make_block([False, True, False], 0) + make_block([False, True], 3)
-
-    assert np.array_equal(joined.parse()[5], np.array([False, True, True, False, True]))
-    assert np.array_equal(joined.last, np.array([False, True, False, False, True]))
-    assert np.array_equal(joined.episodes_length, np.array([2, 2]))
-    assert np.array_equal(joined.get_init_states(), np.array([[0.], [2.], [3.]]))
-    assert joined.n_episodes == 2
-
-
-def test_continuing_block_after_a_closed_tail_cannot_be_appended():
-    closed = make_block([False, True], 0)
+    assert np.array_equal(standalone.parse()[5], np.array([False, True, True, False, True]))
+    assert np.array_equal(standalone.last, np.array([False, True, False, False, True]))
+    assert np.array_equal(standalone.episodes_length, np.array([2, 2]))
+    assert np.array_equal(standalone.get_init_states(), np.array([[0.], [2.], [3.]]))
+    assert standalone.n_episodes == 2
 
     with pytest.raises(ValueError):
-        closed + make_block([False], 2, continuing=True)
+        make_block([False, True], 0) + make_block([False], 2, continuing=True)
 
 
-def test_consume_rejects_fewer_steps_than_environments():
+def test_consume_too_few_steps():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[2, 2], episode_ends=set())
 
@@ -220,7 +201,7 @@ def test_consume_rejects_fewer_steps_than_environments():
     assert np.array_equal(dataset.flatten(2).reward, np.array([0., 1.]))
 
 
-def test_empty_block_is_neutral_in_a_concatenation():
+def test_join_empty():
     first = make_block([False, True, False], 0)
     second = make_block([False, True], 3, continuing=True)
     vectorized = VectorizedDataset(make_grid_info(2), n_steps=12)
@@ -237,14 +218,7 @@ def test_empty_block_is_neutral_in_a_concatenation():
     assert np.array_equal(with_empty_flat.parse()[5], (first_flat + second_flat).parse()[5])
 
 
-def test_continuing_block_survives_a_backend_conversion():
-    joined = (make_block([False, True, False], 0) + make_block([False, True], 3, continuing=True)).to_backend('torch')
-
-    assert torch.equal(joined.parse()[5], torch.tensor([False, True, False, False, True]))
-    assert torch.equal(joined.episodes_length, torch.tensor([2, 3]))
-
-
-def test_slice_is_a_standalone_block():
+def test_slice_standalone():
     dataset = make_block([False, False, False, True, False, False], 0)
     history_manager = make_history_manager(3)
 
@@ -261,7 +235,7 @@ def test_slice_is_a_standalone_block():
         mid_episode + make_block([True], 6, continuing=True)
 
 
-def test_scattered_view_ends_a_segment_at_every_row():
+def test_scattered_view():
     dataset = make_block([False, True, False, False], 0)
 
     view = dataset[np.array([0, 1, 3])]
@@ -271,7 +245,7 @@ def test_scattered_view_ends_a_segment_at_every_row():
     assert np.array_equal(view.get_init_states(), np.array([[0.]]))
 
 
-def test_consumed_grids_stacked_flatten_like_the_whole_grid():
+def test_stacked_grids():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[3, 3], episode_ends={(1, 0)})
 
@@ -287,7 +261,7 @@ def test_consumed_grids_stacked_flatten_like_the_whole_grid():
     assert np.array_equal(flat.get_init_states(), np.array([[0.], [2.], [0.]]))
 
 
-def test_flat_blocks_of_a_vectorized_dataset_keep_their_continuing_chunk():
+def test_flat_blocks_continuing():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[3, 3], episode_ends={(1, 0)})
 
@@ -301,7 +275,7 @@ def test_flat_blocks_of_a_vectorized_dataset_keep_their_continuing_chunk():
     assert np.array_equal(joined.get_init_states(), np.array([[0.], [0.], [2.]]))
 
 
-def test_nstep_return_drops_the_runs_cut_at_a_segment_end_as_at_the_buffer_end():
+def test_nstep_segment_end():
     dataset = VectorizedDataset(make_grid_info(2), n_steps=12)
     fill_grid(dataset, active_steps=[3, 3], episode_ends=set())
     history_manager = make_history_manager(1)

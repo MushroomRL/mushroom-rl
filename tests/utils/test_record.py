@@ -11,22 +11,18 @@ def read_frame_values(path):
         return [frame.to_ndarray(format='bgr24').mean() for frame in container.decode(video=0)]
 
 
-def test_video_recorder_stop_without_frames(tmpdir):
+def test_errors(tmpdir):
     recorder = VideoRecorder(path=tmpdir, video_name='no_frames', fps=30)
 
     assert recorder.stop() is None
     assert not list(Path(tmpdir).rglob('*.mp4'))
 
-
-def test_video_recorder_unknown_codec(tmpdir):
     recorder = VideoRecorder(path=tmpdir, video_name='unknown_codec', fps=30, codec='not_a_real_codec')
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     with raises(ValueError):
         recorder(frame)
 
-
-def test_video_recorder_codec_fails_to_open(tmpdir):
     recorder = VideoRecorder(path=tmpdir, video_name='unopenable_codec', fps=30, codec='mjpeg')
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -34,7 +30,7 @@ def test_video_recorder_codec_fails_to_open(tmpdir):
         recorder(frame)
 
 
-def test_video_recorder_writes_readable_video(tmpdir):
+def test_readable_video(tmpdir):
     recorder = VideoRecorder(path=tmpdir, video_name='readable', fps=30)
 
     for value in (10, 20, 30):
@@ -51,7 +47,7 @@ def test_video_recorder_writes_readable_video(tmpdir):
     assert all(value > 0 for value in values)
 
 
-def test_vectorized_video_recorder_temp_files_use_ffv1(tmpdir):
+def test_vectorized_temp_files(tmpdir):
     recorder = VectorizedVideoRecorder(path=tmpdir, video_name='ffv1_check', fps=30)
 
     frame = np.zeros((1, 100, 100, 3), dtype=np.uint8)

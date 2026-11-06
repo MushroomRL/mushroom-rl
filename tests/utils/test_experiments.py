@@ -20,24 +20,18 @@ def test_get_root_dir(tmp_path):
     assert get_root_dir(str(script)) == tmp_path / 'examples'
     assert get_root_dir(script.parent / 'other.py') == tmp_path / 'examples'
 
-
-def test_get_root_dir_shallow(tmp_path):
-    script = tmp_path / 'examples' / 'experiment.py'
+    script = tmp_path / 'shallow' / 'examples' / 'experiment.py'
     script.parent.mkdir(parents=True)
     script.touch()
 
-    assert get_root_dir(script) == tmp_path / 'examples'
+    assert get_root_dir(script) == tmp_path / 'shallow' / 'examples'
 
-
-def test_get_root_dir_custom_name(tmp_path):
     script = tmp_path / 'benchmarks' / 'deep' / 'experiment.py'
     script.parent.mkdir(parents=True)
     script.touch()
 
     assert get_root_dir(script, root_name='benchmarks') == tmp_path / 'benchmarks'
 
-
-def test_get_root_dir_missing(tmp_path):
     script = tmp_path / 'somewhere' / 'experiment.py'
     script.parent.mkdir(parents=True)
     script.touch()
@@ -58,8 +52,6 @@ def test_select_class():
     assert select_class('Rainbow', [DQN, DoubleDQN, Rainbow]) is Rainbow
     assert select_class('SimpleChain', [SimpleChain]) is SimpleChain
 
-
-def test_select_class_unknown():
     with raises(ValueError) as error:
         select_class('SAC', [DQN, DoubleDQN])
 

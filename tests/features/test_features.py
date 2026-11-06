@@ -35,8 +35,6 @@ def test_tiles():
         assert np.all(features(x_i[0], x_i[1]) == y[i])
         assert features.size == y[i].size
 
-
-def test_tiles_voronoi():
     np.random.seed(1)
     tilings_list = [
         VoronoiTiles.generate(3, 10,
@@ -66,8 +64,20 @@ def test_tiles_voronoi():
             assert np.all(features(x_i[0], x_i[1]) == y[i])
             assert features.size == y[i].size
 
+    tilings = Tiles.generate(2, [3, 3],
+                             np.array([0., 0.]),
+                             np.array([1., 1.]))
+    features = Features(tilings)
 
-def test_tiles_dimensions():
+    x = np.array([[.5, .5], [10., 10.], [-10., .5]])
+
+    y = features(x)
+
+    assert np.all(tilings[0](x) == np.array([4, -1, -1]))
+    assert np.array_equal(y.sum(-1), np.array([2., 0., 0.]))
+
+
+def test_dimensions():
     np.random.seed(1)
 
     x = np.random.rand(4, 3)
@@ -80,8 +90,6 @@ def test_tiles_dimensions():
     assert np.array_equal(tiles(x), Tiles([[0., 1.], [0., 1.]], [3, 3])(x[:, [0, 2]]))
     assert np.array_equal(voronoi(x), VoronoiTiles(prototypes)(x[:, [0, 2]]))
 
-
-def test_tiles_dimensions_mismatch():
     np.random.seed(1)
 
     prototypes = np.random.rand(5, 2)
@@ -95,8 +103,6 @@ def test_tiles_dimensions_mismatch():
     with pytest.raises(AssertionError):
         Tiles([[0., 1.], [0., 1.], [0., 1.]], [3, 3, 3], dimensions=[0, 2])
 
-
-def test_tiles_generate_dimensions():
     np.random.seed(1)
 
     x = np.random.rand(4, 3)
@@ -119,8 +125,6 @@ def test_tiles_generate_dimensions():
     with pytest.raises(AssertionError):
         Tiles.generate(3, [3, 3, 3], low, high, dimensions=[0, 2])
 
-
-def test_basis_generate_dimensions():
     np.random.seed(1)
 
     x = np.random.rand(4, 3)
@@ -142,8 +146,6 @@ def test_basis_generate_dimensions():
     with pytest.raises(AssertionError):
         GaussianRBF.generate([3, 3, 3], low, high, dimensions=[0, 2])
 
-
-def test_voronoi_generate_dimensions():
     np.random.seed(1)
 
     x = np.random.rand(4, 3)
@@ -172,22 +174,42 @@ def test_voronoi_generate_dimensions():
     with pytest.raises(AssertionError):
         VoronoiTiles.generate(2, 5, mu=np.zeros(3), sigma=np.ones(3), dimensions=[0, 2])
 
+    np.random.seed(1)
+    rbf = GaussianRBF(np.array([.5, .5]), np.array([1., 1.]), dimensions=[0, 2])
 
-def test_tiles_outside():
-    tilings = Tiles.generate(2, [3, 3],
-                             np.array([0., 0.]),
-                             np.array([1., 1.]))
-    features = Features(tilings)
+    x = np.random.rand(3, 3)
 
-    x = np.array([[.5, .5], [10., 10.], [-10., .5]])
+    assert np.allclose(rbf(x), np.array([0.77354535, 0.81443535, 0.89665007]))
+    assert np.allclose(rbf(x), np.exp(-np.sum((x[:, [0, 2]] - .5)**2, axis=-1)))
 
-    y = features(x)
+    np.random.seed(1)
+    fourier = FourierBasis(np.array([0., 0.]), np.array([1., 1.]), np.array([1., 2.]), dimensions=[0, 2])
 
-    assert np.all(tilings[0](x) == np.array([4, -1, -1]))
-    assert np.array_equal(y.sum(-1), np.array([2., 0., 0.]))
+    x = np.random.rand(3, 3)
+
+    assert np.allclose(fourier(x), np.array([0.25704617, 0.04079871, -0.99798611]))
+
+    np.random.seed(1)
+    pol = PolynomialBasis(dimensions=[0, 2], degrees=[1, 2])
+
+    x = np.random.rand(3, 3)
+
+    assert np.allclose(pol(x), np.array([5.45531457e-09, 2.57781331e-03, 2.93219073e-02]))
+    assert np.allclose(pol(x), x[:, 0] * x[:, 2]**2)
+
+    np.random.seed(1)
+    pol = PolynomialBasis(dimensions=[0, 2], degrees=[1, 2],
+                          low=np.array([0., 0., 0.]), high=np.array([2., 10., 100.]))
+
+    x = np.random.rand(3, 3)
+
+    x_n = (x - np.array([1., 5., 50.])) / np.array([1., 5., 50.])
+
+    assert np.allclose(pol(x), np.array([-0.58297533, -0.69509294, -0.80087641]))
+    assert np.allclose(pol(x), x_n[:, 0] * x_n[:, 2]**2)
 
 
-def test_polynomials():
+def test_basis():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -198,17 +220,10 @@ def test_polynomials():
 
     y = features(x)
 
-    y_test = np.array([[1., -0.16595599, 0.44064899, 0.02754139, -0.07312834, 0.19417153, -0.00457066, 0.01213609,
-                        -0.03222393,  0.08556149],
-                       [1., -0.99977125, -0.39533485, 0.99954255, 0.39524442, 0.15628965, -0.99931391, -0.39515401,
-                        -0.1562539,  -0.06178675],
-                       [1., -0.70648822, -0.81532281, 0.4991256, 0.57601596, 0.66475129, -0.35262636, -0.40694849,
-                        -0.46963895, -0.54198689]])
+    y_test = np.load('tests/features/data/test_basis.npy')
 
     assert np.allclose(y, y_test)
 
-
-def test_basis():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -231,50 +246,6 @@ def test_basis():
         assert np.all(features(x_i[0], x_i[1]) == y[i])
         assert features.size == y[i].size
 
-
-def test_basis_dimensions():
-    np.random.seed(1)
-    rbf = GaussianRBF(np.array([.5, .5]), np.array([1., 1.]), dimensions=[0, 2])
-
-    x = np.random.rand(3, 3)
-
-    assert np.allclose(rbf(x), np.array([0.77354535, 0.81443535, 0.89665007]))
-    assert np.allclose(rbf(x), np.exp(-np.sum((x[:, [0, 2]] - .5)**2, axis=-1)))
-
-
-def test_fourier_dimensions():
-    np.random.seed(1)
-    fourier = FourierBasis(np.array([0., 0.]), np.array([1., 1.]), np.array([1., 2.]), dimensions=[0, 2])
-
-    x = np.random.rand(3, 3)
-
-    assert np.allclose(fourier(x), np.array([0.25704617, 0.04079871, -0.99798611]))
-
-
-def test_polynomial_dimensions():
-    np.random.seed(1)
-    pol = PolynomialBasis(dimensions=[0, 2], degrees=[1, 2])
-
-    x = np.random.rand(3, 3)
-
-    assert np.allclose(pol(x), np.array([5.45531457e-09, 2.57781331e-03, 2.93219073e-02]))
-    assert np.allclose(pol(x), x[:, 0] * x[:, 2]**2)
-
-
-def test_polynomial_dimensions_normalized():
-    np.random.seed(1)
-    pol = PolynomialBasis(dimensions=[0, 2], degrees=[1, 2],
-                          low=np.array([0., 0., 0.]), high=np.array([2., 10., 100.]))
-
-    x = np.random.rand(3, 3)
-
-    x_n = (x - np.array([1., 5., 50.])) / np.array([1., 5., 50.])
-
-    assert np.allclose(pol(x), np.array([-0.58297533, -0.69509294, -0.80087641]))
-    assert np.allclose(pol(x), x_n[:, 0] * x_n[:, 2]**2)
-
-
-def test_polynomial_constant():
     np.random.seed(1)
     pol = PolynomialBasis()
 
@@ -282,8 +253,6 @@ def test_polynomial_constant():
 
     assert np.allclose(pol(x), np.ones(3))
 
-
-def test_generate_torch_bounds():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -311,7 +280,7 @@ def test_generate_torch_bounds():
     assert np.allclose(Features(voronoi_torch)(x), Features(voronoi_numpy)(x))
 
 
-def test_basis_repr():
+def test_repr():
     low = np.array([0., 0.])
     high = np.array([1., 1.])
 
@@ -325,8 +294,6 @@ def test_basis_repr():
     assert repr(GaussianRBF.generate([2, 2], low, high)[0]) == \
            'GaussianRBF(mean=[0. 0.], scale=[0.08680556 0.08680556])'
 
-
-def test_tiles_repr():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -338,8 +305,6 @@ def test_tiles_repr():
            'Tiles(n_tiles=[3, 3], range=[[-0.2, 1.0], [-0.7, 0.5]])'
     assert repr(VoronoiTiles.generate(2, 10, low=low, high=high)[0]) == 'VoronoiTiles(n_prototypes=10)'
 
-
-def test_tensor_repr():
     low = np.array([0., 0.])
     high = np.array([1., 1.])
 
@@ -383,8 +348,6 @@ def test_tensor():
         assert np.allclose(features(x_i[0], x_i[1]), y[i])
         assert features.size == y[i].size
 
-
-def test_basis_and_tensors():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -400,6 +363,25 @@ def test_basis_and_tensors():
 
     assert np.allclose(y_1, y_2)
 
+    torch.manual_seed(1)
+    low = np.array([0., -.5])
+    high = np.array([1., .5])
+    rbf = GaussianRBFTensor.generate([3, 3], low, high)
+
+    features = Features(rbf, backend='torch')
+
+    x = np.random.rand(4, 2) + [0., -.5]
+
+    x_torch = TorchUtils.to_float_tensor(x)
+
+    assert torch.allclose(features(x), features(x_torch))
+    assert torch.allclose(features(x), features(x_torch.clone().requires_grad_()))
+
+    x_1 = x_torch[:, 0].unsqueeze(-1).requires_grad_()
+    x_2 = x_torch[:, 1].unsqueeze(-1).requires_grad_()
+
+    assert torch.allclose(features(x), features(x_1, x_2))
+
 
 def test_fourier():
     low = np.array([-1.0, 0.5])
@@ -410,20 +392,11 @@ def test_fourier():
 
     x = np.array([0.1, 1.4])
 
-    res = np.array([1., -0.15643447, -0.95105652,  0.4539905, 0.80901699,
-                    -0.70710678, 0.15643447, -1., 0.15643447, 0.95105652,
-                    -0.4539905, -0.80901699, -0.95105652, -0.15643447, 1.,
-                    -0.15643447, -0.95105652, 0.4539905, -0.4539905,
-                    0.95105652, 0.15643447, -1., 0.15643447, 0.95105652,
-                    0.80901699, 0.4539905, -0.95105652, -0.15643447,  1.,
-                    -0.15643447, 0.70710678, -0.80901699, -0.4539905,
-                    0.95105652, 0.15643447, -1.])
+    res = np.load('tests/features/data/test_fourier_res_0.npy')
 
     assert np.allclose(features(x), res)
     assert features.size == res.size
 
-
-def test_random_fourier():
     torch.manual_seed(1)
     tensor_list = RandomFourierTensor.generate(nu=2.5, n_output=10, input_size=2)
 
@@ -431,8 +404,7 @@ def test_random_fourier():
 
     features = Features(tensor_list)
 
-    res = np.array([-0.68119127, -0.33233675,  0.9187717, -0.46273828,  0.85892403,
-                    -0.947241,  0.1585586, -0.98503137,  0.5480738,  1.])
+    res = np.load('tests/features/data/test_fourier_res_1.npy')
 
     assert np.allclose(features(x), res)
     assert features.size == res.size
@@ -447,8 +419,6 @@ def test_dispatch():
     assert isinstance(Features(GaussianRBFTensor.generate([3, 3], low, high)), TorchFeatures)
     assert isinstance(Features(n_outputs=2), FunctionalFeatures)
 
-
-def test_single_feature():
     np.random.seed(1)
 
     x = np.random.rand(4, 2) + [0., -.5]
@@ -463,8 +433,6 @@ def test_single_feature():
         assert features(x).shape == (4, features.size)
         assert features(x[0]).shape == (features.size,)
 
-
-def test_batch_shape_all_features():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -485,8 +453,6 @@ def test_batch_shape_all_features():
         assert features(x[0]).shape == (features.size,)
         assert np.allclose(np.asarray(features(x[:1])), np.asarray(features(x[0])))
 
-
-def test_dispatch_errors():
     low = np.array([0., -.5])
     high = np.array([1., .5])
 
@@ -498,8 +464,6 @@ def test_dispatch_errors():
         with pytest.raises(ValueError):
             Features(*bad_args, **bad_kwargs)
 
-
-def test_functional():
     features = Features(n_outputs=3)
 
     x = np.random.rand(5, 3)
@@ -512,7 +476,7 @@ def test_functional():
     assert np.allclose(doubling(x), 2 * x)
 
 
-def test_backend_all_features():
+def test_backend():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -534,8 +498,6 @@ def test_backend_all_features():
         assert isinstance(y_torch, torch.Tensor)
         assert np.allclose(y_numpy, y_torch.numpy())
 
-
-def test_torch_input_all_features():
     np.random.seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -557,37 +519,12 @@ def test_torch_input_all_features():
         assert torch.allclose(features(x), features(x_torch))
         assert torch.allclose(features(x), features(x_torch.clone().requires_grad_()))
 
-
-def test_tensor_torch_input():
-    torch.manual_seed(1)
-    low = np.array([0., -.5])
-    high = np.array([1., .5])
-    rbf = GaussianRBFTensor.generate([3, 3], low, high)
-
-    features = Features(rbf, backend='torch')
-
-    x = np.random.rand(4, 2) + [0., -.5]
-
-    x_torch = TorchUtils.to_float_tensor(x)
-
-    assert torch.allclose(features(x), features(x_torch))
-    assert torch.allclose(features(x), features(x_torch.clone().requires_grad_()))
-
-    x_1 = x_torch[:, 0].unsqueeze(-1).requires_grad_()
-    x_2 = x_torch[:, 1].unsqueeze(-1).requires_grad_()
-
-    assert torch.allclose(features(x), features(x_1, x_2))
-
-
-def test_backend_not_supported():
     low = np.array([0., -.5])
     high = np.array([1., .5])
 
     with pytest.raises(AssertionError):
         Features(GaussianRBF.generate([3, 3], low, high), backend='list')
 
-
-def test_torch_backend():
     low = np.array([0., -.5])
     high = np.array([1., .5])
     rbf = GaussianRBFTensor.generate([3, 3], low, high)
@@ -626,8 +563,6 @@ def test_to_torch_module():
     assert x.grad is not None
     assert torch.any(x.grad != 0.)
 
-
-def test_to_torch_module_sequence():
     torch.manual_seed(1)
     low = np.array([0., -.5])
     high = np.array([1., .5])
@@ -644,8 +579,6 @@ def test_to_torch_module_sequence():
     assert y.shape == (4, 7, features.size)
     assert torch.allclose(y, module(x.reshape(-1, 2)).reshape(4, 7, features.size))
 
-
-def test_to_torch_module_not_implemented():
     low = np.array([0., -.5])
     high = np.array([1., .5])
 
@@ -656,7 +589,7 @@ def test_to_torch_module_not_implemented():
             features.to_torch_module()
 
 
-def test_get_action_features():
+def test_action_features():
     phi_state = np.array([1., 2.])
     action = np.array([1])
 
@@ -664,8 +597,6 @@ def test_get_action_features():
 
     assert np.allclose(phi_state_action, np.array([0., 0., 1., 2., 0., 0.]))
 
-
-def test_get_action_features_batch():
     phi_state = np.array([[1., 2.], [3., 4.]])
     action = np.array([[0], [2]])
 
@@ -674,8 +605,6 @@ def test_get_action_features_batch():
     assert np.allclose(phi_state_action, np.array([[1., 2., 0., 0., 0., 0.],
                                                    [0., 0., 0., 0., 3., 4.]]))
 
-
-def test_get_action_features_single_sample_batch():
     action = np.array([[1]])
 
     assert np.allclose(Features.get_action_features(np.array([[1., 2.]]), action, 3),
@@ -683,8 +612,6 @@ def test_get_action_features_single_sample_batch():
     assert np.allclose(Features.get_action_features(np.array([1., 2.]), action, 3),
                        np.array([0., 0., 1., 2., 0., 0.]))
 
-
-def test_get_action_features_torch():
     phi_state_action = Features.get_action_features(torch.tensor([[1., 2.], [3., 4.]]), torch.tensor([[0], [2]]), 3)
 
     assert isinstance(phi_state_action, torch.Tensor)
@@ -721,3 +648,13 @@ def test_serialization(tmpdir):
         assert type(loaded) is type(features)
         assert loaded.size == features.size
         assert np.allclose(np.asarray(features(x)), np.asarray(loaded(x)))
+
+
+def test_tiles_shorthands():
+    x = np.array([[.5], [.1]])
+
+    assert np.array_equal(Tiles([0., 1.], 3)(x), Tiles([[0., 1.]], [3])(x))
+    assert np.array_equal(Tiles([0., 1.], 3)(x), [1, 0])
+    assert len(Tiles.generate(-1, [3, 3], np.zeros(2), np.ones(2))) == 9
+    assert len(VoronoiTiles.generate(-1, 5, low=np.zeros(2), high=np.ones(2))) == 9
+    assert repr(VoronoiTiles(np.zeros((3, 2)), dimensions=[0, 2])) == 'VoronoiTiles(n_prototypes=3, dimensions=[0, 2])'

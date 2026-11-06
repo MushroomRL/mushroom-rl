@@ -6,18 +6,14 @@ from mushroom_rl.solvers.lqr import (compute_lqr_feedback_gain, compute_lqr_P, c
 from mushroom_rl.utils.numerical_gradient import numerical_diff_function
 
 
-def test_lqr_solver_linear():
+def test_feedback_gain():
     lqr = LQR.generate(3)
     K = compute_lqr_feedback_gain(lqr)
 
-    K_test = np.array([[0.89908343, 0., 0.],
-                       [0., 0.24025307, 0.],
-                       [0., 0., 0.24025307]])
+    K_test = np.load('tests/solvers/data/test_feedback_gain_K.npy')
 
     assert np.allclose(K, K_test)
 
-
-def test_P():
     lqr = LQR.generate(3)
     K = np.array(
         [[1.0, 0.1, 0.01],
@@ -27,14 +23,12 @@ def test_P():
 
     P = compute_lqr_P(lqr, K)
 
-    P_test = np.array([[1.60755632, 0.78058807, 0.03219049],
-                       [0.78058807, 1.67738666, 0.24905620],
-                       [0.03219049, 0.2490562, 0.83697781]])
+    P_test = np.load('tests/solvers/data/test_feedback_gain_P.npy')
 
     assert np.allclose(P, P_test)
 
 
-def test_V_lqr():
+def test_V():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -46,17 +40,13 @@ def test_V_lqr():
 
     assert np.allclose(V_lqr, -6.3336186348534875)
 
-
-def test_V_lqr_gaussian_policy():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
                   [0.5, 1.2, 0.02],
                   [.02, 0.3, 0.9]])
 
-    Sigma = np.array([[0.18784063,  0.02205161, 0.19607835],
-                      [0.02205161,  0.59897771,  0.09953863],
-                      [0.19607835,  0.09953863,  0.23284475]])
+    Sigma = np.load('tests/solvers/data/test_V_sigma.npy')
 
     s = np.array([1.0, 1.3, -0.3])
     V_lqg = compute_lqr_V_gaussian_policy(s, lqr, K, Sigma)
@@ -64,7 +54,7 @@ def test_V_lqr_gaussian_policy():
     assert np.allclose(V_lqg, -28.39165320182624)
 
 
-def test_Q_lqr():
+def test_Q():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
@@ -78,17 +68,13 @@ def test_Q_lqr():
 
     assert np.allclose(Q_lqr, -10.83964921837036)
 
-
-def test_Q_lqr_gaussian_policy():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
                   [0.5, 1.2, 0.02],
                   [.02, 0.3, 0.9]])
 
-    Sigma = np.array([[0.18784063,  0.02205161, 0.19607835],
-                      [0.02205161,  0.59897771, 0.09953863],
-                      [0.19607835, 0.09953863, 0.23284475]])
+    Sigma = np.load('tests/solvers/data/test_Q_sigma.npy')
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([-0.5, -0.2, 0.1])
@@ -97,8 +83,6 @@ def test_Q_lqr_gaussian_policy():
 
     assert np.allclose(Q_lqg, -23.887098201718487)
 
-
-def test_Q_lqr_gaussian_policy_10dim():
     lqr = LQR.generate(10)
 
     K = np.eye(10) * 0.1
@@ -112,16 +96,14 @@ def test_Q_lqr_gaussian_policy_10dim():
     assert np.allclose(Q_lqg, -48.00590405904062)
 
 
-def test_V_lqr_gaussian_policy_gradient_K():
+def test_gradient_K():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
                   [0.5, 1.2, 0.02],
                   [.02, 0.3, 0.9]])
 
-    Sigma = np.array([[0.18784063,  0.02205161, -0.19607835],
-                      [0.02205161,  0.59897771,  0.09953863],
-                      [-0.19607835,  0.09953863,  0.23284475]])
+    Sigma = np.load('tests/solvers/data/test_gradient_K_sigma_0.npy')
 
     s = np.array([1.0, 1.3, -0.3])
 
@@ -133,9 +115,6 @@ def test_V_lqr_gaussian_policy_gradient_K():
     dJ_num = numerical_diff_function(compute_v, K.reshape(-1))
 
     assert np.allclose(dJ, dJ_num)
-
-
-def test_V_lqr_gaussian_policy_gradient_K_diff_dims():
 
     A = np.array([[1., 0.4],
                   [0.2, 0.8]])
@@ -166,17 +145,13 @@ def test_V_lqr_gaussian_policy_gradient_K_diff_dims():
 
     assert np.allclose(dJ, dJ_num)
 
-
-def test_Q_lqr_gaussian_policy_gradient_K():
     lqr = LQR.generate(3)
 
     K = np.array([[1.0, 0.1, 0.01],
                   [0.5, 1.2, 0.02],
                   [.02, 0.3, 0.9]])
 
-    Sigma = np.array([[0.18784063,  0.02205161, -0.19607835],
-                      [0.02205161,  0.59897771,  0.09953863],
-                      [-0.19607835,  0.09953863,  0.23284475]])
+    Sigma = np.load('tests/solvers/data/test_gradient_K_sigma_1.npy')
 
     s = np.array([1.0, 1.3, -0.3])
     a = np.array([-0.6, -0.5, 0.2])

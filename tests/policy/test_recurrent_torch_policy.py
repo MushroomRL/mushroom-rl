@@ -1,7 +1,10 @@
+import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 
 from mushroom_rl.policy import RecurrentGaussianTorchPolicy
+from mushroom_rl.policy.stateful_torch_policy import StatefulTorchPolicy
 from mushroom_rl.approximators.parametric.networks import RecurrentNetwork
 
 
@@ -33,7 +36,7 @@ def make_policy(n_state=4, n_action=2, n_hidden=8):
     )
 
 
-def test_recurrent_policy_reset():
+def test_reset():
     n_hidden = 8
     policy = make_policy(n_hidden=n_hidden)
 
@@ -43,8 +46,6 @@ def test_recurrent_policy_reset():
     assert ps.shape == (1, n_hidden)
     assert torch.all(ps == 0.0)
 
-
-def test_recurrent_policy_vectorized():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -63,7 +64,7 @@ def test_recurrent_policy_vectorized():
     assert torch.equal(policy.policy_state[1], before[1])
 
 
-def test_recurrent_policy_draw_action():
+def test_draw_action():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -74,16 +75,13 @@ def test_recurrent_policy_draw_action():
     new_policy_state = policy.policy_state
 
     action_test = torch.tensor([1.2770035, 0.48390746])
-    new_ps_test = torch.tensor([-0.13474981,  0.16390274,  0.04836516, -0.00375814,
-                                -0.05680789,  0.06481361,  0.22528732, -0.00479783])
+    new_ps_test = torch.tensor(np.load('tests/policy/data/test_draw_action_new_ps_0.npy'))
 
     assert action.shape == (n_action,)
     assert new_policy_state.shape == (1, n_hidden)
     assert torch.allclose(action, action_test, atol=1e-5)
     assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
 
-
-def test_recurrent_policy_draw_action_greedy():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -94,8 +92,7 @@ def test_recurrent_policy_draw_action_greedy():
     new_policy_state = policy.policy_state
 
     action_test = torch.tensor([0.25209162, 0.26158917])
-    new_ps_test = torch.tensor([-0.13474981,  0.16390274,  0.04836516, -0.00375814,
-                                -0.05680789,  0.06481361,  0.22528732, -0.00479783])
+    new_ps_test = torch.tensor(np.load('tests/policy/data/test_draw_action_new_ps_1.npy'))
 
     assert action.shape == (n_action,)
     assert new_policy_state.shape == (1, n_hidden)
@@ -103,7 +100,7 @@ def test_recurrent_policy_draw_action_greedy():
     assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
 
 
-def test_recurrent_policy_entropy():
+def test_distribution():
     policy = make_policy()
 
     entropy = policy.entropy()
@@ -112,8 +109,6 @@ def test_recurrent_policy_entropy():
     assert entropy.shape == ()
     assert torch.isclose(entropy, torch.tensor(2.837877), atol=1e-5)
 
-
-def test_recurrent_policy_distribution_and_policy_state():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -129,8 +124,6 @@ def test_recurrent_policy_distribution_and_policy_state():
     assert new_ps.shape == (batch, 1, n_hidden)
     assert not torch.all(new_ps == 0.0)
 
-
-def test_recurrent_policy_log_prob():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -151,8 +144,6 @@ def test_recurrent_policy_log_prob():
     assert torch.allclose(log_prob[0], log_prob[2])
     assert torch.allclose(log_prob, log_prob_test, atol=1e-5)
 
-
-def test_recurrent_policy_draw_with_log_prob():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -164,9 +155,7 @@ def test_recurrent_policy_draw_with_log_prob():
     torch.manual_seed(42)
     action, log_prob, next_policy_state = policy.draw_with_log_prob(state, policy_state, lengths)
 
-    action_test = torch.tensor([[0.5960621, 0.4151462],
-                                [0.4938340, 0.5166699],
-                                [-0.8634847, 0.1000085]])
+    action_test = torch.tensor(np.load('tests/policy/data/test_distribution.npy'))
     log_prob_test = torch.tensor([[-1.9028531],
                                   [-1.8918899],
                                   [-2.4856393]])
@@ -178,8 +167,6 @@ def test_recurrent_policy_draw_with_log_prob():
     assert torch.allclose(action, action_test, atol=1e-5)
     assert torch.allclose(log_prob, log_prob_test, atol=1e-5)
 
-
-def test_recurrent_policy_distribution_interface():
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -192,3 +179,18 @@ def test_recurrent_policy_distribution_interface():
 
     assert isinstance(dist, torch.distributions.MultivariateNormal)
     assert dist.loc.shape == (batch, n_action)
+
+
+def test_weights():
+    torch.manual_seed(1)
+    policy = make_policy()
+    weights = torch.arange(len(policy.get_weights()), dtype=torch.float32)
+    policy.set_weights(weights)
+
+    assert torch.equal(policy.get_weights(), weights)
+
+    for call in (lambda: StatefulTorchPolicy.draw_with_log_prob(policy, None, None),
+                 lambda: StatefulTorchPolicy.log_prob(policy, None, None, None),
+                 lambda: StatefulTorchPolicy.distribution(policy, None, None)):
+        with pytest.raises(NotImplementedError):
+            call()

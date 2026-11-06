@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 
@@ -12,10 +10,8 @@ from mushroom_rl.environments.taxi import Taxi
 from mushroom_rl.solvers.dynamic_programming import value_iteration, policy_iteration
 from mushroom_rl.utils.viewer import Viewer
 
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
 
-
-def test_from_size_matches_from_file(tmp_path):
+def test_from_file(tmp_path):
     path = tmp_path / 'three_by_three.txt'
     path.write_text('S..\n'
                     '...\n'
@@ -30,8 +26,6 @@ def test_from_size_matches_from_file(tmp_path):
     assert np.array_equal(from_file.r, from_size.r)
     assert np.array_equal(from_file.iota, from_size.iota)
 
-
-def test_missing_trailing_newline(tmp_path):
     path = tmp_path / 'no_newline.txt'
     path.write_text('S..\n'
                     '...\n'
@@ -42,9 +36,36 @@ def test_missing_trailing_newline(tmp_path):
     assert mdp.grid_map.shape == (1, 3, 3)
     assert mdp.info.observation_space.n == 9
 
+    path = tmp_path / 'ragged.txt'
+    path.write_text('S..\n'
+                    '....\n'
+                    '..G\n')
 
-def test_walls_and_holes():
-    mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
+    with pytest.raises(ValueError):
+        GridWorld.from_file(str(path))
+
+    path = tmp_path / 'blank.txt'
+    path.write_text('S..\n'
+                    '\n'
+                    '..G\n')
+
+    with pytest.raises(ValueError):
+        GridWorld.from_file(str(path))
+
+    path = tmp_path / 'trailing.txt'
+    path.write_text('S..\n'
+                    '...\n'
+                    '..G\n'
+                    '\n'
+                    '\n')
+
+    mdp = GridWorld.from_file(str(path))
+
+    assert mdp.grid_map.shape == (1, 3, 3)
+
+
+def test_structure():
+    mdp = GridWorld.from_file('tests/environments/data/grid.txt', prob=.9)
 
     assert mdp.info.observation_space.n == 11
     assert mdp.grid_map.shape == (1, 6, 5)
@@ -56,8 +77,6 @@ def test_walls_and_holes():
     assert (mdp.p[goal, :, goal] == 1.).all()
     assert mdp.p[0, 0, 0] == 1.
 
-
-def test_absorbing_states():
     mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
 
     states = np.arange(mdp.info.observation_space.n)
@@ -76,8 +95,31 @@ def test_absorbing_states():
 
     assert next_state.item() == 8 and absorbing and reward == 0.
 
+    p = np.zeros((2, 1, 2))
+    p[0, 0, 0] = 0.9999999999999999
+    p[1, 0, 1] = 1.
 
-def test_too_big_to_render():
+    mdp = FiniteMDP(p, np.ones((2, 1, 2)), horizon=10)
+
+    assert mdp.p[0, 0, 0] == 1.
+    assert not np.any(mdp.r[0])
+
+    mdp = GridWorld.from_file('tests/environments/data/grid.txt', prob=.9)
+
+    assert mdp._cell_of(0) == (1, 1)
+    assert mdp._cell_of(5) == (2, 3)
+    assert mdp._cell_of(10) == (4, 3)
+
+    for state in range(mdp.info.observation_space.n):
+        assert mdp._cell_of(state) == tuple(mdp.cell_list[state, 1:])
+
+    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
+
+    assert np.allclose(mdp._cell_center(0, 0), [.5, 2.5])
+    assert np.allclose(mdp._cell_center(2, 2), [2.5, .5])
+
+
+def test_render():
     with pytest.warns(UserWarning):
         mdp = FiniteMDP(np.full((2, 1, 2), .5), np.zeros((2, 1, 2)), viewer_shape=(100, 100))
 
@@ -86,8 +128,6 @@ def test_too_big_to_render():
     assert mdp.render() is None
     assert mdp.render(record=True) is None
 
-
-def test_fifty_by_fifty_grid_renders():
     grid = GridWorld.from_size(50, 50, (49, 49))
 
     assert grid._viewer is not None
@@ -98,21 +138,55 @@ def test_fifty_by_fifty_grid_renders():
 
     assert too_big._viewer is None
 
-
-def test_min_scale_below_one():
     with pytest.raises(AssertionError):
         Viewer(10, 10, min_scale=0)
 
     with pytest.raises(AssertionError):
         FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)), min_scale=0)
 
+    short = FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)))
+    wrapped = FiniteMDP(np.full((600, 2, 600), 1 / 600), np.zeros((600, 2, 600)))
 
-def test_transitions_not_summing_to_one():
+    assert short._n_rows == 2 and short._n_columns == 4
+    assert short._viewer.size == (500, 250)
+    assert short._cell_of(5) == (1, 1)
+
+    assert wrapped._n_rows == 19 and wrapped._n_columns == 33
+    assert wrapped._viewer.size == (1320, 760)
+    assert wrapped._cell_of(72) == (2, 6)
+
+
+def test_invalid(tmp_path):
+    path = tmp_path / 'empty.txt'
+    path.write_text('')
+
+    with pytest.raises(AssertionError):
+        GridWorld.from_file(str(path))
+
+    path = tmp_path / 'unknown.txt'
+    path.write_text('S.?\n'
+                    '..G\n')
+
+    with pytest.raises(ValueError):
+        GridWorld.from_file(str(path))
+
+    path = tmp_path / 'no_goal.txt'
+    path.write_text('S..\n'
+                    '...\n')
+
+    with pytest.raises(AssertionError):
+        GridWorld.from_file(str(path))
+
+    path = tmp_path / 'no_start.txt'
+    path.write_text('...\n'
+                    '..G\n')
+
+    with pytest.raises(AssertionError):
+        GridWorld.from_file(str(path))
+
     with pytest.raises(AssertionError):
         FiniteMDP(np.zeros((3, 2, 3)), np.zeros((3, 2, 3)))
 
-
-def test_single_outcome_not_summing_to_one():
     p = np.zeros((2, 1, 2))
     p[1, 0, 1] = 1.
 
@@ -123,100 +197,20 @@ def test_single_outcome_not_summing_to_one():
             FiniteMDP(p, np.zeros_like(p), horizon=10)
 
 
-def test_accumulated_self_loop_is_absorbing():
-    p = np.zeros((2, 1, 2))
-    p[0, 0, 0] = 0.9999999999999999
-    p[1, 0, 1] = 1.
-
-    mdp = FiniteMDP(p, np.ones((2, 1, 2)), horizon=10)
-
-    assert mdp.p[0, 0, 0] == 1.
-    assert not np.any(mdp.r[0])
-
-
-def test_ragged_map(tmp_path):
-    path = tmp_path / 'ragged.txt'
-    path.write_text('S..\n'
-                    '....\n'
-                    '..G\n')
-
-    with pytest.raises(ValueError):
-        GridWorld.from_file(str(path))
-
-
-def test_blank_line_in_the_map(tmp_path):
-    path = tmp_path / 'blank.txt'
-    path.write_text('S..\n'
-                    '\n'
-                    '..G\n')
-
-    with pytest.raises(ValueError):
-        GridWorld.from_file(str(path))
-
-
-def test_trailing_blank_lines(tmp_path):
-    path = tmp_path / 'trailing.txt'
-    path.write_text('S..\n'
-                    '...\n'
-                    '..G\n'
-                    '\n'
-                    '\n')
-
-    mdp = GridWorld.from_file(str(path))
-
-    assert mdp.grid_map.shape == (1, 3, 3)
-
-
-def test_empty_map(tmp_path):
-    path = tmp_path / 'empty.txt'
-    path.write_text('')
-
-    with pytest.raises(AssertionError):
-        GridWorld.from_file(str(path))
-
-
-def test_unknown_symbol(tmp_path):
-    path = tmp_path / 'unknown.txt'
-    path.write_text('S.?\n'
-                    '..G\n')
-
-    with pytest.raises(ValueError):
-        GridWorld.from_file(str(path))
-
-
-def test_missing_goal(tmp_path):
-    path = tmp_path / 'no_goal.txt'
-    path.write_text('S..\n'
-                    '...\n')
-
-    with pytest.raises(AssertionError):
-        GridWorld.from_file(str(path))
-
-
-def test_missing_start(tmp_path):
-    path = tmp_path / 'no_start.txt'
-    path.write_text('...\n'
-                    '..G\n')
-
-    with pytest.raises(AssertionError):
-        GridWorld.from_file(str(path))
-
-
 def test_dynamic_programming():
-    mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
+    mdp = GridWorld.from_file('tests/environments/data/grid.txt', prob=.9)
 
     value_vi = value_iteration(mdp.p, mdp.r, mdp.info.gamma, 1e-10)
     value_pi, policy_pi = policy_iteration(mdp.p, mdp.r, mdp.info.gamma)
 
-    value_test = np.array([0.62083419, 0.69748038, 0., 0.69748038, 0.78358907,
-                           0.69748038, 0.88032846, 0.78358907, 0., 0.98901099, 0.88032846])
+    value_test = np.load('tests/environments/data/test_dynamic_programming.npy')
 
     assert np.allclose(value_vi, value_test)
     assert np.allclose(value_pi, value_test)
     assert np.array_equal(policy_pi, np.array([1, 1, 0, 3, 1, 1, 1, 1, 0, 2, 2]))
 
 
-def test_van_hasselt():
+def test_van_hasselt(tmp_path):
     np.random.seed(3)
     mdp = GridWorldVanHasselt()
 
@@ -245,8 +239,6 @@ def test_van_hasselt():
     assert set(rewards[:-1]).issubset({-12., 10.})
     assert absorbing and rewards[-1] == 5.
 
-
-def test_van_hasselt_from_map(tmp_path):
     path = tmp_path / 'walls.txt'
     path.write_text('S#.\n'
                     '.#.\n'
@@ -259,8 +251,6 @@ def test_van_hasselt_from_map(tmp_path):
     assert (mdp.p[mdp._get_state_id(np.array([0, 2, 2])), :, -1] == 1.).all()
     assert not np.any(mdp.r[-1])
 
-
-def test_van_hasselt_hole(tmp_path):
     path = tmp_path / 'hole.txt'
     path.write_text('S.*\n'
                     '...\n'
@@ -269,8 +259,6 @@ def test_van_hasselt_hole(tmp_path):
     with pytest.raises(AssertionError):
         GridWorldVanHasselt.from_file(str(path))
 
-
-def test_van_hasselt_two_goals(tmp_path):
     path = tmp_path / 'two_goals.txt'
     path.write_text('S.G\n'
                     '...\n'
@@ -279,8 +267,6 @@ def test_van_hasselt_two_goals(tmp_path):
     with pytest.raises(AssertionError):
         GridWorldVanHasselt.from_file(str(path))
 
-
-def test_generate_derives_the_corners():
     grid_world = GridWorld.generate(height=4, width=5)
     van_hasselt = GridWorldVanHasselt.generate(height=4, width=5)
 
@@ -291,7 +277,7 @@ def test_generate_derives_the_corners():
     assert np.array_equal(np.argwhere(van_hasselt.grid_map[0] == 'G'), [[0, 4]])
 
 
-def test_taxi_passengers():
+def test_taxi():
     mdp = Taxi.generate()
 
     assert mdp.grid_map.shape == (8, 6, 7)
@@ -306,8 +292,6 @@ def test_taxi_passengers():
     assert (mdp.p.sum(axis=2) == 1.).all()
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 3., 15.]))
 
-
-def test_taxi_slips_perpendicular():
     mdp = Taxi.from_size(height=3, width=3, goal=(2, 2), goal_rewards=(0,))
 
     center = np.argwhere((mdp.cell_list == [0, 1, 1]).all(axis=1)).item()
@@ -322,8 +306,6 @@ def test_taxi_slips_perpendicular():
 
     assert np.allclose(mdp.p[center, 0], expected)
 
-
-def test_taxi_from_size():
     mdp = Taxi.from_size(height=3, width=3, goal=(2, 2), passengers=((0, 2), (2, 0)), goal_rewards=(0, 1, 5))
 
     assert mdp.grid_map.shape == (4, 3, 3)
@@ -332,8 +314,6 @@ def test_taxi_from_size():
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 5.]))
     assert (mdp.p.sum(axis=2) == 1.).all()
 
-
-def test_taxi_generate_derives_the_layout():
     mdp = Taxi.generate(height=4, width=5)
 
     assert np.array_equal(np.argwhere(mdp.grid_map[0] == 'S'), [[0, 0]])
@@ -341,24 +321,16 @@ def test_taxi_generate_derives_the_layout():
     assert np.array_equal(np.argwhere(mdp.grid_map[0] == 'P'), [[0, 4], [3, 0]])
     assert np.array_equal(np.unique(mdp.r), np.array([0., 1., 3.]))
 
-
-def test_taxi_generate_needs_both_dimensions():
     with pytest.raises(AssertionError):
         Taxi.generate(height=4)
 
-
-def test_taxi_generate_rejects_a_layout_for_the_maze():
     for layout in (dict(goal=(0, 0)), dict(start=(1, 1)), dict(passengers=((2, 2),))):
         with pytest.raises(AssertionError):
             Taxi.generate(**layout)
 
-
-def test_taxi_passenger_on_occupied_cell():
     with pytest.raises(AssertionError):
         Taxi.from_size(height=3, width=3, goal=(2, 2), passengers=((0, 0),), goal_rewards=(0, 1))
 
-
-def test_taxi_wrong_rewards():
     with pytest.raises(AssertionError):
         Taxi.generate(goal_rewards=(0, 1))
 
@@ -374,26 +346,6 @@ def test_simple_chain():
     assert mdp.r[1, 0, 2] == 1.
     assert mdp.r[2, 0, 2] == 0.
 
-
-def test_cell_of_skips_the_walls():
-    mdp = GridWorld.from_file('tests/environments/grid.txt', prob=.9)
-
-    assert mdp._cell_of(0) == (1, 1)
-    assert mdp._cell_of(5) == (2, 3)
-    assert mdp._cell_of(10) == (4, 3)
-
-    for state in range(mdp.info.observation_space.n):
-        assert mdp._cell_of(state) == tuple(mdp.cell_list[state, 1:])
-
-
-def test_cell_center():
-    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
-
-    assert np.allclose(mdp._cell_center(0, 0), [.5, 2.5])
-    assert np.allclose(mdp._cell_center(2, 2), [2.5, .5])
-
-
-def test_simple_chain_defaults():
     mdp = Environment.make('SimpleChain')
     reference = SimpleChain(n_states=5, goal_states=[2], prob=.8, goal_reward=1.)
 
@@ -401,8 +353,6 @@ def test_simple_chain_defaults():
     assert np.array_equal(mdp.r, reference.r)
     assert mdp.info.observation_space.n == 5 and mdp.info.action_space.n == 2
 
-
-def test_chain_reads_like_text_while_finite_mdp_is_balanced():
     chain = SimpleChain(n_states=120, goal_states=(119,))
     finite_mdp = FiniteMDP(np.full((120, 2, 120), 1 / 120), np.zeros((120, 2, 120)), horizon=10)
 
@@ -412,8 +362,6 @@ def test_chain_reads_like_text_while_finite_mdp_is_balanced():
     assert finite_mdp._n_rows == 8 and finite_mdp._n_columns == 15
     assert finite_mdp._viewer.size == (600, 320)
 
-
-def test_simple_chain_wrapping():
     short = SimpleChain(5, [2], .8, 1)
     long = SimpleChain(600, [42, 300], .8, 1)
 
@@ -426,16 +374,3 @@ def test_simple_chain_wrapping():
     assert long._cell_of(0) == (0, 0)
     assert long._cell_of(72) == (0, 72)
     assert long._cell_of(599) == (6, 23)
-
-
-def test_finite_mdp_default_viewer():
-    short = FiniteMDP(np.full((6, 2, 6), 1 / 6), np.zeros((6, 2, 6)))
-    wrapped = FiniteMDP(np.full((600, 2, 600), 1 / 600), np.zeros((600, 2, 600)))
-
-    assert short._n_rows == 2 and short._n_columns == 4
-    assert short._viewer.size == (500, 250)
-    assert short._cell_of(5) == (1, 1)
-
-    assert wrapped._n_rows == 19 and wrapped._n_columns == 33
-    assert wrapped._viewer.size == (1320, 760)
-    assert wrapped._cell_of(72) == (2, 6)

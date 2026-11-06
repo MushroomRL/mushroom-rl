@@ -2,23 +2,14 @@ import numpy as np
 import torch
 import pytest
 
+from helper.dummies import FakeLogger
+
 from mushroom_rl.core.array_backend import TorchBackend
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter, CovarianceParameter, \
     FixedCovarianceParameter, DiagonalCovarianceParameter, CorrelatedCovarianceParameter
 
 
-class FakeLogger:
-    def __init__(self):
-        self.calls = list()
-
-    def log_training(self, prefix=None, **kwargs):
-        self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
-
-    def advance_step(self):
-        pass
-
-
-def test_covariance_fixed_matrix():
+def test_values():
     sigma = np.array([[1., .3], [.3, .5]])
     c = FixedCovarianceParameter(sigma)
 
@@ -35,17 +26,13 @@ def test_covariance_fixed_matrix():
     assert c.get_cholesky() is cholesky
     assert c.get_inverse() is inverse
 
-
-def test_covariance_std_vector():
     c = DiagonalCovarianceParameter(torch.tensor([.3, .2]), backend='torch')
 
     assert torch.allclose(c.get_value(), torch.tensor([[.09, 0.], [0., .04]]))
     assert torch.allclose(c.get_cholesky(), torch.tensor([[.3, 0.], [0., .2]]))
-    assert torch.allclose(c.get_inverse(), torch.tensor([[11.1111106873, 0.], [0., 24.9999980927]]))
+    assert torch.allclose(c.get_inverse(), torch.tensor(np.load('tests/rl_utils/data/test_values_inverse_torch.npy')))
     assert torch.allclose(c.get_std(), torch.tensor([.3, .2]))
 
-
-def test_covariance_std_schedule_with_correlation():
     std = LinearParameter(np.array([1., .5]), np.array([.2, .1]), n=4)
     c = CorrelatedCovarianceParameter(std, np.array([[1., .5], [.5, 1.]]))
 
@@ -56,8 +43,8 @@ def test_covariance_std_schedule_with_correlation():
 
     assert np.allclose(c.get_std(), np.array([.6, .3]))
     assert np.allclose(c.get_value(), np.array([[.36, .09], [.09, .09]]))
-    assert np.allclose(c.get_cholesky(), np.array([[.6, 0.], [.15, .2598076211]]))
-    assert np.allclose(c.get_inverse(), np.array([[3.7037037037, -3.7037037037], [-3.7037037037, 14.8148148148]]))
+    assert np.allclose(c.get_cholesky(), np.load('tests/rl_utils/data/test_values_cholesky.npy'))
+    assert np.allclose(c.get_inverse(), np.load('tests/rl_utils/data/test_values_inverse.npy'))
 
     value = c()
 
@@ -66,7 +53,7 @@ def test_covariance_std_schedule_with_correlation():
     assert np.allclose(c.get_inverse() @ value, np.eye(2))
 
 
-def test_covariance_make():
+def test_make():
     sigma = np.array([[1., .3], [.3, .5]])
 
     c = CovarianceParameter.make(sigma)
@@ -88,8 +75,6 @@ def test_covariance_make():
     assert isinstance(c_torch.get_value(), torch.Tensor)
     assert torch.allclose(c_torch.get_cholesky(), torch.tensor(np.linalg.cholesky(sigma), dtype=torch.float32))
 
-
-def test_covariance_make_correlated():
     correlation = np.array([[1., .5], [.5, 1.]])
 
     c = CovarianceParameter.make(np.array([.3, .2]), correlation=correlation)
@@ -111,7 +96,7 @@ def test_covariance_make_correlated():
         CovarianceParameter.make(np.array([.3, .2]), corelation=correlation)
 
 
-def test_covariance_set_backend():
+def test_backend():
     c = CorrelatedCovarianceParameter(np.array([.3, .2]), np.array([[1., .5], [.5, 1.]]))
     assert isinstance(c.get_cholesky(), np.ndarray)
 
@@ -123,8 +108,6 @@ def test_covariance_set_backend():
     assert isinstance(c.get_value(), np.ndarray)
     assert np.allclose(c.get_value(), np.array([[.09, .03], [.03, .04]]))
 
-
-def test_covariance_invalid_arguments():
     sigma = np.eye(2)
 
     with pytest.raises(AssertionError):
@@ -142,7 +125,7 @@ def test_covariance_invalid_arguments():
             method()
 
 
-def test_covariance_logs_std():
+def test_updates():
     logger = FakeLogger()
     c = DiagonalCovarianceParameter(LinearParameter(np.array([1., .5]), np.array([.2, .1]), n=4), backend='torch')
     c.set_logger(logger, 'sigma')
@@ -154,8 +137,23 @@ def test_covariance_logs_std():
     assert isinstance(logger.calls[0]['sigma/value'], np.ndarray)
     assert np.allclose(logger.calls[0]['sigma/value'], np.array([.8, .4]))
 
+    std = LinearParameter(np.array([1., .5]), np.array([.2, .1]), n=4)
+    c = DiagonalCovarianceParameter(std)
 
-def test_covariance_serialization(tmpdir):
+    c.update()
+    c.set_updates(False)
+    c.update()
+
+    assert np.allclose(c.get_std(), np.array([.8, .4]))
+
+    c.set_updates()
+    std.set_updates(False)
+    c.update()
+
+    assert np.allclose(c.get_std(), np.array([.8, .4]))
+
+
+def test_serialization(tmpdir):
     path = tmpdir / 'covariance.msh'
 
     c = FixedCovarianceParameter(np.array([[1., .3], [.3, .5]]), backend='torch')
@@ -176,20 +174,3 @@ def test_covariance_serialization(tmpdir):
     c.update()
     c_load.update()
     assert np.array_equal(c_load.get_cholesky(), c.get_cholesky())
-
-
-def test_covariance_set_updates():
-    std = LinearParameter(np.array([1., .5]), np.array([.2, .1]), n=4)
-    c = DiagonalCovarianceParameter(std)
-
-    c.update()
-    c.set_updates(False)
-    c.update()
-
-    assert np.allclose(c.get_std(), np.array([.8, .4]))
-
-    c.set_updates()
-    std.set_updates(False)
-    c.update()
-
-    assert np.allclose(c.get_std(), np.array([.8, .4]))

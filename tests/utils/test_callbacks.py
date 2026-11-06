@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 
+from helper.dummies import ZeroPolicy
+
 from mushroom_rl.core import Core, Agent, MDPInfo, Box, VectorizedEnvironment
 from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.environments import GridWorld
-from mushroom_rl.algorithms.value import SARSA
-from mushroom_rl.policy import EpsGreedy, Policy
+from mushroom_rl.algorithms.value import SARSA, DoubleQLearning
+from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter, DecayParameter
 from mushroom_rl.utils.callbacks import Callback, CollectDataset, CollectQ, CollectMaxQ, CollectParameters
 
@@ -21,18 +23,9 @@ def episode_lengths_from_flags(last_flags):
     return lengths
 
 
-class ZeroPolicy(Policy):
-    def __init__(self, action_shape):
-        self._dim = action_shape[0]
-        super().__init__('numpy')
-
-    def draw_action(self, state):
-        return np.zeros((state.shape[0], self._dim))
-
-
 class CountdownAgent(Agent):
     def __init__(self, mdp_info):
-        policy = ZeroPolicy(mdp_info.action_space.shape)
+        policy = ZeroPolicy(mdp_info.action_space.shape[0])
         super().__init__(mdp_info, policy, backend='numpy')
 
     def fit(self, dataset):
@@ -86,7 +79,7 @@ class RecordFlattenedLast(Callback):
         self._flags = list()
 
 
-def test_callback_base_raises():
+def test_callback_base():
     callback = Callback()
 
     with pytest.raises(NotImplementedError):
@@ -131,8 +124,6 @@ def test_collect_dataset():
     dataset = callback.get()
     assert len(dataset) == 0
 
-
-def test_collect_dataset_small_initial_capacity():
     np.random.seed(42)
     callback = CollectDataset(initial_capacity=2)
 
@@ -197,7 +188,7 @@ def test_collect_Q():
 
     core.learn(n_steps=1000, n_steps_per_fit=1, quiet=True)
 
-    V_test = np.array([3.17651767, 6.45911513, 1.18433269, 0.78816385])
+    V_test = np.load('tests/utils/data/test_collect_Q.npy')
     V = callback_q.get()[-1]
 
     assert np.allclose(V[0, :], V_test)
@@ -235,3 +226,10 @@ def test_collect_parameter():
 
     callback_eps.clean()
     assert callback_eps.get() == []
+
+    agent = DoubleQLearning(mdp.info, EpsGreedy(Parameter(0.1)), Parameter(0.1))
+    callback_q = CollectQ(agent.Q)
+    Core(agent, mdp, callbacks_fit=[callback_q]).learn(n_steps=50, n_steps_per_fit=1, quiet=True)
+
+    assert len(callback_q.get()) == 50
+    assert np.array_equal(callback_q.get()[-1], np.mean([agent.Q[0].table, agent.Q[1].table], 0))

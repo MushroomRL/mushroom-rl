@@ -29,7 +29,7 @@ class DummyAgent(Agent):
         pass
 
 
-def test_agent_history_manager_mutually_exclusive():
+def test_history_manager_exclusive():
     obs_space = Box(np.full((4,), -1.0), np.full((4,), 1.0), (4,))
     act_space = Discrete(3)
     mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend='numpy')
@@ -61,57 +61,34 @@ class GreedyDummyAgent(Agent):
         pass
 
 
-def test_core_greedy_evaluation():
+def test_greedy():
     from mushroom_rl.environments import GridWorld
 
     mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
-
     core = Core(GreedyDummyAgent(mdp.info), mdp)
 
-    dataset = core.evaluate(n_steps=10, quiet=True, greedy=True)
-    assert np.all(np.array(dataset.action) == 1)
+    assert np.all(np.array(core.evaluate(n_steps=10, quiet=True, greedy=True).action) == 1)
 
     np.random.seed(0)
-    dataset_stochastic = core.evaluate(n_steps=10, quiet=True)
-    assert not np.all(np.array(dataset_stochastic.action) == 1)
-
-
-def test_core_greedy_evaluation_unsupported():
-    from mushroom_rl.environments import GridWorld
-
-    mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
-
-    core = Core(DummyAgent(mdp.info), mdp)
+    assert not np.all(np.array(core.evaluate(n_steps=10, quiet=True).action) == 1)
 
     with pytest.raises(NotImplementedError):
-        core.evaluate(n_steps=5, quiet=True, greedy=True)
+        Core(DummyAgent(mdp.info), mdp).evaluate(n_steps=5, quiet=True, greedy=True)
 
 
-def test_core():
+def test_atari_info():
+    pytest.importorskip('ale_py')
     mdp = Atari(name='ALE/Breakout-v5', repeat_action_probability=0.0)
-
-    agent = DummyAgent(mdp.info)
-
-    core = Core(agent, mdp)
+    core = Core(DummyAgent(mdp.info), mdp)
 
     np.random.seed(2)
     mdp.seed(2)
-
     core.learn(n_steps=100, n_steps_per_fit=1)
-
     dataset = core.evaluate(n_steps=20)
 
-    assert 'lives' in dataset.info
-    assert 'episode_frame_number' in dataset.info
-    assert 'frame_number' in dataset.info
-
-    info_lives = np.array(dataset.info['lives'])
-
-    print(info_lives)
-    lives_gt = np.array([5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5., 5.])
-    assert len(info_lives) == 20
-    assert np.all(info_lives == lives_gt)
+    assert {'lives', 'episode_frame_number', 'frame_number'} <= set(dataset.info)
     assert len(dataset) == 20
+    assert np.array_equal(np.array(dataset.info['lives']), np.full(20, 5.))
 
 
 class RenderingEnv(Environment):
@@ -151,7 +128,7 @@ class FrameRecorder:
         self.n_stops += 1
 
 
-def test_core_record_evaluate():
+def test_record():
     mdp = RenderingEnv(horizon=5)
     logger = Logger('test_core_record_evaluate', results_dir=None, recorder_class=FrameRecorder)
     core = Core(DummyAgent(mdp.info), mdp, logger=logger)
@@ -167,41 +144,28 @@ def test_core_record_evaluate():
     assert logger.video_recorder.fps == 50
     assert logger.video_recorder.n_stops == 1
 
-
-def test_core_record_learn():
     mdp = RenderingEnv(horizon=4)
     logger = Logger('test_core_record_learn', results_dir=None, recorder_class=FrameRecorder)
-    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
-
-    core.learn(n_steps=4, n_steps_per_fit=4, render=True, record=True, quiet=True)
+    Core(DummyAgent(mdp.info), mdp, logger=logger).learn(n_steps=4, n_steps_per_fit=4, render=True, record=True,
+                                                         quiet=True)
 
     assert len(logger.video_recorder.frames) == 4
     assert logger.video_recorder.n_stops == 1
 
 
-def test_core_record_without_logger():
+def test_record_errors():
     mdp = RenderingEnv(horizon=5)
     core = Core(DummyAgent(mdp.info), mdp)
+    logger = Logger('test_core_record_without_render', results_dir=None, recorder_class=FrameRecorder)
+    core_with_logger = Core(DummyAgent(mdp.info), mdp, logger=logger)
 
     assert core.agent.logger is None
 
-    with pytest.raises(AssertionError):
-        core.evaluate(n_episodes=1, render=True, record=True, quiet=True)
-
-    with pytest.raises(AssertionError):
-        core.learn(n_steps=5, n_steps_per_fit=5, render=True, record=True, quiet=True)
-
-
-def test_core_record_without_render():
-    mdp = RenderingEnv(horizon=5)
-    logger = Logger('test_core_record_without_render', results_dir=None, recorder_class=FrameRecorder)
-    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
-
-    with pytest.raises(AssertionError):
-        core.evaluate(n_episodes=1, record=True, quiet=True)
-
-    with pytest.raises(AssertionError):
-        core.learn(n_steps=5, n_steps_per_fit=5, record=True, quiet=True)
+    for kwargs, c in [(dict(render=True, record=True), core), (dict(record=True), core_with_logger)]:
+        with pytest.raises(AssertionError):
+            c.evaluate(n_episodes=1, quiet=True, **kwargs)
+        with pytest.raises(AssertionError):
+            c.learn(n_steps=5, n_steps_per_fit=5, quiet=True, **kwargs)
 
 
 class RenderingVecEnv(VectorizedEnvironment):
@@ -246,7 +210,7 @@ class VecDummyAgent(Agent):
         pass
 
 
-def test_vectorized_core_record(tmpdir):
+def test_vectorized_record(tmpdir):
     mdp = RenderingVecEnv(n_envs=3, horizon=3)
     logger = Logger('test_vectorized_core_record', results_dir=tmpdir, fps=30)
     core = Core(VecDummyAgent(mdp.info), mdp, logger=logger)
@@ -268,7 +232,7 @@ def test_vectorized_core_record(tmpdir):
     assert all(value > 0 for value in values)
 
 
-def test_vectorized_core_record_passes_mask():
+def test_vectorized_record_mask():
     mdp = RenderingVecEnv(n_envs=3, horizon=3)
     logger = Logger('test_vectorized_core_record_single', results_dir=None, recorder_class=FrameRecorder)
     core = Core(VecDummyAgent(mdp.info), mdp, logger=logger)
@@ -292,7 +256,7 @@ def test_vectorized_core_record_passes_mask():
     assert logger.video_recorder.n_stops == 1
 
 
-def test_environments_do_not_hand_out_their_internal_state():
+def test_env_state_copy():
     from mushroom_rl.environments import (LQR, CartPole, InvertedPendulum, ShipSteering, PuddleWorld,
                                           Segway, CarOnHill)
     from mushroom_rl.environments.finite_mdp import FiniteMDP
@@ -367,7 +331,7 @@ class InfoAgent(Agent):
         self.seen.append(np.asarray(dataset.info['t']).copy())
 
 
-def test_fit_reads_the_step_info():
+def test_info():
     np.random.seed(42)
     agent = InfoAgent(InfoEnv().info)
     Core(agent, InfoEnv()).learn(n_steps=8, n_steps_per_fit=4, quiet=True)
@@ -384,24 +348,15 @@ def test_fit_reads_the_step_info():
     assert np.array_equal(vec_agent.seen[0], np.array([1., 2., 1., 2.]))
     assert np.array_equal(vec_agent.seen[1], np.array([3., 4., 3., 4.]))
 
-
-def test_episode_info_reaches_the_dataset():
-    np.random.seed(42)
-    dataset = Core(InfoAgent(InfoEnv().info), InfoEnv()).evaluate(n_episodes=3, quiet=True)
-
-    assert np.array_equal(dataset.episode_info['episode'], np.array([1., 2., 3.]))
-
-    np.random.seed(42)
-    vec_dataset = Core(InfoAgent(InfoVecEnv().info), InfoVecEnv()).evaluate(n_steps=8, quiet=True)
-
-    assert np.array_equal(vec_dataset.episode_info['episode'], np.array([1., 1.]))
-    assert np.array_equal(np.asarray(vec_dataset.info['t']), np.array([1., 2., 3., 4., 1., 2., 3., 4.]))
-
-
-def test_step_slice_drops_the_episode_info():
     np.random.seed(42)
     dataset = Core(InfoAgent(InfoEnv().info), InfoEnv()).evaluate(n_episodes=3, quiet=True)
 
     assert np.array_equal(dataset.episode_info['episode'], np.array([1., 2., 3.]))
     assert dataset[2:6].episode_info == {}
     assert np.array_equal(np.asarray(dataset[2:6].info['t']), np.array([3., 4., 1., 2.]))
+
+    np.random.seed(42)
+    vec_dataset = Core(InfoAgent(InfoVecEnv().info), InfoVecEnv()).evaluate(n_steps=8, quiet=True)
+
+    assert np.array_equal(vec_dataset.episode_info['episode'], np.array([1., 1.]))
+    assert np.array_equal(np.asarray(vec_dataset.info['t']), np.array([1., 2., 3., 4., 1., 2., 3., 4.]))

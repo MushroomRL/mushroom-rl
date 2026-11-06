@@ -19,37 +19,46 @@ from mushroom_rl.environments.isaacsim_envs.quadruped_commands import CommandGen
 from mushroom_rl.utils.isaac_sim.torch_maths import quat_apply, wrap_to_pi
 
 
-@pytest.fixture(autouse=True, scope="module")
-def cuda_default_device():
-    previous_device = TorchUtils.get_device()
-    TorchUtils.set_default_device("cuda:0")
+@pytest.fixture(autouse=True)
+def reset_default_device():
+    TorchUtils.set_default_device('cuda:0')
     yield
-    TorchUtils.set_default_device(previous_device)
+    TorchUtils.set_default_device('cpu')
 
 
-def run_env(mdp, num_joints):
+def make_env(name, domain_randomization):
+    if name == 'cartpole':
+        return CartPoleIsaac(2)
+    envs = dict(a1=A1Isaac, go2=Go2Isaac, honey_badger=HoneyBadgerIsaac, silver_badger=SilverBadgerIsaac)
+    return envs[name](2, 1000, domain_randomization=domain_randomization)
+
+
+def rollouts():
+    return [pytest.param('cartpole', 1, True, id='cartpole'), pytest.param('a1', 12, True, id='a1'),
+            pytest.param('go2', 12, True, id='go2'), pytest.param('honey_badger', 12, True, id='honey_badger'),
+            pytest.param('silver_badger', 13, True, id='silver_badger'),
+            pytest.param('honey_badger', 12, False, id='honey_badger-nominal'),
+            pytest.param('silver_badger', 13, False, id='silver_badger-nominal')]
+
+
+def run(mdp, n_joints):
     n_envs = mdp.number
-    mask = torch.ones(n_envs, dtype=torch.bool, device="cuda:0")
+    obs_dim = len(mdp.info.observation_space.low)
+    mask = torch.ones(n_envs, dtype=torch.bool, device='cuda:0')
 
     obs, _ = mdp.reset_all(mask)
+
+    assert len(mdp.info.observation_space.high) == obs_dim
     assert isinstance(obs, torch.Tensor) and obs.is_cuda
-    assert obs.shape == (n_envs, len(mdp.info.observation_space.low))
-    assert obs.shape == (n_envs, len(mdp.info.observation_space.high))
+    assert obs.shape == (n_envs, obs_dim)
 
     for i in range(20):
-        if i < 10:
-            action = torch.tensor([[0.] * num_joints] * n_envs, device="cuda:0")
-        else:
-            action = torch.tensor([[1.] * num_joints] * n_envs, device="cuda:0")
-
+        action = torch.full((n_envs, n_joints), float(i >= 10), device='cuda:0')
         obs, reward, absorbing, _ = mdp.step_all(mask, action)
 
-        assert isinstance(obs, torch.Tensor) and obs.is_cuda
-        assert isinstance(reward, torch.Tensor) and reward.is_cuda
-        assert isinstance(absorbing, torch.Tensor) and absorbing.is_cuda
-
-        assert obs.shape == (n_envs, len(mdp.info.observation_space.low))
-        assert obs.shape == (n_envs, len(mdp.info.observation_space.high))
+        for array in (obs, reward, absorbing):
+            assert isinstance(array, torch.Tensor) and array.is_cuda
+        assert obs.shape == (n_envs, obs_dim)
         assert reward.shape == (n_envs, )
         assert absorbing.shape == (n_envs, )
 
@@ -90,30 +99,27 @@ def test_randomization_params():
         params["torque_limt_factor"]
 
 
-def test_cartpole():
+@pytest.mark.parametrize('name, n_joints, domain_randomization', rollouts())
+def test_rollout(name, n_joints, domain_randomization):
     np.random.seed(1)
     torch.manual_seed(1)
 
-    n_envs = 2
-    mdp = CartPoleIsaac(n_envs)
+    mdp = make_env(name, domain_randomization)
 
-    assert mdp.number == n_envs
-    assert isinstance(mdp.info.observation_space.low, torch.Tensor)
-    assert isinstance(mdp.info.observation_space.high, torch.Tensor)
-    assert isinstance(mdp.info.action_space.low, torch.Tensor)
-    assert isinstance(mdp.info.action_space.high, torch.Tensor)
-    assert mdp.info.observation_space.low.is_cuda
-    assert mdp.info.observation_space.high.is_cuda
-    assert mdp.info.action_space.low.is_cuda
-    assert mdp.info.action_space.high.is_cuda
+    assert mdp.number == 2
+    for space in (mdp.info.observation_space, mdp.info.action_space):
+        for bound in (space.low, space.high):
+            assert isinstance(bound, torch.Tensor) and bound.is_cuda
 
-    obs = run_env(mdp, 1)
-    obs_test = np.load('tests/environments/isaacsim_envs/cartpole_data.npy')
+    obs = run(mdp, n_joints)
 
-    assert np.allclose(obs, obs_test)
+    if domain_randomization:
+        assert np.allclose(obs, np.load(f'tests/environments/isaacsim_envs/data/test_rollout_{name}.npy'))
+    else:
+        assert np.all(np.isfinite(obs))
 
 
-def test_cartpole_initial_states():
+def test_initial_states():
     np.random.seed(1)
     torch.manual_seed(1)
 
@@ -140,107 +146,13 @@ def test_cartpole_initial_states():
     assert not torch.allclose(obs, state)
     mdp.stop()
 
-
-def test_quadruped_initial_states():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
     mdp = A1Isaac(2, 1000)
-    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
     state = torch.zeros(2, len(mdp.info.observation_space.low), device='cuda:0')
 
     with pytest.raises(ValueError):
         mdp.reset_all(mask, state)
 
     mdp.stop()
-
-
-def test_a1():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = A1Isaac(n_envs, 1000)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 12)
-    obs_test = np.load('tests/environments/isaacsim_envs/a1_data.npy')
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_go2():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = Go2Isaac(n_envs, 1000)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 12)
-    obs_test = np.load('tests/environments/isaacsim_envs/go2_data.npy')
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_honey_badger():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = HoneyBadgerIsaac(n_envs, 1000)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 12)
-    obs_test = np.load('tests/environments/isaacsim_envs/honey_badger_data.npy')
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_silver_badger():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = SilverBadgerIsaac(n_envs, 1000)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 13)
-    obs_test = np.load('tests/environments/isaacsim_envs/silver_badger_data.npy')
-
-    assert np.allclose(obs, obs_test)
-
-
-def test_honey_badger_no_domain_randomization():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = HoneyBadgerIsaac(n_envs, 1000, domain_randomization=False)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 12)
-
-    assert np.all(np.isfinite(obs))
-
-
-def test_silver_badger_no_domain_randomization():
-    np.random.seed(1)
-    torch.manual_seed(1)
-
-    n_envs = 2
-    mdp = SilverBadgerIsaac(n_envs, 1000, domain_randomization=False)
-
-    assert mdp.number == n_envs
-
-    obs = run_env(mdp, 13)
-
-    assert np.all(np.isfinite(obs))
 
 
 def test_set_domain_randomization():
@@ -321,7 +233,10 @@ def test_ground_friction_randomization():
 
     assert torch.equal(material[:, :, :2], material[:, :1, :2].expand(-1, material.shape[1], -1))
     assert torch.allclose(material[..., 1] / material[..., 0], torch.full(material.shape[:2], 0.75 / 0.9))
-    assert torch.allclose(material[:, 0, :2], torch.tensor([[1.15763152, 0.96469295], [0.67931080, 0.56609237]]))
+    friction_test = torch.tensor(
+        np.load('tests/environments/isaacsim_envs/data/test_ground_friction_randomization.npy'))
+
+    assert torch.allclose(material[:, 0, :2], friction_test)
     mdp.stop()
 
     mdp = Go2Isaac(2, 1000, randomization_params=QuadrupedRandomizationParams(ground_friction_factor=0.))
@@ -332,7 +247,7 @@ def test_ground_friction_randomization():
     mdp.stop()
 
 
-def test_command_generator_interface():
+def test_command_generator():
     generator = CommandGenerator()
 
     with pytest.raises(NotImplementedError):
@@ -366,11 +281,8 @@ def test_command_generator_interface():
     with pytest.raises(ValueError):
         EllipticVelocityCommands(command_ranges=dict(ang_vel_z=(-4., 0.)))
 
-
-def test_command_generator_environment():
     np.random.seed(1)
     torch.manual_seed(1)
-
     mdp = Go2Isaac(2, 1000, domain_randomization=False)
 
     assert isinstance(mdp.command_generator, UniformVelocityCommands)
@@ -401,11 +313,12 @@ def test_reset_commands():
     heading = torch.atan2(forward[:, 1], forward[:, 0])
     yaw_rate = torch.clip(0.5 * wrap_to_pi(generator._commands[2:4, 3] - heading), -1., 1.)
 
+    commands_test = torch.tensor(np.load('tests/environments/isaacsim_envs/data/test_reset_commands.npy'),
+                                 device='cuda:0')
+
     assert torch.equal(commands[:2], torch.zeros(2, 3, device='cuda:0'))
     assert torch.equal(commands[2:, 2], yaw_rate)
-    assert torch.allclose(commands, torch.tensor([[0., 0., 0.], [0., 0., 0.],
-                                                  [-0.07134497, 0.96022713, 0.19748156],
-                                                  [0.08069193, 0.30225408, -0.17741704]], device='cuda:0'))
+    assert torch.allclose(commands, commands_test)
     assert torch.equal(generator._is_standing_env[:4], torch.tensor([True, True, False, False], device='cuda:0'))
     mdp.stop()
 
@@ -426,10 +339,13 @@ def test_elliptic_commands():
     radius = torch.sum(torch.square((commands - center) / half_width), dim=1)
 
     assert torch.all(radius <= 1. + 1e-6)
-    assert torch.allclose(commands[:2], torch.tensor([[-0.74822807, -0.06092291, -0.37248772],
-                                                      [-0.78001875, -0.37573797, -0.29975313]], device='cuda:0'))
-    assert torch.allclose(radius, torch.tensor([1., 1., 0.67065024, 1., 0.48473167, 0.47365901, 0.26068413,
-                                                0.95664150], device='cuda:0'))
+    commands_test = torch.tensor(np.load('tests/environments/isaacsim_envs/data/test_elliptic_commands.npy'),
+                                 device='cuda:0')
+    radius_test = torch.tensor(np.load('tests/environments/isaacsim_envs/data/test_elliptic_commands_radius.npy'),
+                               device='cuda:0')
+
+    assert torch.allclose(commands[:2], commands_test)
+    assert torch.allclose(radius, radius_test)
     assert not torch.any(generator._is_heading_env)
     mdp.stop()
 

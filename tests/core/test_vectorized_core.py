@@ -1,6 +1,10 @@
+from itertools import product
+
 import numpy as np
 import pytest
 import torch
+
+from helper.cases import needs_cuda
 
 from mushroom_rl.core import Agent, ArrayBackend, Core, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.core.core import SequentialCore
@@ -32,7 +36,6 @@ class DummyAgent(Agent):
         super().__init__(mdp_info, policy, backend=backend)
 
     def fit(self, dataset):
-        print(f'\t* samples={len(dataset)}, episodes={len(dataset.episodes_length)}')
         assert len(dataset.episodes_length) in (1, 20) or len(dataset) == 150
 
 
@@ -176,19 +179,15 @@ def run_exp(env_backend, agent_backend):
 
     core = Core(agent, env)
 
-    print('- evaluate n_steps=2000')
     dataset = core.evaluate(n_steps=2000)
     assert len(dataset) == 2000
 
-    print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)
     assert len(dataset.episodes_length) == 20
 
-    print('- evaluate n_episodes=1')
     dataset = core.evaluate(n_episodes=1)
     assert len(dataset.episodes_length) == 1
 
-    print('- evaluate single initial state')
     expected_states = np.array([[4., 5., 6.]], dtype=np.float32)
     initial_states = torch.from_numpy(expected_states).to(TorchUtils.get_device()) \
         if env_backend == 'torch' else expected_states
@@ -197,19 +196,14 @@ def run_exp(env_backend, agent_backend):
     init_states = dataset.backend.to_numpy(dataset.get_init_states())
     assert sorted(tuple(row) for row in init_states) == sorted(tuple(row) for row in expected_states)
 
-    print('- learn n_episodes=5 n_episodes_per_fit=1')
     core.learn(n_episodes=5, n_episodes_per_fit=1)
 
-    print('- learn n_steps=10000 n_episodes_per_fit=20')
     core.learn(n_steps=10000, n_episodes_per_fit=20)
 
-    print('- learn n_steps=10000 n_steps_per_fit=150')
     core.learn(n_steps=10000, n_steps_per_fit=150)
 
-    print('- learn n_episode=100 n_steps_per_fit=150')
     core.learn(n_episodes=100, n_steps_per_fit=150)
 
-    print('- learn n_episode=100 n_episodes_per_fit=20')
     core.learn(n_episodes=100, n_episodes_per_fit=20)
 
 
@@ -221,12 +215,10 @@ def run_exp_episodic(env_backend, agent_backend):
 
     core = Core(agent, env)
 
-    print('- evaluate n_episodes=20')
     dataset = core.evaluate(n_episodes=20)
     assert len(dataset.episodes_length) == 20
     assert len(dataset.theta) == 20
 
-    print('- learn n_episodes=25 n_episodes_per_fit=5')
     core.learn(n_episodes=25, n_episodes_per_fit=5)
 
 
@@ -366,27 +358,6 @@ def run_exp_partial_first_batch_preprocessing(env_backend, agent_backend, n_obse
     assert min(preprocessor.batch_sizes) > 0
 
 
-def test_vectorized_core_partial_first_batch_preprocessing():
-    run_exp_partial_first_batch_preprocessing(env_backend='torch', agent_backend='torch', n_observations=400)
-    run_exp_partial_first_batch_preprocessing(env_backend='torch', agent_backend='numpy', n_observations=400)
-    run_exp_partial_first_batch_preprocessing(env_backend='numpy', agent_backend='torch', n_observations=418)
-    run_exp_partial_first_batch_preprocessing(env_backend='numpy', agent_backend='numpy', n_observations=418)
-
-
-def test_vectorized_core_step_preprocessing():
-    run_exp_step_preprocessing(env_backend='torch', agent_backend='torch', n_observations=630)
-    run_exp_step_preprocessing(env_backend='torch', agent_backend='numpy', n_observations=786)
-    run_exp_step_preprocessing(env_backend='numpy', agent_backend='torch', n_observations=674)
-    run_exp_step_preprocessing(env_backend='numpy', agent_backend='numpy', n_observations=681)
-
-
-def test_vectorized_core_reset_preprocessing():
-    run_exp_reset_preprocessing(env_backend='torch', agent_backend='torch', n_observations=1025)
-    run_exp_reset_preprocessing(env_backend='torch', agent_backend='numpy', n_observations=1022)
-    run_exp_reset_preprocessing(env_backend='numpy', agent_backend='torch', n_observations=1028)
-    run_exp_reset_preprocessing(env_backend='numpy', agent_backend='numpy', n_observations=1025)
-
-
 class StaleAbsorbingVecEnv(VectorizedEnvironment):
     def __init__(self):
         self._episode_lengths = np.array([2, 3, 5, 7])
@@ -440,7 +411,7 @@ class DictInfoVecEnv(VectorizedEnvironment):
         return self._t.reshape(-1, 1).astype(float)
 
 
-def test_vectorized_env_info_as_dict_of_arrays():
+def test_dict_info():
     env = DictInfoVecEnv(3)
     env.set_default_env(1)
 
@@ -469,7 +440,7 @@ def dict_info_agent(mdp_info):
     return agent
 
 
-def test_core_routes_single_env_vectorized_to_sequential():
+def test_single_env_routing():
     np.random.seed(42)
 
     env = DummyVecEnv('numpy', n_envs=1)
@@ -484,7 +455,7 @@ def test_core_routes_single_env_vectorized_to_sequential():
     assert dataset.state.shape == (20, 3)
 
 
-def test_vectorized_core_absorbing_of_inactive_envs():
+def test_inactive_absorbing():
     for n_episodes, n_samples in [(7, 24), (12, 43), (14, 48)]:
         env = StaleAbsorbingVecEnv()
         agent = DummyAgent(env.info, 'numpy')
@@ -496,7 +467,7 @@ def test_vectorized_core_absorbing_of_inactive_envs():
         assert len(dataset) == n_samples
 
 
-def test_vectorized_core_empty_dataset():
+def test_empty_dataset():
     for env_backend in ['numpy', 'torch']:
         np.random.seed(42)
         torch.random.manual_seed(42)
@@ -514,7 +485,7 @@ def test_vectorized_core_empty_dataset():
         assert dataset.compute_metrics() == dict(n_episodes=0)
 
 
-def test_vectorized_core_moves_exactly_n_steps():
+def test_exact_n_steps():
     for n_steps in [1, 7, 13, 51, 100]:
         np.random.seed(42)
 
@@ -527,7 +498,7 @@ def test_vectorized_core_moves_exactly_n_steps():
         assert len(dataset) == n_steps
 
 
-def test_vectorized_core_no_fit_below_n_steps_per_fit():
+def test_no_fit_below_n_steps_per_fit():
     np.random.seed(42)
 
     env = DummyVecEnv('numpy')
@@ -545,7 +516,7 @@ def test_vectorized_core_no_fit_below_n_steps_per_fit():
     assert len(fits) == 3
 
 
-def test_vectorized_core_steps_per_fit_below_n_envs():
+def test_steps_per_fit_below_n_envs():
     env = DummyVecEnv('numpy')
     agent = DummyAgent(env.info, 'numpy')
     core = Core(agent, env)
@@ -556,10 +527,8 @@ def test_vectorized_core_steps_per_fit_below_n_envs():
     core.learn(n_steps=300, n_steps_per_fit=150, quiet=True)
 
 
-def test_vectorized_core_env_device_differs_from_default():
-    if not torch.cuda.is_available():
-        pytest.skip('requires cuda')
-
+@needs_cuda()
+def test_env_device():
     torch.random.manual_seed(42)
 
     env = DummyVecEnv('torch', device='cuda')
@@ -572,7 +541,7 @@ def test_vectorized_core_env_device_differs_from_default():
     assert dataset.state.device.type == 'cuda'
 
 
-def test_vectorized_core_logic_reset_count():
+def test_logic_reset_count():
     logic = VectorizedCoreLogic('numpy', 10)
     last = logic.converter.ones(10, dtype=bool)
 
@@ -623,47 +592,39 @@ def run_exp_evaluate_after_learn(env_backend, agent_backend):
     assert len(core.evaluate(n_steps=200, quiet=True)) == 200
 
 
-def test_vectorized_core_evaluate_after_learn():
-    run_exp_evaluate_after_learn(env_backend='torch', agent_backend='torch')
-    run_exp_evaluate_after_learn(env_backend='torch', agent_backend='numpy')
-    run_exp_evaluate_after_learn(env_backend='numpy', agent_backend='torch')
-    run_exp_evaluate_after_learn(env_backend='numpy', agent_backend='numpy')
+def backend_pairs():
+    return [pytest.param(env, agent, id=f'{env}-{agent}') for env, agent in product(['numpy', 'torch'], repeat=2)]
 
 
-def test_vectorized_env_default_env_interface():
-    run_exp_default_env(env_backend='torch')
-    run_exp_default_env(env_backend='numpy')
+@pytest.mark.parametrize('env_backend, agent_backend, device',
+                         [pytest.param(*pair.values, 'cpu', id=pair.id) for pair in backend_pairs()] +
+                         [pytest.param('torch', agent, 'cuda', id=f'torch-{agent}-cuda', marks=needs_cuda())
+                          for agent in ['torch', 'numpy']])
+def test_core(env_backend, agent_backend, device):
+    TorchUtils.set_default_device(device)
+
+    run_exp(env_backend, agent_backend)
+    run_exp_episodic(env_backend, agent_backend)
+    run_exp_initial_states(env_backend, agent_backend)
 
 
-def test_vectorized_core_greedy_evaluation():
-    run_exp_greedy(env_backend='torch', agent_backend='torch')
-    run_exp_greedy(env_backend='torch', agent_backend='numpy')
-    run_exp_greedy(env_backend='numpy', agent_backend='torch')
-    run_exp_greedy(env_backend='numpy', agent_backend='numpy')
+@pytest.mark.parametrize('env_backend, agent_backend', backend_pairs())
+def test_preprocessing(env_backend, agent_backend):
+    counts = {('torch', 'torch'): (400, 630, 1025), ('torch', 'numpy'): (400, 786, 1022),
+              ('numpy', 'torch'): (418, 674, 1028), ('numpy', 'numpy'): (418, 681, 1025)}
+    n_partial, n_step, n_reset = counts[env_backend, agent_backend]
+
+    run_exp_partial_first_batch_preprocessing(env_backend, agent_backend, n_partial)
+    run_exp_step_preprocessing(env_backend, agent_backend, n_step)
+    run_exp_reset_preprocessing(env_backend, agent_backend, n_reset)
 
 
-def test_vectorized_core():
-    print('# CPU test')
-    run_exp(env_backend='torch', agent_backend='torch')
-    run_exp(env_backend='torch', agent_backend='numpy')
-    run_exp(env_backend='numpy', agent_backend='torch')
-    run_exp(env_backend='numpy', agent_backend='numpy')
+@pytest.mark.parametrize('env_backend, agent_backend', backend_pairs())
+def test_greedy_and_evaluate_after_learn(env_backend, agent_backend):
+    run_exp_greedy(env_backend, agent_backend)
+    run_exp_evaluate_after_learn(env_backend, agent_backend)
 
-    run_exp_episodic(env_backend='torch', agent_backend='torch')
-    run_exp_episodic(env_backend='torch', agent_backend='numpy')
-    run_exp_episodic(env_backend='numpy', agent_backend='torch')
-    run_exp_episodic(env_backend='numpy', agent_backend='numpy')
 
-    run_exp_initial_states(env_backend='torch', agent_backend='torch')
-    run_exp_initial_states(env_backend='torch', agent_backend='numpy')
-    run_exp_initial_states(env_backend='numpy', agent_backend='torch')
-    run_exp_initial_states(env_backend='numpy', agent_backend='numpy')
-
-    if torch.cuda.is_available():
-        print('# Testing also cuda')
-        TorchUtils.set_default_device('cuda')
-        run_exp(env_backend='torch', agent_backend='torch')
-        run_exp(env_backend='torch', agent_backend='numpy')
-        run_exp_episodic(env_backend='torch', agent_backend='torch')
-        run_exp_episodic(env_backend='torch', agent_backend='numpy')
-        TorchUtils.set_default_device('cpu')
+@pytest.mark.parametrize('env_backend', ['numpy', 'torch'])
+def test_default_env(env_backend):
+    run_exp_default_env(env_backend)

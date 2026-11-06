@@ -4,7 +4,7 @@ from mushroom_rl.approximators.parametric import CMAC
 from mushroom_rl.features.tiles import Tiles
 
 
-def test_cmac_approximator():
+def test_cmac():
     np.random.seed(1)
 
     x = np.random.rand(1000, 2)
@@ -22,8 +22,7 @@ def test_cmac_approximator():
     x = np.random.rand(2, 2)
     y_hat = approximator.predict(x)
 
-    y_test = np.array([[-0.73581504,  0.90877225],
-                       [-0.95854488, -0.72429239]])
+    y_test = np.load('tests/approximators/data/test_cmac.npy')
 
     assert np.allclose(y_hat, y_test)
 
@@ -54,8 +53,6 @@ def test_cmac_approximator():
     assert np.array_equal(random_weights, random_weight_new)
     assert not np.any(np.equal(random_weights, old_weights))
 
-
-def test_cmac_approximator_outside():
     np.random.seed(1)
 
     x = np.random.rand(1000, 2)

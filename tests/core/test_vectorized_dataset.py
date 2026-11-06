@@ -27,7 +27,7 @@ def append_steps(dataset, n_steps):
         dataset.append_vectorized(step, [{}, {}], mask)
 
 
-def test_vectorized_dataset_flatten_cross_backend():
+def test_flatten():
     dataset = VectorizedDataset(make_info(), n_steps=10)
     append_steps(dataset, 3)
 
@@ -42,8 +42,14 @@ def test_vectorized_dataset_flatten_cross_backend():
     assert flat.policy_state.shape == (6, 1)
     assert flat.is_stateful
 
+    info = DatasetInfo(env_backend='list', agent_backend='list', env_device=None, agent_device=None, horizon=10,
+                       gamma=0.9, state_shape=(2,), state_dtype=np.float64, action_shape=(1,),
+                       action_dtype=np.float64, policy_state_shape=None, n_envs=2)
 
-def test_vectorized_dataset_clear_residual_carry():
+    assert VectorizedDataset(info, n_steps=10).capacity is None
+
+
+def test_clear_leftovers():
     dataset = VectorizedDataset(make_info(), n_steps=10)
     append_steps(dataset, 3)
 
@@ -57,34 +63,19 @@ def test_vectorized_dataset_clear_residual_carry():
     assert np.array_equal(dataset.mask, np.array([[False, True]]))
     assert np.array_equal(dataset.state[0], np.full((2, 2), 2.0))
 
+    assert dataset.clear() == 0
+    assert len(dataset) == 0
 
-def test_vectorized_dataset_flatten_keeps_last_untouched_at_block_ends():
+
+@pytest.mark.parametrize('episode_ends, lasts',
+                         [(set(), [False] * 9), ({(1, 0), (0, 2)}, [False, True] + [False] * 4 + [True, False, False])])
+def test_flatten_lasts(episode_ends, lasts):
     info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None,
                        horizon=10, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
                        action_shape=(1,), action_dtype=np.float64, policy_state_shape=None, n_envs=3)
     dataset = VectorizedDataset(info, n_steps=12)
 
     active_steps = [4, 2, 3]
-    for t in range(4):
-        mask = np.array([t < steps for steps in active_steps])
-        step = (np.full((3, 1), float(t)), np.zeros((3, 1)), np.arange(3) + 10. * t,
-                np.full((3, 1), t + 1.), np.zeros(3, dtype=bool), np.zeros(3, dtype=bool))
-        dataset.append_vectorized(step, [{}] * 3, mask)
-
-    flat = dataset.flatten()
-
-    assert np.array_equal(np.asarray(flat.reward), np.array([0., 10., 20., 30., 1., 11., 2., 12., 22.]))
-    assert np.array_equal(np.asarray(flat.last).astype(bool), np.zeros(9, dtype=bool))
-
-
-def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
-    info = DatasetInfo(env_backend='numpy', agent_backend='numpy', env_device=None, agent_device=None,
-                       horizon=10, gamma=0.9, state_shape=(1,), state_dtype=np.float64,
-                       action_shape=(1,), action_dtype=np.float64, policy_state_shape=None, n_envs=3)
-    dataset = VectorizedDataset(info, n_steps=12)
-
-    active_steps = [4, 2, 3]
-    episode_ends = {(1, 0), (0, 2)}
     for t in range(4):
         mask = np.array([t < steps for steps in active_steps])
         last = np.array([(t, e) in episode_ends for e in range(3)])
@@ -94,8 +85,8 @@ def test_vectorized_dataset_flatten_keeps_episode_ends_inside_a_block():
 
     flat = dataset.flatten()
 
-    assert np.array_equal(np.asarray(flat.last).astype(bool),
-                          np.array([False, True, False, False, False, False, True, False, False]))
+    assert np.array_equal(np.asarray(flat.reward), np.array([0., 10., 20., 30., 1., 11., 2., 12., 22.]))
+    assert np.array_equal(np.asarray(flat.last).astype(bool), np.array(lasts))
 
 
 def make_infinite_horizon_info():
@@ -113,7 +104,7 @@ def append_stateful_steps(dataset, n_steps):
         dataset.append_vectorized(step, [{}, {}], mask)
 
 
-def test_infinite_horizon_flatten_keeps_the_policy_state_of_every_row():
+def test_flatten_policy_state():
     dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
     append_stateful_steps(dataset, 3)
 
@@ -125,7 +116,7 @@ def test_infinite_horizon_flatten_keeps_the_policy_state_of_every_row():
     assert np.array_equal(policy_next_state[:, 0], np.array([0.5, 1.5, 2.5, 10.5, 11.5, 12.5]))
 
 
-def test_join_with_an_empty_block_is_a_no_op():
+def test_join_empty():
     dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
     append_stateful_steps(dataset, 3)
     flat = dataset.flatten()
@@ -142,7 +133,7 @@ def test_join_with_an_empty_block_is_a_no_op():
         assert np.array_equal(joined.parse()[5], flat.parse()[5])
 
 
-def test_only_consumed_datasets_can_be_joined():
+def test_join_consumed():
     first = VectorizedDataset(make_info(), n_steps=10)
     second = VectorizedDataset(make_info(), n_steps=10)
     append_steps(first, 2)
@@ -158,13 +149,21 @@ def test_only_consumed_datasets_can_be_joined():
 
     extended = consumed.copy()
     extended.append_batch(VectorizedDataset(make_info(), n_steps=10))
+    filled = VectorizedDataset(make_info(), n_steps=10)
+    filled.append_batch(consumed)
+    empty = VectorizedDataset(make_info(), n_steps=10)
     joined = consumed + second.consume()
 
     assert len(extended) == 2
+    assert len(filled) == 2 and np.array_equal(filled.state, consumed.state)
+    assert len(consumed + empty) == 2 and len(empty + consumed) == 2
     assert len(joined) == 4 and len(joined.flatten()) == 8
 
+    with pytest.raises(RuntimeError):
+        consumed.append(None, None)
 
-def test_loaded_list_dataset_keeps_appending_per_environment(tmpdir):
+
+def test_load_and_append(tmpdir):
     dataset = VectorizedDataset(make_infinite_horizon_info(), n_steps=10)
     append_stateful_steps(dataset, 3)
     path = tmpdir / 'list_dataset.msh'

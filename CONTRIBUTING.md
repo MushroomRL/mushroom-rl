@@ -46,6 +46,25 @@ desirable to propose an example whenever a new algorithm or environment is propo
 a pull request. The choice of the type of experiment is up to the contributor, but it should
 be meaningful to show the performance and properties of the proposed algorithm/environment.
 
+### Tests
+Every contribution must come with tests. Run them with ``pytest --cov=mushroom_rl --cov-branch``: a pull request
+must not lower line or branch coverage. The layout of ``tests/`` is mandatory:
+* ``tests/`` mirrors the package structure: every folder corresponds to a ``mushroom_rl`` subpackage, apart from
+  ``tests/helper/`` (shared helpers) and the ``data/`` folders (recorded data);
+* add new tests to the existing test file of the module or component you change; create a new test file only for a
+  new module or component, in the mirrored folder and named after it. Pull requests adding ad-hoc test files,
+  or splitting or merging existing ones, will not be accepted.
+
+Please also follow the conventions of the existing tests:
+* reuse the helpers in ``tests/helper/`` and parametrize over backends and devices (``backend_devices()``,
+  ``devices()``) instead of duplicating tests;
+* no module-level variables: inputs, seeds and expected values are defined inside each test function;
+* expected values are exact numbers recorded once with a fixed seed, never range checks; recorded arrays of four
+  or more values are stored as ``.npy`` files in the ``data/`` folder next to the test file;
+* tests needing an optional package skip with ``pytest.importorskip`` on that package;
+* short test names, several related asserts per test, and no tests of trivial behaviour that add no coverage;
+* a test for a bug fix must fail without the fix.
+
 ### Benchmarks
 Instructions for adding a new benchmark are provided in the [MushroomRL Benchmarking Suite](
 https://github.com/MushroomRL/mushroom-rl-benchmark/blob/master/CONTRIBUTING.md).

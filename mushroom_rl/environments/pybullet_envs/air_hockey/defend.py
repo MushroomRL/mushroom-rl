@@ -12,7 +12,7 @@ class AirHockeyDefendBullet(AirHockeySingleBullet):
     The agent tries to stop the puck at the line x=-0.6.
     If the puck get into the goal, it will get a punishment.
     """
-    def __init__(self, gamma=0.99, horizon=500, env_noise=False, obs_noise=False, obs_delay=False, torque_control=True,
+    def __init__(self, gamma=0.99, horizon=500, obs_noise=False, torque_control=True,
                  step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
                  random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_velocity_range=(1, 2.2)):
         """
@@ -34,7 +34,7 @@ class AirHockeyDefendBullet(AirHockeySingleBullet):
         self.puck_pos = None
 
         super().__init__(gamma=gamma, horizon=horizon, timestep=timestep, n_intermediate_steps=n_intermediate_steps,
-                         debug_gui=debug_gui, env_noise=env_noise, obs_noise=obs_noise, obs_delay=obs_delay,
+                         debug_gui=debug_gui, obs_noise=obs_noise,
                          torque_control=torque_control, step_action_function=step_action_function,
                          table_boundary_terminate=table_boundary_terminate, number_flags=2)
 

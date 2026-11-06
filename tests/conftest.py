@@ -1,5 +1,17 @@
+import os
+
 import pytest
-import torch
+
+# Pin the MKL, ATen and OpenBLAS kernel paths before torch and numpy load, so that every AVX2 CPU picks the same
+# kernels
+os.environ['MKL_CBWR'] = 'COMPATIBLE'
+os.environ['ATEN_CPU_CAPABILITY'] = 'avx2'
+os.environ['OPENBLAS_CORETYPE'] = 'Haswell'
+os.environ.setdefault('SDL_VIDEODRIVER', 'dummy')
+if 'DISPLAY' not in os.environ:
+    os.environ.setdefault('MUJOCO_GL', 'disable')
+
+import torch  # noqa: E402
 
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
@@ -15,9 +27,20 @@ def pytest_collection_modifyitems(config, items):
         pinned_paths = (
             "tests/environments/mujoco_envs/",
             "tests/environments/mujoco_warp_envs/",
+            "tests/environments/test_mujoco.py",
             "tests/environments/test_mujoco_warp.py",
+            "tests/utils/mujoco/",
         )
         skip = pytest.mark.skip(reason="needs package versions newer than the ones pinned by Isaac Sim")
         for item in items:
             if item.nodeid.startswith(pinned_paths):
                 item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def reset_default_device():
+    from mushroom_rl.utils import TorchUtils
+
+    TorchUtils.set_default_device('cpu')
+    yield
+    TorchUtils.set_default_device('cpu')

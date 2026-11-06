@@ -2,10 +2,8 @@ import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.linear_model import LinearRegression
 
-from datetime import datetime
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Agent
 from mushroom_rl.approximators import Approximator
 from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
@@ -67,101 +65,48 @@ def learn(alg, alg_params):
     return agent, np.mean(dataset.compute_J(mdp.info.gamma))
 
 
-def test_fqi():
+def test_fqi(tmpdir):
     params = dict(n_iterations=10)
-    _, j = learn(FQI, params)
+    agent, j = learn(FQI, params)
     j_test = -0.06763797713952796
 
     assert j == j_test
 
-
-def test_fqi_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    params = dict(n_iterations=10)
-    agent_save, _ = learn(FQI, params)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_fqi_linear_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
+def test_fqi_linear(tmpdir):
     mdp = CarOnHill()
     np.random.seed(1)
     pi = EpsGreedy(epsilon=Parameter(value=1.))
     approximator_params = dict(model_class=LinearRegression, input_shape=mdp.info.observation_space.shape,
                                n_actions=mdp.info.action_space.n)
-    agent_save = FQI(mdp.info, pi, SklearnApproximator, approximator_params=approximator_params, n_iterations=3,
-                     quiet=True)
-    Core(agent_save, mdp).learn(n_episodes=5, n_episodes_per_fit=5, quiet=True)
+    agent = FQI(mdp.info, pi, SklearnApproximator, approximator_params=approximator_params, n_iterations=3, quiet=True)
+    Core(agent, mdp).learn(n_episodes=5, n_episodes_per_fit=5, quiet=True)
 
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
+    assert all(np.any(model.model.coef_ != 0) for model in agent.approximator.model)
 
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
-
-    weights = [m.model.coef_ for m in agent_save.approximator.model]
-    assert all(np.any(w != 0) for w in weights)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_fqi_boosted():
+def test_fqi_boosted(tmpdir):
     params = dict(n_iterations=10)
-    _, j = learn(BoostedFQI, params)
+    agent, j = learn(BoostedFQI, params)
     j_test = -0.04487241596542538
 
     assert j == j_test
 
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
-def test_fqi_boosted_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
 
+def test_double_fqi(tmpdir):
     params = dict(n_iterations=10)
-    agent_save, _ = learn(BoostedFQI, params)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
-
-
-def test_double_fqi():
-    params = dict(n_iterations=10)
-    _, j = learn(DoubleFQI, params)
+    agent, j = learn(DoubleFQI, params)
     j_test = -0.19933233708925654
 
     assert j == j_test
 
-
-def test_double_fqi_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    params = dict(n_iterations=10)
-    agent_save, _ = learn(DoubleFQI, params)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
 def test_double_fqi_history():
@@ -193,10 +138,8 @@ def test_double_fqi_history():
 
     q_0 = agent.approximator.predict(windows[:2], idx=0)
     q_1 = agent.approximator.predict(windows[:2], idx=1)
-    assert np.allclose(q_0, np.array([[-7.990885416666666e-05, -0.00026949652777777774],
-                                      [-0.0012900318287037036, 0.0]]))
-    assert np.allclose(q_1, np.array([[-0.007060182291666666, -0.0020644687500000003],
-                                      [-0.009422225347222223, -0.0008288585069444445]]))
+    assert np.allclose(q_0, np.load('tests/algorithms/data/test_double_fqi_history_0.npy'))
+    assert np.allclose(q_1, np.load('tests/algorithms/data/test_double_fqi_history_1.npy'))
 
     q_single = agent.approximator.predict(windows[1])
     assert q_single.shape == (n_actions,)
