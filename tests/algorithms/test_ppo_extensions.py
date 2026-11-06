@@ -142,7 +142,8 @@ def make_rudin_action_history_setup(action_history_length):
     return policy, alg_params
 
 
-def test_PPO_BPTT(tmpdir):
+@pytest.mark.parametrize('device', devices())
+def test_PPO_BPTT(device, tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -151,12 +152,13 @@ def test_PPO_BPTT(tmpdir):
     agent = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50))
     w = agent.policy.get_weights()
 
-    tu.assert_recorded(w, 'test_PPO_BPTT', 'cpu')
+    tu.assert_recorded(w, 'test_PPO_BPTT', device)
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_PPO_BPTT_prev_action():
+@pytest.mark.parametrize('device', devices())
+def test_PPO_BPTT_prev_action(device):
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -164,7 +166,7 @@ def test_PPO_BPTT_prev_action():
 
     w = learn(PPO_BPTT, policy, alg_params, LQR.generate(s_dim=2, a_dim=1, horizon=50)).policy.get_weights()
 
-    tu.assert_recorded(w, 'test_PPO_BPTT_prev_action', 'cpu')
+    tu.assert_recorded(w, 'test_PPO_BPTT_prev_action', device)
 
 
 @pytest.mark.parametrize('device', devices())

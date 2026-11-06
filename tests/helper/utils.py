@@ -44,6 +44,8 @@ class TestUtils:
         assert value.device.type == device
         expected = torch.as_tensor(np.load(f'tests/algorithms/data/{name}_{device}.npy'), device=value.device)
 
+        assert value.shape == expected.shape and value.dtype == expected.dtype
+
         assert torch.allclose(value, expected, rtol=1e-6, atol=1e-6), \
             f'max discrepancy {(value - expected).abs().max()}'
 
@@ -115,8 +117,13 @@ class TestUtils:
         del that_param_groups[0]['params']
         res = this_param_groups == that_param_groups
         for t1, t2 in zip(this_state.values(), that_state.values()):
-            for v1, v2 in zip(t1.values(), t2.values()):
-                if isinstance(v1, torch.Tensor):
+            res &= t1.keys() == t2.keys()
+            for key in t1:
+                v1, v2 = t1[key], t2[key]
+                if key == 'step' and isinstance(v1, torch.Tensor):
+                    # torch keeps the step counter on cpu, but the load moves it to the default device
+                    res &= torch.equal(v1.cpu(), v2.cpu())
+                elif isinstance(v1, torch.Tensor):
                     res &= cls._eq_torch(v1, v2)
                 else:
                     res &= v1 == v2
@@ -562,12 +569,13 @@ class TestUtils:
         """
         return issubclass(type(this), check_type) and issubclass(type(that), check_type) and type(this) is type(that)
 
-    @staticmethod
-    def _eq_numpy(this, that):
+    @classmethod
+    def _eq_numpy(cls, this, that):
         if isinstance(this, torch.Tensor) or isinstance(that, torch.Tensor):
-            return torch.equal(torch.as_tensor(this).cpu(), torch.as_tensor(that).cpu())
-        return np.array_equal(this, that)
+            return cls._eq_torch(this, that)
+        return type(this) is type(that) and np.array_equal(this, that)
 
     @staticmethod
     def _eq_torch(this, that):
-        return torch.equal(this.cpu(), that.cpu())
+        return isinstance(this, torch.Tensor) and isinstance(that, torch.Tensor) and this.device == that.device and \
+            torch.equal(this, that)

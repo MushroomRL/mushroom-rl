@@ -179,6 +179,19 @@ def test_append(tmpdir):
     assert np.array_equal(y, np.array([1.0, 3.0, 5.0, 7.0]))
 
 
+def test_default_wandb_kwargs():
+    kwargs = Logger.default_wandb_kwargs('proj', config={'a': 1}, name='run', group='g')
+
+    assert kwargs['project'] == 'proj'
+    assert kwargs['config'] == {'a': 1}
+    assert kwargs['name'] == 'run'
+    assert kwargs['group'] == 'g'
+    assert kwargs['entity'] is None
+    assert kwargs['tags'] is None
+    assert kwargs['mode'] == 'online'
+    assert Logger.default_wandb_kwargs('proj')['config'] == dict()
+
+
 def test_wandb(tmpdir):
     importorskip('wandb')
 

@@ -409,6 +409,9 @@ def test_rq_learning(tmpdir):
 
     assert np.allclose(agent.Q.table, test_q)
 
+    agent.save(tmpdir / 'agent_on_policy.msh')
+    assert_properly_loaded(agent, Agent.load(tmpdir / 'agent_on_policy.msh'))
+
     agent = RQLearningOnPolicy(mdp.info, pi, Parameter(.1), delta=Parameter(.5))
 
     core = Core(agent, mdp)

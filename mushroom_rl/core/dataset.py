@@ -409,9 +409,9 @@ class Dataset(MushroomObject):
         assert n_samples >= 0, 'Number of samples must be greater than or equal to zero.'
 
         if n_samples == 0:
-            return np.array([[]])
-
-        idxs = np.random.randint(len(self), size=n_samples)
+            idxs = np.array([], dtype=int)
+        else:
+            idxs = np.random.randint(len(self), size=n_samples)
 
         return self[idxs]
 

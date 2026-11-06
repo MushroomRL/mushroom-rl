@@ -18,6 +18,7 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.approximators.parametric.networks import QNetwork
+from mushroom_rl.utils import TorchUtils
 
 
 class FeatureNetwork(nn.Module):
@@ -28,6 +29,13 @@ class FeatureNetwork(nn.Module):
         return torch.squeeze(state, 1).float()
 
 
+class ScaledCartPole(CartPole):
+    def step(self, action):
+        state, reward, absorbing, info = super().step(action)
+
+        return state, 10. * reward, absorbing, info
+
+
 def get_variant_params(alg):
     variant_params = {CategoricalDQN: dict(n_atoms=2, v_min=-1, v_max=1),
                       Rainbow: dict(n_atoms=2, v_min=-1, v_max=1),
@@ -36,16 +44,16 @@ def get_variant_params(alg):
     return variant_params.get(alg, dict())
 
 
-def learn(alg, alg_params, logger=None, n_models=None, randomness=None):
+def learn(alg, alg_params, logger=None, n_models=None, randomness=None, mdp=None):
     # MDP
-    mdp = CartPole()
+    mdp = CartPole() if mdp is None else mdp
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
 
     # Policy
     epsilon_random = Parameter(value=1.)
-    pi = EpsGreedy(epsilon=epsilon_random, backend='torch')
+    pi = EpsGreedy(epsilon=epsilon_random, backend='torch', device=alg_params.get('device'))
 
     # Approximator
     input_shape = mdp.info.observation_space.shape
@@ -114,16 +122,18 @@ def test_dqn_logger(device, tmpdir):
 
 @pytest.mark.parametrize('device', devices())
 def test_options(device):
+    TorchUtils.set_default_device('cpu')
     params = dict(batch_size=50, initial_replay_size=100, max_replay_size=500, target_update_frequency=50,
-                  clip_reward=True, fit_params=dict(), predict_params=dict(), device=device)
+                  clip_reward=True, fit_params=dict(n_epochs=2), device=device)
     replay_memory = {"class": PrioritizedReplayMemory,
                      "params": dict(alpha=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))}
 
-    w = learn(DQN, params).approximator.get_weights()
-    w_prioritized = learn(DQN, dict(params, replay_memory=replay_memory)).approximator.get_weights()
+    w = learn(DQN, params, mdp=ScaledCartPole()).approximator.get_weights()
+    w_prioritized = learn(DQN, dict(params, replay_memory=replay_memory, predict_params=dict(prediction='min')),
+                          n_models=2, mdp=ScaledCartPole()).approximator.get_weights()
 
-    tu.assert_recorded(w, 'test_dqn', device)
-    tu.assert_recorded(w_prioritized, 'test_prioritized_dqn', device)
+    tu.assert_recorded(w, 'test_dqn_options', device)
+    tu.assert_recorded(w_prioritized, 'test_dqn_options_prioritized', device)
 
 
 @pytest.mark.parametrize('device', devices())

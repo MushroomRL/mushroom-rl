@@ -14,6 +14,7 @@ from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
+from mushroom_rl.utils import TorchUtils
 
 
 class RecordingPreprocessor(Preprocessor):
@@ -97,19 +98,22 @@ def test_sac(device, tmpdir):
 
 @pytest.mark.parametrize('device', devices())
 def test_sac_options(device):
+    TorchUtils.set_default_device('cpu')
     logger = FakeLogger()
-    agent = learn_sac(setup=lambda agent: agent.set_logger(logger), critic_n_models=2, target_entropy=-1.,
-                      device=device)
+    agent = learn_sac(setup=lambda agent: agent.set_logger(logger), critic_n_models=2, device=device)
 
     tu.assert_recorded(agent.policy.get_weights(), 'test_sac', device)
     assert {key for call in logger.calls for key in call} == {'actor/entropy', 'actor/loss', 'alpha/loss',
                                                               'alpha/value', 'critic/loss_0', 'critic/loss_1'}
 
-    agent = learn_sac(use_log_alpha_loss=True)
+    with pytest.raises(AssertionError):
+        learn_sac(critic_n_models=3, device=device)
+
+    agent = learn_sac(use_log_alpha_loss=True, target_entropy=-2., device=device)
     log_prob = torch.tensor([-1., -2.], device=device)
     log_alpha = agent._log_alpha.detach().clone()
 
-    assert torch.allclose(agent._update_alpha(log_prob), -(log_alpha * (log_prob - 1.)).mean())
+    assert torch.allclose(agent._update_alpha(log_prob), -(log_alpha * (log_prob - 2.)).mean())
 
 
 @pytest.mark.parametrize('device', devices())
@@ -118,7 +122,7 @@ def test_sac_fit_preprocessor_identity(device):
     policy = learn_sac(lambda agent: agent.add_fit_preprocessor(preprocessor)).policy
     w = policy.get_weights()
 
-    tu.assert_recorded(w, 'test_sac_fit_preprocessor_identity', device)
+    tu.assert_recorded(w, 'test_sac', device)
     assert preprocessor.shapes == [(64, 2)] * 8
 
 

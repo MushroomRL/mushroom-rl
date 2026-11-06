@@ -169,7 +169,7 @@ def test_logger(device):
 def test_TRPO_rejected_step():
     torch.manual_seed(1)
     w_initial = GaussianTorchPolicy(ActorNetwork, (2,), (1,), std_0=1., n_features=None, n_layers=0).get_weights()
-    params = dict(n_epochs_line_search=0, cg_residual_tol=1e10)
+    params = dict(n_epochs_line_search=1, max_kl=1e5, cg_residual_tol=1e10)
 
     assert torch.equal(learn(TRPO, params).policy.get_weights(), w_initial)
 

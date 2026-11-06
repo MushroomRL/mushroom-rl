@@ -450,7 +450,9 @@ def test_capacity():
 
     assert np.array_equal(info.get_info('idx'), [0., 1., 2.])
     assert info.get_info('idx', 1) == 1.
-    assert info.select_random_samples(0).shape == (1, 0)
+    empty = info.select_random_samples(0)
+
+    assert isinstance(empty, Dataset) and len(empty) == 0
     with pytest.raises(NotImplementedError):
         info.parse(to='jax')
 

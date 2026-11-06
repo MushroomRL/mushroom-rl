@@ -50,6 +50,7 @@ def test_interface():
     approximator._log()
 
     assert logger.calls == [{'critic/error': np.array(2.)}]
+    assert logger.calls[0]['critic/error'].shape == ()
 
     ensemble = BackendApproximator((2,), (1,), n_models=2, prediction='max')
     ensemble._models[0].n_actions = 3

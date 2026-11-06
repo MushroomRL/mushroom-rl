@@ -1080,7 +1080,10 @@ def test_to_backend():
     info.append({'x': torch.tensor(1.)})
 
     converted = info.to_backend('numpy')
+    same = info.to_backend('torch')
 
+    assert converted._target_backend_name == 'numpy' and converted._target_device is None
+    assert same._target_backend_name is None and same._target_device is None
     assert isinstance(converted.parse()['x'], np.ndarray)
     assert isinstance(info.parse()['x'], torch.Tensor)
 

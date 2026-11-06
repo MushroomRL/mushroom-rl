@@ -14,6 +14,7 @@ from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
+from mushroom_rl.utils import TorchUtils
 
 
 class RecordingPreprocessor(Preprocessor):
@@ -91,6 +92,7 @@ def test_ddpg(device, tmpdir):
 
 @pytest.mark.parametrize('device', devices())
 def test_ddpg_options(device):
+    TorchUtils.set_default_device('cpu')
     logger = FakeLogger()
     agent = learn(DDPG, setup=lambda agent: agent.set_logger(logger), device=device)
 

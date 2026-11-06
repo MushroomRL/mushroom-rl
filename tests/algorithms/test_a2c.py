@@ -15,6 +15,7 @@ from mushroom_rl.algorithms.actor_critic import A2C
 
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
+from mushroom_rl.utils import TorchUtils
 
 
 def learn_a2c(logger=None, **extra_params):
@@ -45,6 +46,7 @@ def learn_a2c(logger=None, **extra_params):
     policy = GaussianTorchPolicy(ActorNetwork,
                                  mdp.info.observation_space.shape,
                                  mdp.info.action_space.shape,
+                                 device=extra_params.get('device'),
                                  **policy_params)
 
     agent = A2C(mdp.info, policy, **algorithm_params, **extra_params)
@@ -153,6 +155,7 @@ def test_a2c(device, tmpdir):
 
 @pytest.mark.parametrize('device', devices())
 def test_a2c_options(device):
+    TorchUtils.set_default_device('cpu')
     logger = FakeLogger()
     agent = learn_a2c(logger, device=device)
 
