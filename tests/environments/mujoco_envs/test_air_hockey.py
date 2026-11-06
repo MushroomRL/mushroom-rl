@@ -100,6 +100,22 @@ def test_reward_branches(name, env, params, cases):
     assert np.allclose(values, np.load(f'tests/environments/mujoco_envs/data/test_reward_branches_{name}.npy'))
 
 
+@pytest.mark.parametrize('env, n_actions', [(AirHockeyHit, 3), (double.AirHockeyDouble, 6)])
+def test_constraints(env, n_actions):
+    mdp = env()
+    mdp.reset()
+    obs, _, _, info = mdp.step(np.ones(n_actions))
+    q_pos = mdp.obs_helper.get_joint_pos_from_obs(obs)
+    low, high = mdp.obs_helper.get_joint_pos_limits()
+    constraints = [info] if n_actions == 3 else [info['agent-1'], info['agent-2']]
+
+    for i, agent_constraints in enumerate(constraints):
+        joints = slice(i * 3, (i + 1) * 3)
+
+        assert np.array_equal(agent_constraints['joint_pos_constraints'],
+                              np.concatenate([q_pos[joints] - high[joints], low[joints] - q_pos[joints]]))
+
+
 def test_double():
     mdp = double.AirHockeyDouble()
     obs, _ = mdp.reset()
