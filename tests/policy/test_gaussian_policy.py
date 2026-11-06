@@ -1,4 +1,7 @@
 import numpy as np
+
+from helper.dummies import FakeLogger
+
 from mushroom_rl.policy.gaussian_policy import (GaussianPolicy, DiagonalGaussianPolicy,
                                                 StateStdGaussianPolicy, StateLogStdGaussianPolicy)
 from mushroom_rl.approximators.parametric import LinearApproximator
@@ -89,13 +92,6 @@ def test_univariate():
 
     assert np.allclose(pi(state, action), pi_matrix(state, action))
     assert np.allclose(pi.diff_log(state, action), pi_matrix.diff_log(state, action))
-
-    class FakeLogger:
-        def __init__(self):
-            self.calls = list()
-
-        def log_training(self, prefix=None, **kwargs):
-            self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
 
     np.random.seed(42)
     approximator = LinearApproximator(input_shape=(3,), output_shape=(2,))

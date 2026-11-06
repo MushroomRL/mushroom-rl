@@ -120,6 +120,25 @@ def test_add():
     assert np.allclose(s, s_test)
     assert np.allclose(r, r_test)
 
+    obs_shape = (4,)
+    act_shape = (2,)
+
+    rng = np.random.RandomState(1)
+    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape)
+
+    mdp_info = make_mdp_info(obs_shape, act_shape)
+    agent_info = make_agent_info()
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=20)
+    rm.add(dataset)
+
+    assert rm.size == 10
+
+    rm.reset()
+
+    assert rm.size == 0
+    assert not rm._dataset.full
+    assert rm._dataset.write_head == 0
+
 
 def test_initialization():
     obs_shape = (4,)
@@ -332,7 +351,7 @@ def test_n_steps():
     assert sampled == set(range(length)) - {3, 4}
 
 
-def test_stateful():
+def test_policy_state():
     obs_shape = (4,)
     act_shape = (2,)
     policy_state_shape = (8,)
@@ -354,7 +373,7 @@ def test_stateful():
     s, a, r, ss, ab, last, ps, nps = rm.get(4)
 
     expected_idxs = np.array([4, 9, 6, 3])
-    ps_test = np.load('tests/rl_utils/data/test_stateful.npy')
+    ps_test = np.load('tests/rl_utils/data/test_policy_state.npy')
 
     assert np.allclose(ps, policy_states[expected_idxs])
     assert np.allclose(ps, ps_test)
@@ -376,25 +395,6 @@ def test_stateful():
     rm.add(ds)
     assert rm.size == 8
     assert len(rm.get(4)) == 6
-
-    obs_shape = (4,)
-    act_shape = (2,)
-
-    rng = np.random.RandomState(1)
-    dataset, *_ = make_dataset(10, rng, obs_shape, act_shape)
-
-    mdp_info = make_mdp_info(obs_shape, act_shape)
-    agent_info = make_agent_info()
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=1, max_size=20)
-    rm.add(dataset)
-
-    assert rm.size == 10
-
-    rm.reset()
-
-    assert rm.size == 0
-    assert not rm._dataset.full
-    assert rm._dataset.write_head == 0
 
 
 def test_torch():

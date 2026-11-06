@@ -423,7 +423,7 @@ def test_ensemble_predict_all():
     assert head_a.shape == (4, 5, 3) and head_b.shape == (4, 5, 2)
 
 
-def test_ensemble_predict_options():
+def test_ensemble_predict_kwargs():
     torch.manual_seed(7)
 
     class KwargNet(nn.Module):
@@ -450,6 +450,8 @@ def test_ensemble_predict_options():
     with pytest.raises(KeyError):
         ensemble.predict(unbatched)
 
+
+def test_ensemble_prediction_modes():
     torch.manual_seed(15)
 
     ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=QNetwork,
@@ -579,6 +581,8 @@ def test_ensemble_save_load(tmpdir):
     assert loaded.predict(unbatched).shape == (2,)
     assert loaded.predict(unbatched, prediction='min').shape == (2,)
 
+
+def test_ensemble_full_batch():
     torch.manual_seed(7)
 
     approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), n_models=3,
@@ -594,7 +598,7 @@ def test_ensemble_save_load(tmpdir):
 
     x_test = torch.rand(5, 4)
     y_out = approximator.predict(x_test, prediction='mean')
-    y_out_exp = torch.tensor(np.load('tests/approximators/data/test_ensemble_save_load.npy'))
+    y_out_exp = torch.tensor(np.load('tests/approximators/data/test_ensemble_full_batch.npy'))
     assert torch.allclose(y_out, y_out_exp)
 
 

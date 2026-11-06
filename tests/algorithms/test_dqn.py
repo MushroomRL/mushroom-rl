@@ -6,11 +6,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from datetime import datetime
 from helper.cases import devices
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Core, Agent, Logger
+from mushroom_rl.core import Core, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, \
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
 from mushroom_rl.environments import CartPole
@@ -117,7 +116,9 @@ def test_dqn_logger(device, tmpdir):
 
     assert loss_file.shape == (81,)
 
-    tu.assert_recorded(torch.as_tensor(loss_file[[0, -1]], device=device), 'test_dqn_logger', device)
+    loss_test = dict(cpu=[0.6862927079200745, 0.6281029582023621], cuda=[0.6408013105392456, 0.3261929154396057])
+
+    assert np.allclose(loss_file[[0, -1]], loss_test[device], rtol=1e-6, atol=1e-6)
 
 
 @pytest.mark.parametrize('device', devices())
@@ -260,8 +261,7 @@ def test_categorical_dqn_prioritized(device):
     tu.assert_recorded(w, 'test_categorical_dqn_prioritized', device)
 
     leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
-    tu.assert_recorded(torch.tensor(len(np.unique(leaves)), device=device), 'test_categorical_dqn_prioritized_leaves',
-                       device)
+    assert len(np.unique(leaves)) == dict(cpu=492, cuda=493)[device]
 
 
 @pytest.mark.parametrize('device', devices())
@@ -292,8 +292,7 @@ def test_quantile_dqn_prioritized(device):
     tu.assert_recorded(w, 'test_quantile_dqn_prioritized', device)
 
     leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
-    tu.assert_recorded(torch.tensor(len(np.unique(leaves)), device=device), 'test_quantile_dqn_prioritized_leaves',
-                       device)
+    assert len(np.unique(leaves)) == dict(cpu=485, cuda=489)[device]
 
 
 @pytest.mark.parametrize('device', devices())
@@ -330,33 +329,17 @@ def test_ensemble_randomness_error():
 
 
 @pytest.mark.parametrize('device', devices())
-def test_rainbow(device):
+def test_rainbow(device, tmpdir):
     params = dict(batch_size=50, initial_replay_size=100,
                   max_replay_size=500, target_update_frequency=50, n_steps_return=3,
                   alpha_coeff=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))
-    approximator = learn(Rainbow, params).approximator
+    agent = learn(Rainbow, params)
 
-    w = approximator.get_weights()
+    w = agent.approximator.get_weights()
 
     tu.assert_recorded(w, 'test_rainbow', device)
 
-
-def test_rainbow_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    params = dict(batch_size=50, initial_replay_size=100,
-                  max_replay_size=500, target_update_frequency=50, n_steps_return=1,
-                  alpha_coeff=.6, beta=LinearParameter(.4, threshold_value=1, n=500 // 5))
-    agent_save = learn(Rainbow, params)
-
-    agent_save.save(agent_path, full_save=True)
-    agent_load = Agent.load(agent_path)
-
-    for att, method in vars(agent_save).items():
-        save_attr = getattr(agent_save, att)
-        load_attr = getattr(agent_load, att)
-
-        tu.assert_eq(save_attr, load_attr)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 
 
 @pytest.mark.parametrize('device', devices())

@@ -3,7 +3,7 @@ import pytest
 
 from helper.envs import discrete_action, rollout
 
-pytest.importorskip('gymnasium')
+gym = pytest.importorskip('gymnasium')
 
 from mushroom_rl.environments.gymnasium_env import Gymnasium  # noqa: E402
 
@@ -40,7 +40,7 @@ def test_reset_state():
     assert np.array_equal(state, initial_state)
     for i in range(5):
         ns, r, ab, _ = mdp.step(np.array([1]))
-    ns_test = np.load('tests/environments/data/test_reset_state.npy')
+    ns_test = np.load('tests/environments/data/test_reset_state_cart_pole.npy')
 
     assert np.allclose(ns, ns_test)
     assert r == 1.
@@ -72,7 +72,6 @@ def test_render():
 
 
 def test_construction():
-    gym = pytest.importorskip('gymnasium')
     mdp = Gymnasium('CartPole-v1', 100, .99, wrappers=[(gym.wrappers.TimeAwareObservation, dict())])
 
     assert mdp.info.observation_space.shape == (5,)

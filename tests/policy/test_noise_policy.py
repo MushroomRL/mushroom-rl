@@ -3,6 +3,8 @@ import numpy as np
 
 import pytest
 
+from helper.dummies import FakeLogger
+
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
@@ -147,13 +149,6 @@ def test_clipped_gaussian(tmpdir):
     torch.manual_seed(2)
     action_load = pi_load.draw_action(state)
     assert torch.equal(action, action_load)
-
-    class FakeLogger:
-        def __init__(self):
-            self.calls = list()
-
-        def log_training(self, prefix=None, **kwargs):
-            self.calls.append({(prefix + '/' + name if prefix else name): value for name, value in kwargs.items()})
 
     torch.manual_seed(1)
     mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))

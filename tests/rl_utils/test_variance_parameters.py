@@ -8,15 +8,18 @@ from mushroom_rl.rl_utils.parameters import (
 )
 
 
-@pytest.mark.parametrize('parameter, kwargs, value', [
-    (VarianceDrivenIncreasingParameter, dict(), 0.01866124),
-    (VarianceDrivenIncreasingParameter, dict(exponential=True), 0.01515935),
-    (VarianceDrivenDecreasingParameter, dict(), 0.69376147),
-    (VarianceDrivenDecreasingParameter, dict(exponential=True), 0.72238985),
-    (WindowedVarianceDrivenIncreasingParameter, dict(window=10), 0.01162217),
-    (WindowedVarianceDrivenIncreasingParameter, dict(exponential=True, window=10), 0.0095416)
-])
-def test_variance(parameter, kwargs, value):
+@pytest.mark.parametrize('name', ['increasing', 'increasing_exponential', 'decreasing', 'decreasing_exponential',
+                                  'windowed', 'windowed_exponential'])
+def test_variance(name):
+    parameter, kwargs, value = dict(
+        increasing=(VarianceDrivenIncreasingParameter, dict(), 0.01866124),
+        increasing_exponential=(VarianceDrivenIncreasingParameter, dict(exponential=True), 0.01515935),
+        decreasing=(VarianceDrivenDecreasingParameter, dict(), 0.69376147),
+        decreasing_exponential=(VarianceDrivenDecreasingParameter, dict(exponential=True), 0.72238985),
+        windowed=(WindowedVarianceDrivenIncreasingParameter, dict(window=10), 0.01162217),
+        windowed_exponential=(WindowedVarianceDrivenIncreasingParameter, dict(exponential=True, window=10), 0.0095416)
+    )[name]
+
     np.random.seed(42)
     targets = np.random.randn(50).tolist()
     p = parameter(value=1., tol=1., **kwargs)

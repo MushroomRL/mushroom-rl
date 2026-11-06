@@ -90,6 +90,7 @@ def test_log_agent(tmpdir):
 
     logger.log_wandb_video('evaluation', tmpdir / 'missing.mp4', 1)
     logger.finish()
+    release_logger_name(logger.path.name)
 
     with raises(AssertionError):
         Logger('no_results_dir', results_dir=None, log_console=True)

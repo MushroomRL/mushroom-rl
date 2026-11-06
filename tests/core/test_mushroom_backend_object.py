@@ -140,7 +140,16 @@ def test_move_to_device(device):
     value = dict(parameter=parameter, items=[torch.zeros(1), deque([torch.zeros(1)])], pair=pair(torch.zeros(1), 3),
                  plain=(torch.zeros(1), 'x'), other='x')
 
-    moved = MushroomBackendObject._move_to_device(value, device)
+    class Holder(MushroomBackendObject):
+        def __init__(self):
+            super().__init__('torch')
+            self._value = value
+            self._full = torch.zeros(1)
+            self._children = [RunningStandardization((2,), backend='torch'), None]
+            self._add_save_attr(_value='torch', _full='torch!', _children='mushroom')
+
+    holder = Holder().to(device)
+    moved = holder._value
 
     assert moved['parameter'] is parameter
     assert parameter.device.type == device and parameter.grad.device.type == device
@@ -150,16 +159,6 @@ def test_move_to_device(device):
     assert type(moved['plain']) is tuple and moved['plain'][0].device.type == device and moved['plain'][1] == 'x'
     assert moved['other'] == 'x'
     assert value['items'][0].device.type == 'cpu'
-
-    class Holder(MushroomBackendObject):
-        def __init__(self):
-            super().__init__('torch')
-            self._full = torch.zeros(1)
-            self._children = [RunningStandardization((2,), backend='torch'), None]
-            self._add_save_attr(_full='torch!', _children='mushroom')
-
-    holder = Holder().to(device)
-
     assert holder.device == device
     assert holder._full.device.type == 'cpu'
     assert holder._children[0].device == device

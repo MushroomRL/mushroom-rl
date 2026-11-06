@@ -124,9 +124,8 @@ def test_setitem(backend, device):
     with pytest.raises(TypeError):
         container[make_array(backend, [0, 1], device)] = zeros
 
-    if backend != 'list':
-        with pytest.raises(IndexError):
-            container[3]
+    with pytest.raises(IndexError):
+        container[3]
 
     assert len(container) == 3
 

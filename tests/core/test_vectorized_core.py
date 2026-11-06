@@ -597,8 +597,7 @@ def backend_pairs():
 
 
 @pytest.mark.parametrize('env_backend, agent_backend, device',
-                         [pytest.param(env, agent, 'cpu', id=f'{env}-{agent}')
-                          for env, agent in product(['numpy', 'torch'], repeat=2)] +
+                         [pytest.param(*pair.values, 'cpu', id=pair.id) for pair in backend_pairs()] +
                          [pytest.param('torch', agent, 'cuda', id=f'torch-{agent}-cuda', marks=needs_cuda())
                           for agent in ['torch', 'numpy']])
 def test_core(env_backend, agent_backend, device):
@@ -609,12 +608,12 @@ def test_core(env_backend, agent_backend, device):
     run_exp_initial_states(env_backend, agent_backend)
 
 
-@pytest.mark.parametrize('env_backend, agent_backend, n_partial, n_step, n_reset',
-                         [pytest.param('torch', 'torch', 400, 630, 1025, id='torch-torch'),
-                          pytest.param('torch', 'numpy', 400, 786, 1022, id='torch-numpy'),
-                          pytest.param('numpy', 'torch', 418, 674, 1028, id='numpy-torch'),
-                          pytest.param('numpy', 'numpy', 418, 681, 1025, id='numpy-numpy')])
-def test_preprocessing(env_backend, agent_backend, n_partial, n_step, n_reset):
+@pytest.mark.parametrize('env_backend, agent_backend', backend_pairs())
+def test_preprocessing(env_backend, agent_backend):
+    counts = {('torch', 'torch'): (400, 630, 1025), ('torch', 'numpy'): (400, 786, 1022),
+              ('numpy', 'torch'): (418, 674, 1028), ('numpy', 'numpy'): (418, 681, 1025)}
+    n_partial, n_step, n_reset = counts[env_backend, agent_backend]
+
     run_exp_partial_first_batch_preprocessing(env_backend, agent_backend, n_partial)
     run_exp_step_preprocessing(env_backend, agent_backend, n_step)
     run_exp_reset_preprocessing(env_backend, agent_backend, n_reset)

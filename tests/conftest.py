@@ -27,7 +27,9 @@ def pytest_collection_modifyitems(config, items):
         pinned_paths = (
             "tests/environments/mujoco_envs/",
             "tests/environments/mujoco_warp_envs/",
+            "tests/environments/test_mujoco.py",
             "tests/environments/test_mujoco_warp.py",
+            "tests/utils/mujoco/",
         )
         skip = pytest.mark.skip(reason="needs package versions newer than the ones pinned by Isaac Sim")
         for item in items:

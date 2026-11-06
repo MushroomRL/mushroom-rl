@@ -26,9 +26,7 @@ def reward_variants():
             pytest.param('hit_random', AirHockeyHit, dict(init_robot_state='random'), id='hit_random'),
             pytest.param('defend_noise', AirHockeyDefend, dict(random_init=True, env_noise=True, obs_noise=True),
                          id='defend_noise'),
-            pytest.param('repel', AirHockeyRepel, dict(random_init=True), id='repel'),
-            pytest.param('double_noise', double.AirHockeyDouble, dict(env_noise=True, obs_noise=True),
-                         id='double_noise')]
+            pytest.param('repel', AirHockeyRepel, dict(random_init=True), id='repel')]
 
 
 def reward_rollout(mdp, n_steps=100):
@@ -143,3 +141,7 @@ def test_double():
         mdp.step(np.zeros(6))
 
         assert (mdp.robot_1_hit, mdp.robot_2_hit) == hits
+
+    _, observation = reward_rollout(double.AirHockeyDouble(env_noise=True, obs_noise=True))
+
+    assert np.allclose(observation, np.load('tests/environments/mujoco_envs/data/test_double_noise.npy'))

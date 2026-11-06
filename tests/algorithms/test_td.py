@@ -4,7 +4,6 @@ import torch
 
 import pytest
 
-from datetime import datetime
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Agent, HasNextAction
@@ -91,7 +90,7 @@ def test_weighted_q_learning(tmpdir):
     assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
-def test_maxmin_q_learning():
+def test_maxmin_q_learning(tmpdir):
     pi, mdp, _ = initialize()
     agent = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=4)
 
@@ -104,22 +103,8 @@ def test_maxmin_q_learning():
 
     assert np.allclose(agent.Q[0].table, test_q)
 
-
-def test_maxmin_q_learning_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    pi, mdp, _ = initialize()
-    agent_save = MaxminQLearning(mdp.info, pi, Parameter(.5), n_tables=5)
-
-    core = Core(agent_save, mdp)
-
-    # Train
-    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    assert_properly_loaded(agent_save, agent_load)
+    agent.save(tmpdir / 'agent.msh')
+    assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
 def test_speedy_q_learning(tmpdir):
@@ -190,7 +175,7 @@ def test_sarsa_lambda_discrete(tmpdir):
     assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
-def test_sarsa_lambda_continuous_linear():
+def test_sarsa_lambda_continuous_linear(tmpdir):
     pi, _, mdp_continuous = initialize()
 
     n_tilings = 1
@@ -217,39 +202,11 @@ def test_sarsa_lambda_continuous_linear():
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
-
-def test_sarsa_lambda_continuous_linear_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    pi, _, mdp_continuous = initialize()
-
-    n_tilings = 1
-    tilings = Tiles.generate(n_tilings, [2, 2],
-                             mdp_continuous.info.observation_space.low,
-                             mdp_continuous.info.observation_space.high)
-    features = Features(tilings)
-
-    approximator_params = dict(
-        input_shape=mdp_continuous.info.observation_space.shape,
-        output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n,
-        phi=features,
-    )
-    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, LinearApproximator, Parameter(.1), .9,
-                                       approximator_params=approximator_params)
-
-    core = Core(agent_save, mdp_continuous)
-
-    # Train
-    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    assert_properly_loaded(agent_save, agent_load)
+    agent.save(tmpdir / 'agent.msh')
+    assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
-def test_sarsa_lambda_continuous_nn():
+def test_sarsa_lambda_continuous_nn(tmpdir):
     pi, _, mdp_continuous = initialize()
 
     approximator_params = dict(
@@ -272,32 +229,8 @@ def test_sarsa_lambda_continuous_nn():
 
     assert np.allclose(agent.Q.get_weights(), test_w)
 
-
-def test_sarsa_lambda_continuous_nn_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    pi, _, mdp_continuous = initialize()
-
-    approximator_params = dict(
-        input_shape=mdp_continuous.info.observation_space.shape,
-        output_shape=(mdp_continuous.info.action_space.n,),
-        network=QNetwork,
-        n_features=None,
-        n_layers=0,
-        n_actions=mdp_continuous.info.action_space.n
-    )
-    agent_save = SARSALambdaContinuous(mdp_continuous.info, pi, NumpyTorchApproximator, Parameter(.1), .9,
-                                       approximator_params=approximator_params)
-
-    core = Core(agent_save, mdp_continuous)
-
-    # Train
-    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    assert_properly_loaded(agent_save, agent_load)
+    agent.save(tmpdir / 'agent.msh')
+    assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
 def test_expected_sarsa(tmpdir):
@@ -317,7 +250,7 @@ def test_expected_sarsa(tmpdir):
     assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
-def test_true_online_sarsa_lambda():
+def test_true_online_sarsa_lambda(tmpdir):
     pi, _, mdp_continuous = initialize()
 
     n_tilings = 1
@@ -342,40 +275,10 @@ def test_true_online_sarsa_lambda():
 
     test_w = np.load('tests/algorithms/data/test_true_online_sarsa_lambda.npy')
 
-    print(agent.Q.get_weights())
-
     assert np.allclose(agent.Q.get_weights(), test_w)
 
-
-def test_true_online_sarsa_lambda_save(tmpdir):
-    agent_path = tmpdir / 'agent_{}'.format(datetime.now().strftime("%H%M%S%f"))
-
-    pi, _, mdp_continuous = initialize()
-
-    n_tilings = 1
-    tilings = Tiles.generate(n_tilings, [2, 2],
-                             mdp_continuous.info.observation_space.low,
-                             mdp_continuous.info.observation_space.high)
-    features = Features(tilings)
-
-    approximator_params = dict(
-        input_shape=mdp_continuous.info.observation_space.shape,
-        output_shape=(mdp_continuous.info.action_space.n,),
-        n_actions=mdp_continuous.info.action_space.n,
-        phi=features,
-    )
-    agent_save = TrueOnlineSARSALambda(mdp_continuous.info, pi, Parameter(.1), .9,
-                                       approximator_params=approximator_params)
-
-    core = Core(agent_save, mdp_continuous)
-
-    # Train
-    core.learn(n_steps=100, n_steps_per_fit=1, quiet=True)
-
-    agent_save.save(agent_path)
-    agent_load = Agent.load(agent_path)
-
-    assert_properly_loaded(agent_save, agent_load)
+    agent.save(tmpdir / 'agent.msh')
+    assert_properly_loaded(agent, Agent.load(tmpdir / 'agent.msh'))
 
 
 def test_r_learning(tmpdir):

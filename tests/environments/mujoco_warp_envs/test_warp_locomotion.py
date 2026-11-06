@@ -3,8 +3,8 @@ import pytest
 import torch
 
 pytest.importorskip("mujoco_warp")
-wp = pytest.importorskip("warp")
 
+import warp as wp  # noqa: E402
 from mushroom_rl.environments.mujoco_warp_envs import AntWarp, HalfCheetahWarp, HopperWarp, Walker2DWarp  # noqa: E402
 
 

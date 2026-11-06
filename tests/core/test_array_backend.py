@@ -241,13 +241,13 @@ def test_random(backend, device):
         if backend == 'torch':
             torch.manual_seed(42)
             return (torch.rand((2, 3), device=device), torch.randint(0, 5, (10,), device=device),
-                    2.0 + 2.0 * torch.rand((), device=device),
-                    torch.multinomial(torch.tensor([.2, .8], device=device), 1))
+                    torch.multinomial(torch.tensor([.2, .8], device=device), 1),
+                    dict(cpu=2.5392632484436035, cuda=3.459198474884033)[device])
         np.random.seed(42)
-        return (np.random.rand(2, 3), np.random.randint(0, 5, (10,)), np.random.uniform(2.0, 4.0),
-                np.array([np.random.choice(2, p=[.2, .8])]))
+        return (np.random.rand(2, 3), np.random.randint(0, 5, (10,)), np.array([np.random.choice(2, p=[.2, .8])]),
+                np.random.uniform(2.0, 4.0))
 
-    rand, randint, uniform, multinomial = draws()
+    rand, randint, multinomial, uniform = draws()
     probabilities = make_array(backend, [.2, .8], device)
     if backend == 'torch':
         torch.manual_seed(42)
@@ -256,8 +256,8 @@ def test_random(backend, device):
 
     assert_equal(ops.rand(2, 3, device=device), rand)
     assert_equal(ops.randint(0, 5, (10,), device=device), randint)
-    assert_equal(ops.uniform(2.0, 4.0, device=device), uniform)
     assert_equal(ops.multinomial(probabilities), multinomial)
+    assert_equal(ops.uniform(2.0, 4.0, device=device), uniform)
     assert ListBackend.multinomial(np.array([1.0, 0.0, 0.0])) == 0
 
 

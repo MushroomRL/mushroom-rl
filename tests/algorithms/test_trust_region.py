@@ -127,12 +127,15 @@ def learn_action_history(alg, alg_params, action_history_length):
 def test_PPO(device, tmpdir):
     params = dict(actor_optimizer={'class': optim.Adam,
                                    'params': {'lr': 3e-4}},
-                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95)
-    agent = learn(PPO, params)
+                  n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95, device=device)
+    logger = FakeLogger()
+    agent = learn(PPO, params, logger=logger)
     policy = agent.policy
     w = policy.get_weights()
 
     tu.assert_recorded(w, 'test_PPO', device)
+    assert logger.keys() == {'R', 'actor/entropy', 'actor/kl', 'critic/loss'}
+    assert logger.messages == ['Iteration 1', 'Iteration 2']
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
@@ -140,30 +143,17 @@ def test_PPO(device, tmpdir):
 @pytest.mark.parametrize('device', devices())
 def test_TRPO(device, tmpdir):
     params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10,
-                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10)
-    agent = learn(TRPO, params)
+                  n_epochs_cg=10, cg_damping=1e-2, cg_residual_tol=1e-10, device=device)
+    logger = FakeLogger()
+    agent = learn(TRPO, params, logger=logger)
     policy = agent.policy
     w = policy.get_weights()
 
     tu.assert_recorded(w, 'test_TRPO', device)
+    assert logger.keys() == {'R', 'actor/entropy', 'actor/kl', 'critic/loss'}
+    assert logger.messages == ['Iteration 1', 'Iteration 2']
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
-
-
-@pytest.mark.parametrize('device', devices())
-def test_logger(device):
-    ppo_params = dict(actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}}, n_epochs_policy=4,
-                      batch_size=64, eps_ppo=.2, lam=.95, device=device)
-    trpo_params = dict(ent_coeff=0.0, max_kl=.001, lam=.98, n_epochs_line_search=10, n_epochs_cg=10,
-                       cg_damping=1e-2, cg_residual_tol=1e-10, device=device)
-
-    for alg, params in [(PPO, ppo_params), (TRPO, trpo_params)]:
-        logger = FakeLogger()
-        w = learn(alg, params, logger=logger).policy.get_weights()
-
-        tu.assert_recorded(w, f'test_{alg.__name__}', device)
-        assert logger.keys() == {'R', 'actor/entropy', 'actor/kl', 'critic/loss'}
-        assert logger.messages == ['Iteration 1', 'Iteration 2']
 
 
 def test_TRPO_rejected_step():

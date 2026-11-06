@@ -130,23 +130,19 @@ def test_black_box_evaluate_vectorized_greedy_uses_distribution_mean():
 
 
 def test_RWR(tmpdir):
-    agent = learn(RWR, beta=1.)
+    logger = FakeLogger()
+    agent = learn(RWR, beta=1., logger=logger)
     distribution = agent.distribution
     w = distribution.get_parameters()
     w_test = np.load('tests/algorithms/data/test_RWR.npy')
 
     assert np.allclose(w, w_test)
+    assert logger.keys() == {'J', 'distribution/entropy'} and len(logger.calls) == 2
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_logger():
-    logger = FakeLogger()
-    agent = learn(RWR, beta=1., logger=logger)
-
-    assert np.allclose(agent.distribution.get_parameters(), np.load('tests/algorithms/data/test_RWR.npy'))
-    assert logger.keys() == {'J', 'distribution/entropy'} and len(logger.calls) == 2
-
+def test_black_box_optimization():
     with pytest.raises(NotImplementedError):
         BlackBoxOptimization._update(None, None, None, None)
 

@@ -16,14 +16,18 @@ from mushroom_rl.environments.segway import Segway
 from mushroom_rl.environments.ship_steering import ShipSteering
 
 
-@pytest.mark.parametrize('env, action, ns_test', [
-    pytest.param(CartPole, discrete_action, [1.25234221, 2.44501606], id='cart_pole'),
-    pytest.param(InvertedPendulum, box_action, [1.62134054, 1.0107062], id='inverted_pendulum'),
-    pytest.param(PuddleWorld, discrete_action, [0.41899424, 0.4022506], id='puddle_world'),
-    pytest.param(Segway, scalar_action, [-0.64112019, -4.92869367, 10.33970413], id='segway'),
-    pytest.param(ShipSteering, scalar_action, [0., 7.19403055, 1.66804923, 0.08134399], id='ship_steering')
+@pytest.mark.parametrize('name, env, action', [
+    pytest.param('cart_pole', CartPole, discrete_action, id='cart_pole'),
+    pytest.param('inverted_pendulum', InvertedPendulum, box_action, id='inverted_pendulum'),
+    pytest.param('puddle_world', PuddleWorld, discrete_action, id='puddle_world'),
+    pytest.param('segway', Segway, scalar_action, id='segway'),
+    pytest.param('ship_steering', ShipSteering, scalar_action, id='ship_steering')
 ])
-def test_rollout(env, action, ns_test):
+def test_rollout(name, env, action):
+    ns_test = dict(cart_pole=[1.25234221, 2.44501606], inverted_pendulum=[1.62134054, 1.0107062],
+                   puddle_world=[0.41899424, 0.4022506], segway=[-0.64112019, -4.92869367, 10.33970413],
+                   ship_steering=[0., 7.19403055, 1.66804923, 0.08134399])[name]
+
     np.random.seed(1)
     ns = rollout(env(), action, render=True)
 
@@ -106,8 +110,9 @@ def test_reset():
                                  (LQR.generate(2, initial_state=np.array([.5, -.5])), None, [.5, -.5])]:
         assert np.allclose(mdp.reset(None if state is None else np.array(state))[0], expected)
 
+    ship_state = np.load('tests/environments/data/test_reset_ship_steering.npy')
     np.random.seed(1)
-    assert np.allclose(ShipSteering(small=False).reset()[0], np.load('tests/environments/data/test_reset.npy'))
+    assert np.allclose(ShipSteering(small=False).reset()[0], ship_state)
     np.random.seed(1)
     assert np.allclose(Segway(random_start=True).reset()[0], [-0.26068306, 0., 0.])
     np.random.seed(1)

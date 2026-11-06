@@ -5,8 +5,8 @@ from mushroom_rl.core import Environment
 from mushroom_rl.environments import MuJoCoWarp
 
 pytest.importorskip("mujoco_warp")
-wp = pytest.importorskip("warp")
 
+import warp as wp  # noqa: E402
 from mushroom_rl.environments.mujoco_warp_envs import AntWarp, HopperWarp  # noqa: E402
 
 

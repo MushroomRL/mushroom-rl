@@ -52,13 +52,14 @@ class TestUtils:
     @classmethod
     def assert_save_load(cls, agent, path, full_save=False):
         """
-        Save an agent, load it back and compare every attribute of the two objects for equality
+        Save an agent, load it back and compare every attribute of the two objects but the logger for equality
         """
         agent.save(path, full_save=full_save)
         loaded = Agent.load(path)
 
         for attribute in vars(agent):
-            cls.assert_eq(getattr(agent, attribute), getattr(loaded, attribute))
+            if attribute != '_logger':  # the logger is not saved
+                cls.assert_eq(getattr(agent, attribute), getattr(loaded, attribute))
 
     @classmethod
     def eq_weights(cls, this, that):

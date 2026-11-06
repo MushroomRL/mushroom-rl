@@ -43,23 +43,19 @@ def learn(alg, alg_params, logger=None):
 
 
 def test_REINFORCE(tmpdir):
+    logger = FakeLogger()
     params = dict(optimizer=AdaptiveOptimizer(eps=.01))
-    agent = learn(REINFORCE, params)
+    agent = learn(REINFORCE, params, logger=logger)
     policy = agent.policy
     w = np.array([-0.0084793,  2.00536528])
 
     assert np.allclose(w, policy.get_weights())
+    assert logger.keys() == {'J'} and len(logger.calls) == 2
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
 
-def test_logger():
-    logger = FakeLogger()
-    agent = learn(REINFORCE, dict(optimizer=AdaptiveOptimizer(eps=.01)), logger=logger)
-
-    assert np.allclose(agent.policy.get_weights(), np.array([-0.0084793, 2.00536528]))
-    assert logger.keys() == {'J'} and len(logger.calls) == 2
-
+def test_policy_gradient():
     for call in (lambda: PolicyGradient._init_update(None), lambda: PolicyGradient._step_update(None, 0, 0, 0),
                  lambda: PolicyGradient._episode_end_update(None), lambda: PolicyGradient._compute_gradient(None, 0)):
         with pytest.raises(NotImplementedError):

@@ -53,10 +53,7 @@ def test_lspi(tmpdir):
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
 
-
-def test_logger():
     logger = FakeLogger()
-    agent = learn_lspi(logger)
 
-    assert np.allclose(agent.approximator.get_weights(), np.array([-1.67115903, -1.43755615, -1.67115903]))
+    assert np.allclose(learn_lspi(logger).approximator.get_weights(), w_test)
     assert logger.keys() == {'critic/weights_delta_norm', 'policy/epsilon'}
