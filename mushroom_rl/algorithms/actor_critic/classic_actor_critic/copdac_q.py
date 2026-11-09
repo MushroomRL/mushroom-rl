@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core import Agent
 from mushroom_rl.approximators.parametric import LinearApproximator
 
@@ -69,11 +67,11 @@ class COPDAC_Q(Agent):
 
             q_next = self._V(ss_psi).item() if not absorbing else 0
 
-            grad_mu_s = np.atleast_2d(self._mu.diff(s))
+            grad_mu_s = self._mu.diff(s)
             omega = self._A.get_weights()
 
             delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
-            delta_theta = self._alpha_theta(s, a) * omega.dot(grad_mu_s.T).dot(grad_mu_s)
+            delta_theta = self._alpha_theta(s, a) * (grad_mu_s @ (grad_mu_s.T @ omega))
             delta_omega = self._alpha_omega(s, a) * delta * self._nu(s, a)
             delta_v = self._alpha_v(s, a) * delta * s_psi
 
@@ -95,7 +93,7 @@ class COPDAC_Q(Agent):
         return self._V(state_psi).item() + self._A(self._nu(state, action)).item()
 
     def _nu(self, state, action):
-        grad_mu = np.atleast_2d(self._mu.diff(state))
+        grad_mu = self._mu.diff(state)
         delta = action - self._mu(state)
 
-        return delta.dot(grad_mu)
+        return grad_mu @ delta

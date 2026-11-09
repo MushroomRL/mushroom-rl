@@ -89,7 +89,9 @@ class LinearApproximator(Approximator):
 
         """
         if len(self._w.shape) == 1 or self._w.shape[0] == 1:
-            return self.phi(state)
+            phi = self.phi(state)
+
+            return phi if action is not None else phi.reshape(*phi.shape, *self._output_shape)
         else:
             n_phi = self._w.shape[1]
             n_outs = self._w.shape[0]

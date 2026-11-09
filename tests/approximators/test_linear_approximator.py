@@ -32,6 +32,9 @@ def test_linear():
     for i in range(derivative.shape[1]):
         assert (derivative[i * lp:(i + 1) * lp, i] == point).all()
 
+    for output_shape in [(), (1,)]:
+        assert LinearApproximator(input_shape=(3,), output_shape=output_shape).diff(point).shape == (3, *output_shape)
+
     old_weights = approximator.get_weights()
     approximator.set_weights(old_weights)
     new_weights = approximator.get_weights()
