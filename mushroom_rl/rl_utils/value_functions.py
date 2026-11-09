@@ -51,6 +51,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
     """
     with torch.no_grad():
         v = V(s, action_history=action_history)
+        assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
 
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
@@ -99,6 +100,7 @@ def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, 
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
         v = V(s, action_history=action_history)
+        assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
         v_next = V(ss, action_history=next_action_history) * ~absorbing
 
         q = r + gamma * v_next
@@ -136,6 +138,7 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
         v = V(s, action_history=action_history)
+        assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
         v_next = V(ss, action_history=next_action_history)
 
         _, v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v, v_next, r, absorbing)

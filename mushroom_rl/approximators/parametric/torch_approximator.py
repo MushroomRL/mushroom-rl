@@ -694,14 +694,15 @@ class TorchEnsemble(Ensemble):
 
     def diff(self, *args, **kwargs):
         """
-        Compute the derivative of the output w.r.t. the input for each model, stacked.
+        Compute the derivative of the output w.r.t. the model parameters for each model, stacked.
 
         Args:
             *args: input;
             **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
-            The stacked derivatives of all models w.r.t. the input, shape ``(n_models, weights_size, *output_shape)``.
+            The stacked derivatives of all models w.r.t. the model parameters, shape
+            ``(n_models, weights_size, *output_shape)``.
 
         """
         return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)

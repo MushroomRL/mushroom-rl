@@ -287,13 +287,16 @@ class QApproximatorAction(QApproximator):
         """
         s = self._models[0].weights_size
         if action is None:
-            diff = self._backend.zeros(s * self._n_actions, self._n_actions, dtype=float, device=self._device)
-            for a, m in enumerate(self._models):
-                diff[s * a:s * (a + 1), a] = m.diff(state)
+            gradients = [m.diff(state) for m in self._models]
+            diff = self._backend.zeros(s * self._n_actions, self._n_actions, dtype=gradients[0].dtype,
+                                       device=self._device)
+            for a, gradient in enumerate(gradients):
+                diff[s * a:s * (a + 1), a] = gradient
             return diff
         a = action[0]
-        diff = self._backend.zeros(s * self._n_actions, dtype=float, device=self._device)
-        diff[s * a:s * (a + 1)] = self._models[a].diff(state)
+        gradient = self._models[a].diff(state)
+        diff = self._backend.zeros(s * self._n_actions, dtype=gradient.dtype, device=self._device)
+        diff[s * a:s * (a + 1)] = gradient
         return diff
 
 

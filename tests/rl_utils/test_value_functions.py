@@ -164,3 +164,8 @@ def test_advantage():
 
     assert q.shape == (5,) and adv.shape == (5,)
     assert torch.allclose(q, q_test) and torch.allclose(adv, adv_test)
+
+    V = TorchApproximator(input_shape=(3,), output_shape=(1,), network=LinearNetwork)
+    for compute, params in [(compute_advantage, ()), (compute_gae, (.95,)), (compute_advantage_montecarlo, ())]:
+        with pytest.raises(AssertionError):
+            compute(V, state, next_state, reward, absorbing, absorbing.clone(), .9, *params)

@@ -139,6 +139,10 @@ def test_q_torch():
     gradient = approximator.diff(x_s[0]).detach().numpy()
     assert np.allclose(gradient, np.load('tests/approximators/data/test_q_torch_2.npy'))
 
+    approximator = QApproximator(TorchApproximator, n_actions=n_actions, input_shape=(4,),
+                                 network=FeedForwardNetwork, n_features=[5])
+    assert approximator.diff(x_s[0]).dtype == approximator.diff(x_s[0], x_a[0]).dtype == torch.float32
+
 
 def test_q_numpy_torch():
     np.random.seed(1)
