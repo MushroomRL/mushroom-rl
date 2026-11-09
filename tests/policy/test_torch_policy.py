@@ -29,12 +29,9 @@ class Network(nn.Module):
         self._h2 = nn.Linear(n_features, n_features)
         self._h3 = nn.Linear(n_features, n_output)
 
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('tanh'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('tanh'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('linear'))
+        nn.init.xavier_uniform_(self._h1.weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain('tanh'))
+        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('linear'))
 
     def forward(self, state, **kwargs):
         features1 = torch.tanh(self._h1(torch.squeeze(state, -1).float()))

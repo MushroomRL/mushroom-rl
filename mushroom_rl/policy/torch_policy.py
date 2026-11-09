@@ -102,8 +102,7 @@ class TorchPolicy(Policy):
         Setter.
 
         Args:
-            weights (np.ndarray): the vector of the new weights to be used by
-                the policy.
+            weights (np.ndarray): the vector of the new weights to be used by the policy.
 
         """
         raise NotImplementedError
@@ -120,8 +119,7 @@ class TorchPolicy(Policy):
 
     def parameters(self):
         """
-        Returns the trainable policy parameters, as expected by torch
-        optimizers.
+        Returns the trainable policy parameters, as expected by torch optimizers.
 
         Returns:
             List of parameters to be optimized.
@@ -132,8 +130,8 @@ class TorchPolicy(Policy):
 
 class GaussianTorchPolicy(TorchPolicy):
     """
-    Torch policy implementing a Gaussian policy with trainable standard
-    deviation. The standard deviation is not state-dependent.
+    Torch policy implementing a Gaussian policy with trainable standard deviation. The standard deviation is not
+    state-dependent.
 
     """
     def __init__(self, network, input_shape, output_shape, std_0=1., device=None, **params):
@@ -141,8 +139,7 @@ class GaussianTorchPolicy(TorchPolicy):
         Constructor.
 
         Args:
-            network (object): the network class used to implement the mean
-                approximator;
+            network (object): the network class used to implement the mean approximator;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
@@ -225,13 +222,11 @@ class BoltzmannTorchPolicy(TorchPolicy):
         Constructor.
 
         Args:
-            network (object): the network class used to implement the mean
-                approximator;
+            network (object): the network class used to implement the mean approximator;
             input_shape (tuple): the shape of the state space;
             output_shape (tuple): the shape of the action space;
-            beta ([float, Parameter]): the inverse of the temperature distribution. As
-                the temperature approaches infinity, the policy becomes more and
-                more random. As the temperature approaches 0.0, the policy becomes
+            beta ([float, Parameter]): the inverse of the temperature distribution. As the temperature approaches
+                infinity, the policy becomes more and more random. As the temperature approaches 0.0, the policy becomes
                 more and more greedy;
             device (str, None): device the policy is stored on, or ``None`` for the default one;
             **params: parameters used by the network constructor.

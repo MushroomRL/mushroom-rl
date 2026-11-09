@@ -74,8 +74,7 @@ class DeepAC(Agent):
         Constructor.
 
         Args:
-            actor_optimizer (dict): parameters to specify the actor optimizer
-                algorithm;
+            actor_optimizer (dict): parameters to specify the actor optimizer algorithm;
             parameters (list): policy parameters to be optimized.
             history_length (int, 1): number of consecutive observations stacked as policy input;
             action_history_length (int, 0): number of previous actions stacked as policy input;
