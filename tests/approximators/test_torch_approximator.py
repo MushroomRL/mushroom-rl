@@ -227,7 +227,7 @@ def test_logger(tmpdir):
 def test_reinitialize(n_models):
     def make(reinitialize):
         return TorchApproximator(QNetwork, (2,), (1,), n_features=4,
-                                 optimizer={'class': optim.SGD, 'params': {'lr': .5}},
+                                 optimizer={'class': optim.Adam, 'params': {'lr': .5}},
                                  loss=F.mse_loss, reinitialize=reinitialize, n_models=n_models)
 
     torch.manual_seed(0)

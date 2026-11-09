@@ -49,8 +49,7 @@ class TorchApproximator(Approximator):
                 dataset is fed to the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit
                 method of the network;
-            reinitialize (bool, False): if True, the weights of the network are drawn anew at the start of
-                every fit call; requires the network to define a ``reset_parameters`` method;
+            reinitialize (bool, False): if True, the network and the optimizer are reset at every fit call;
             dropout (bool, False): if True, dropout is applied only during
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
@@ -107,6 +106,11 @@ class TorchApproximator(Approximator):
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
+    def _reinitialize(self):
+        self.network.reset_parameters()
+        self._optimizer.state.clear()
+        self._dirty = True
+
     def _pad_inputs(self, args, kwargs):
         n_declared = len(self._input_ndims)
         args = [a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
@@ -155,7 +159,7 @@ class TorchApproximator(Approximator):
 
         """
         if self._trainer.reinitialize:
-            self.network.reset_parameters()
+            self._reinitialize()
 
         if self._trainer.dropout:
             self.network.train()
@@ -351,9 +355,7 @@ class TorchEnsemble(Ensemble):
             batch_size (int, 0): the size of each minibatch. If 0, the whole dataset is fed to
                 the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit method of the network;
-            reinitialize (bool, False): if True, the weights of every model are drawn anew at the start of
-                every fit call on the whole ensemble; requires the network to define a ``reset_parameters``
-                method;
+            reinitialize (bool, False): if True, the networks and the optimizers are reset at every fit call;
             dropout (bool, False): if True, dropout is applied only during train;
             quiet (bool, True): if False, shows a progress bar over epochs;
             n_models (int): number of models in the ensemble;
@@ -497,8 +499,7 @@ class TorchEnsemble(Ensemble):
 
         if self._trainer.reinitialize:
             for m in self._models:
-                m.network.reset_parameters()
-                m._dirty = True
+                m._reinitialize()
 
         if self._trainer.dropout:
             self._base_model.train()
