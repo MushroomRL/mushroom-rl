@@ -36,11 +36,11 @@ class MORE(BlackBoxOptimization):
 
         poly_basis_quadratic = PolynomialBasis().generate(2, policy.weights_size)
         self.phi_quadratic_ = Features(poly_basis_quadratic)
-        self.regressor_quadratic = LinearApproximator(input_shape=(len(poly_basis_quadratic),), output_shape=(1,))
+        self.regressor_quadratic = LinearApproximator(input_shape=(len(poly_basis_quadratic),), output_shape=())
 
         poly_basis_linear = PolynomialBasis().generate(1, policy.weights_size)
         self.phi_linear_ = Features(poly_basis_linear)
-        self.regressor_linear = LinearApproximator(input_shape=(len(poly_basis_linear),), output_shape=(1,))
+        self.regressor_linear = LinearApproximator(input_shape=(len(poly_basis_linear),), output_shape=())
 
         super().__init__(mdp_info, distribution, policy)
 

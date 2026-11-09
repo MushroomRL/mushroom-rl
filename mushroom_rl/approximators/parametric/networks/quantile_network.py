@@ -46,7 +46,7 @@ class QuantileNetwork(nn.Module):
             quant = a_quant.mean(-1)
 
             if action is not None:
-                return torch.squeeze(quant.gather(1, action))
+                return quant.gather(1, action).squeeze(1)
             else:
                 return quant
         else:
@@ -54,6 +54,6 @@ class QuantileNetwork(nn.Module):
                 action = torch.unsqueeze(
                     action.long(), 2).repeat(1, 1, self._n_quantiles)
 
-                return torch.squeeze(a_quant.gather(1, action))
+                return a_quant.gather(1, action).squeeze(1)
             else:
                 return a_quant

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import torch
 import torch.optim as optim
@@ -11,8 +12,8 @@ from mushroom_rl.features.tiles import Tiles
 
 
 class FlattenLeastSquares(Approximator):
-    def __init__(self, input_shape):
-        super().__init__(input_shape, (1,))
+    def __init__(self, input_shape, output_shape):
+        super().__init__(input_shape, output_shape)
         self._w = None
 
     def fit(self, x, y):
@@ -68,6 +69,10 @@ def test_q_linear():
     y = approximator.predict(x_s)
     assert np.allclose(y, np.load('tests/approximators/data/test_q_linear_0.npy'))
 
+    assert approximator.predict(x_s[:1]).shape == (1, n_actions) and np.allclose(approximator.predict(x_s[:1]), y[:1])
+    assert approximator.predict(x_s[:1], x_a[:1]).shape == (1,)
+    assert approximator.predict(x_s[0]).shape == (n_actions,) and approximator.predict(x_s[0], x_a[0]).shape == ()
+
     approximator2 = QApproximator(LinearApproximator, n_actions=n_actions, input_shape=(3,))
     approximator2.fit(s, a, q)
 
@@ -90,6 +95,8 @@ def test_q_weights():
     approximator.fit(np.random.rand(4, 2), np.array([[0], [1], [0], [1]]), np.random.rand(4))
 
     assert np.array_equal(approximator.get_weights()[4:], [4., 5.])
+    with pytest.raises(ValueError):
+        QApproximator(LinearApproximator, n_actions=3, input_shape=(2,), output_shape=(1,))
 
     ensemble = QApproximator(LinearApproximator, n_actions=3, input_shape=(2,), n_models=2)
     weights = np.arange(12.).reshape(2, 6)
@@ -233,5 +240,8 @@ def test_q_window():
     assert np.allclose(y_single, y[0])
 
     y_single = approximator.predict(x_s[0], x_a[0])
-    assert y_single.shape == (1,)
+    assert y_single.shape == ()
     assert np.allclose(y_single, y[0, x_a[0, 0]])
+
+    assert approximator.predict(x_s[:1]).shape == (1, n_actions)
+    assert approximator.predict(x_s[:1], x_a[:1]).shape == (1,)

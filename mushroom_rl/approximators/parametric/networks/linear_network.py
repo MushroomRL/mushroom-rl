@@ -1,3 +1,5 @@
+import math
+
 import torch.nn as nn
 
 
@@ -21,7 +23,8 @@ class LinearNetwork(nn.Module):
         super().__init__()
 
         n_input = input_shape[-1]
-        n_output = output_shape[0]
+        self._output_shape = tuple(output_shape)
+        n_output = math.prod(output_shape)
 
         self._f = nn.Linear(n_input, n_output, bias=use_bias)
 
@@ -31,4 +34,6 @@ class LinearNetwork(nn.Module):
         nn.init.xavier_uniform_(self._f.weight, gain=gain)
 
     def forward(self, state, **kwargs):
-        return self._f(state)
+        out = self._f(state)
+
+        return out.reshape(*out.shape[:-1], *self._output_shape)

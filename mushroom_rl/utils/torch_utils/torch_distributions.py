@@ -14,7 +14,7 @@ class CategoricalWrapper(torch.distributions.Categorical):
         super().__init__(logits=logits)
 
     def log_prob(self, value):
-        return super().log_prob(value.squeeze())
+        return super().log_prob(value.squeeze(-1))
 
 
 class SquashedGaussian(TransformedDistribution):

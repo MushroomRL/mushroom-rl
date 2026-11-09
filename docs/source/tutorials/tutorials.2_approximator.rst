@@ -49,6 +49,14 @@ is given, the number of weights is determined by the size of the features, not b
 above holds two weights, one per polynomial feature, even though its input is one-dimensional. ``input_shape`` must be
 a tuple, as an approximator takes a single input.
 
+Output shapes
+-------------
+
+``predict`` returns an array of shape ``output_shape`` for a single input and ``(n, *output_shape)`` for a batch of
+``n`` inputs, a batch of one included. A scalar output, such as a value function or a Q-value, is declared with
+``output_shape=()`` and is returned with shape ``()`` for a single input and ``(n,)`` for a batch; ``output_shape=(1,)``
+declares a vector with one component instead, returned with shape ``(1,)`` and ``(n, 1)``.
+
 Q-function approximation
 ------------------------
 
@@ -56,8 +64,8 @@ For classical RL algorithms with discrete action spaces, MushroomRL provides ``Q
 that selects the appropriate concrete implementation based on the constructor arguments:
 
 * ``n_models > 1``: ``QApproximatorEnsemble`` — ensemble of independent Q-approximators;
-* ``output_shape[0] != n_actions``: ``QApproximatorAction`` — one independent model per action;
-* ``output_shape[0] == n_actions``: ``QApproximatorSimple`` — a single multi-output model with one output per action.
+* ``output_shape == ()``: ``QApproximatorAction`` — one independent scalar model per action;
+* ``output_shape == (n_actions,)``: ``QApproximatorSimple`` — a single multi-output model with one output per action.
 
 Algorithms that accept a parametric ``approximator`` class (e.g. ``SARSALambdaContinuous``, ``TrueOnlineSARSALambda``,
 ``FQI``) pass it through ``QApproximator`` internally, so the same algorithm code handles all three cases transparently.
@@ -82,12 +90,12 @@ Setting ``output_shape`` to the number of actions creates a ``QApproximatorSimpl
 .. literalinclude:: code/q_approximator.py
    :lines: 26-35
 
-To use a ``QApproximatorAction`` instead — one independent model per action — simply set ``output_shape`` to ``(1,)``:
+To use a ``QApproximatorAction`` instead — one independent model per action — simply set ``output_shape`` to ``()``:
 
 .. code-block:: python
 
    approximator_params = dict(input_shape=mdp.info.observation_space.shape,
-                              output_shape=(1,),
+                              output_shape=(),
                               n_actions=mdp.info.action_space.n,
                               phi=features)
 

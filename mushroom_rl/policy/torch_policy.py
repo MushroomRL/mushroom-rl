@@ -174,10 +174,10 @@ class GaussianTorchPolicy(TorchPolicy):
         dist = self.distribution(state, action_history=action_history)
         a = dist.rsample()
 
-        return a, dist.log_prob(a).unsqueeze(-1)
+        return a, dist.log_prob(a)
 
     def log_prob(self, state, action, action_history=None):
-        return self.distribution(state, action_history=action_history).log_prob(action).unsqueeze(-1)
+        return self.distribution(state, action_history=action_history).log_prob(action)
 
     def entropy(self, state=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e, self._device))\
@@ -259,7 +259,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
 
     def log_prob(self, state, action):
-        return self.distribution(state).log_prob(action).unsqueeze(-1)
+        return self.distribution(state).log_prob(action)
 
     def entropy(self, state=None):
         return torch.mean(self.distribution(state).entropy())
@@ -337,7 +337,7 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         return self.distribution(state).rsample_and_log_prob()
 
     def log_prob(self, state, action):
-        return self.distribution(state).log_prob(action).unsqueeze(-1)
+        return self.distribution(state).log_prob(action)
 
     def entropy(self, state=None):
         _, log_prob = self.draw_with_log_prob(state)

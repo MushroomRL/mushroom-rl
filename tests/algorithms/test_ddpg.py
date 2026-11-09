@@ -61,7 +61,7 @@ def learn(alg, setup=None, **alg_params):
                          n_features=None,
                          n_layers=0,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = alg(mdp.info, policy_class, policy_params,
                 actor_params, actor_optimizer, critic_params, batch_size,

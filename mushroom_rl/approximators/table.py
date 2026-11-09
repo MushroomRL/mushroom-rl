@@ -20,7 +20,7 @@ class Table(Approximator):
             **kwargs: other params of the approximator.
 
         """
-        super().__init__(input_shape=(1,), output_shape=(1,))
+        super().__init__(input_shape=(1,), output_shape=())
         self.table = np.ones(shape, dtype=dtype) * initial_value
 
         self._add_save_attr(table='numpy')
@@ -62,7 +62,8 @@ class Table(Approximator):
             The table prediction.
 
         """
-        if z[0].ndim == 1:
+        single = self._is_single(z[0])
+        if single:
             z = [np.expand_dims(z_i, axis=0) for z_i in z]
         state = z[0]
 
@@ -77,10 +78,9 @@ class Table(Approximator):
                 val = self[state[i], :]
                 values.append(val)
 
-        if len(values) == 1:
-            return values[0]
-        else:
-            return np.array(values)
+        values = np.array(values)
+
+        return self._unbatch(values, single)
 
     @property
     def n_actions(self):

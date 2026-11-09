@@ -33,6 +33,9 @@ def test_recurrent():
     assert action.shape == (n_envs, dim_action)
     assert next_state.shape == (n_envs, 1, n_hidden)
 
+    action, next_state = approximator.predict(torch.randn(1, dim_env), torch.zeros(1, 1, n_hidden))
+    assert action.shape == (1, dim_action) and next_state.shape == (1, 1, n_hidden)
+
     torch.manual_seed(1)
     dim_env, dim_action, n_hidden, batch, seq = 4, 2, 6, 5, 4
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
@@ -75,7 +78,7 @@ def test_recurrent():
 
     approximator = _make_recurrent_actor_approximator(dim_env, dim_action, n_hidden)
     ensemble = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
+        input_shape=(dim_env,), output_shape=(), network=RecurrentCriticNetwork,
         n_models=3, n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )
@@ -93,7 +96,7 @@ def test_recurrent_ensemble(tmpdir):
     dim_env, n_hidden, batch, seq = 4, 6, 8, 5
 
     approximator = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
+        input_shape=(dim_env,), output_shape=(), network=RecurrentCriticNetwork,
         n_models=3, prediction='all', n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1,
         optimizer={'class': optim.Adam, 'params': {}}, loss=F.mse_loss, batch_size=0, quiet=True
@@ -193,7 +196,7 @@ def test_recurrent_ensemble(tmpdir):
     dim_env, n_hidden, batch, seq = 4, 6, 8, 5
 
     approximator = RecurrentTorchApproximator(
-        input_shape=(dim_env,), output_shape=(1,), network=RecurrentCriticNetwork,
+        input_shape=(dim_env,), output_shape=(), network=RecurrentCriticNetwork,
         n_models=3, prediction='mean', n_features=8, rnn_type='gru',
         n_hidden_features=n_hidden, num_hidden_layers=1
     )

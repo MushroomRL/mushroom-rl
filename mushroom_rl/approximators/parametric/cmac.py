@@ -9,14 +9,14 @@ class CMAC(LinearApproximator):
     This class implements a Cerebellar Model Arithmetic Computer.
 
     """
-    def __init__(self, tilings, input_shape, output_shape=(1,), **kwargs):
+    def __init__(self, tilings, input_shape, output_shape, **kwargs):
         """
         Constructor.
 
         Args:
             tilings (list): list of tilings to discretize the input space;
             input_shape (tuple): the shape of the input of the model;
-            output_shape (tuple, (1,)): the shape of the output of the model;
+            output_shape (tuple): the shape of the output of the model;
             **kwargs: other params of the approximator.
 
         """
@@ -38,10 +38,8 @@ class CMAC(LinearApproximator):
             **kwargs: other parameters used by the fit method of the approximator.
 
         """
-        y_hat = self.predict(x)
-        delta_y = np.atleast_2d(y - y_hat)
-        if self._w.shape[0] > 1:
-            delta_y = delta_y.T
+        y_hat = np.reshape(self.predict(x), (-1, self._w.shape[0]))
+        delta_y = (np.reshape(y, y_hat.shape) - y_hat).T
 
         phi = np.atleast_2d(self._phi(x))
         sum_phi = np.sum(phi, axis=0)
@@ -68,5 +66,6 @@ class CMAC(LinearApproximator):
 
         w = self._w[:, indexes]
         prediction = np.where(indexes >= 0, w, 0.).sum(-1).T
+        prediction = np.reshape(prediction, (-1, *self._output_shape))
 
-        return prediction.squeeze()
+        return self._unbatch(prediction, self._is_single(x))

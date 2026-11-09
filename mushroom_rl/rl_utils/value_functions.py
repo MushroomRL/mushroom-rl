@@ -50,8 +50,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
         and the advantage function.
     """
     with torch.no_grad():
-        r = r.squeeze()
-        v = V(s, action_history=action_history).squeeze()
+        v = V(s, action_history=action_history)
 
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
@@ -60,7 +59,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
         next_ah_ep = rest[0] if rest else None
         q_ep = torch.zeros_like(r_ep, dtype=torch.float32)
         next_ah = next_ah_ep[last_ep] if next_ah_ep is not None else None
-        q_end = V(ss_ep[last_ep], action_history=next_ah).squeeze()
+        q_end = V(ss_ep[last_ep], action_history=next_ah)
         q_next_ep = torch.zeros_like(q_end)
 
         not_absorbing_ep = ~absorbing_ep
@@ -73,7 +72,7 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
         q = unsplit_episodes(last, q_ep)
         adv = q - v
 
-        return q[:, None], adv[:, None]
+        return q, adv
 
 
 def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, action=None):
@@ -99,12 +98,12 @@ def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, 
     with torch.no_grad():
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
-        v = V(s, action_history=action_history).squeeze()
-        v_next = V(ss, action_history=next_action_history).squeeze() * ~absorbing
+        v = V(s, action_history=action_history)
+        v_next = V(ss, action_history=next_action_history) * ~absorbing
 
         q = r + gamma * v_next
         adv = q - v
-        return q[:, None], adv[:, None]
+        return q, adv
 
 
 def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, action=None):
@@ -139,7 +138,7 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
         v = V(s, action_history=action_history)
         v_next = V(ss, action_history=next_action_history)
 
-        _, v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v.squeeze(), v_next.squeeze(), r, absorbing)
+        _, v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v, v_next, r, absorbing)
         delta_ep = r_ep - v_ep + ~absorbing_ep * gamma * v_next_ep
 
         gen_adv_ep = torch.zeros_like(v_ep)
@@ -147,6 +146,6 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
         for k in range(v_ep.shape[-1] - 2, -1, -1):
             gen_adv_ep[..., k] = delta_ep[..., k] + gamma * lam * gen_adv_ep[..., k + 1]
 
-        gen_adv = unsplit_episodes(last, gen_adv_ep).unsqueeze(-1)
+        gen_adv = unsplit_episodes(last, gen_adv_ep)
 
         return gen_adv + v, gen_adv

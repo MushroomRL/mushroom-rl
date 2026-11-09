@@ -65,7 +65,7 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
                          n_features=None,
                          n_layers=0,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
     if critic_n_models is not None:
         critic_params['n_models'] = critic_n_models
 

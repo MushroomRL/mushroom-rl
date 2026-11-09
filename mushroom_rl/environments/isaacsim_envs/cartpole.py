@@ -47,14 +47,14 @@ class CartPoleIsaac(IsaacSim):
                          viewer_params=viewer_params)
 
     def reward(self, obs, action, next_obs, absorbing):
-        pole_joint_pos = self._observation_helper.get_from_obs(next_obs, "poleJointPos").squeeze()
-        cart_joint_pos = self._observation_helper.get_from_obs(next_obs, "cartJointPos").squeeze()
+        pole_joint_pos = self._observation_helper.get_from_obs(next_obs, "poleJointPos").squeeze(-1)
+        cart_joint_pos = self._observation_helper.get_from_obs(next_obs, "cartJointPos").squeeze(-1)
         reward = 1.0 - torch.abs(cart_joint_pos)
         reward = torch.where(absorbing, -torch.ones_like(pole_joint_pos), reward)
         return reward
 
     def is_absorbing(self, obs):
-        pole_joint_pos = self._observation_helper.get_from_obs(obs, "poleJointPos").squeeze()
+        pole_joint_pos = self._observation_helper.get_from_obs(obs, "poleJointPos").squeeze(-1)
         ones = torch.ones_like(pole_joint_pos, dtype=bool)
         zeros = torch.zeros_like(pole_joint_pos, dtype=bool)
         dropped = torch.where(torch.abs(pole_joint_pos) > math.pi / 2, ones, zeros)

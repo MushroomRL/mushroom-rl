@@ -74,7 +74,7 @@ def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, 
                          batch_size=int((4096 * 24) / 16),
                          use_cuda=True,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
     agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))

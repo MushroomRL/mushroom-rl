@@ -169,8 +169,8 @@ def test_squashed_gaussian():
     assert np.allclose(log_prob.detach().cpu().numpy(), log_prob_test, atol=1e-5)
 
     log_prob_ext = pi.log_prob(state, action_new.detach())
-    assert log_prob_ext.shape == (5, 1)
-    assert np.allclose(log_prob_ext.detach().cpu().numpy().squeeze(-1), log_prob_test, atol=1e-4)
+    assert log_prob_ext.shape == (5,)
+    assert np.allclose(log_prob_ext.detach().cpu().numpy(), log_prob_test, atol=1e-4)
 
     entropy = pi.entropy(state)
     entropy_test = 1.5094861
@@ -217,7 +217,7 @@ def test_weights():
     gaussian = GaussianTorchPolicy(Network, (3,), (2,), n_features=50)
     action, log_prob = gaussian.draw_with_log_prob(state)
 
-    assert action.shape == (4, 2) and log_prob.shape == (4, 1)
+    assert action.shape == (4, 2) and log_prob.shape == (4,)
     assert torch.allclose(log_prob, gaussian.log_prob(state, action.detach()))
 
     boltzmann = BoltzmannTorchPolicy(Network, (3,), (2,), Parameter(1.), n_features=50)

@@ -53,7 +53,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                          batch_size=100,
                          use_cuda=True,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
 

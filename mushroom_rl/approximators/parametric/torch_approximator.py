@@ -71,9 +71,6 @@ class TorchApproximator(Approximator):
         """
         super().__init__(input_shape=input_shape, output_shape=output_shape, backend='torch', device=device)
 
-        n_outputs = len(output_shape) if isinstance(output_shape, list) else 1
-        self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
-
         self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
 
         kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
@@ -99,7 +96,6 @@ class TorchApproximator(Approximator):
                                      device=self._device)
 
         self._add_save_attr(
-            _parse_output='none',
             _input_ndims='primitive',
             _kwargs_ndims='primitive',
             network='torch',
@@ -109,9 +105,6 @@ class TorchApproximator(Approximator):
         )
 
     def _post_load(self, device):
-        n_outputs = len(self._output_shape) if isinstance(self._output_shape, list) else 1
-        self._parse_output = self._parse_single_output if n_outputs == 1 else self._parse_multi_output
-
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.network.parameters()))
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
@@ -126,14 +119,6 @@ class TorchApproximator(Approximator):
                 kwargs[name] = value.unsqueeze(0)
 
         return args, kwargs
-
-    @staticmethod
-    def _parse_single_output(out):
-        return out.squeeze(0)
-
-    @staticmethod
-    def _parse_multi_output(out):
-        return tuple(o.squeeze(0) for o in out)
 
     def predict(self, *args, **kwargs):
         """
@@ -150,9 +135,10 @@ class TorchApproximator(Approximator):
             The predictions of the model.
 
         """
+        single = self._is_single(args[0])
         args, kwargs = self._pad_inputs(args, kwargs)
 
-        return self._parse_output(self.network(*args, **kwargs))
+        return self._unbatch(self.network(*args, **kwargs), single)
 
     def fit(self, *args, n_epochs=None, weights=None, epsilon=None, patience=1, validation_split=1., **kwargs):
         """
@@ -437,10 +423,10 @@ class TorchEnsemble(Ensemble):
         self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
 
     def _parse_single_output(self, out, prediction, compute_variance):
-        return self._aggregate(out.squeeze(1), prediction, compute_variance)
+        return self._aggregate(out, prediction, compute_variance)
 
     def _parse_multi_output(self, out, prediction, compute_variance):
-        return tuple(self._aggregate(o.squeeze(1), prediction, compute_variance) for o in out)
+        return tuple(self._aggregate(o, prediction, compute_variance) for o in out)
 
     def predict(self, *args, idx=None, prediction=None, compute_variance=False, **kwargs):
         """
@@ -473,6 +459,7 @@ class TorchEnsemble(Ensemble):
 
         n_declared = len(self._input_ndims)
         torch_args = tuple(torch.as_tensor(x, device=self._device) for x in args)
+        single = self._is_single(torch_args[0])
         torch_args = tuple(a.unsqueeze(0) if i < n_declared and a.ndim == self._input_ndims[i] else a
                            for i, a in enumerate(torch_args))
         for name, ndim in self._kwargs_ndims.items():
@@ -485,8 +472,9 @@ class TorchEnsemble(Ensemble):
 
         prediction = prediction if prediction is not None else self._prediction
 
-        return self._parse_output(vmap(fwd, randomness=self._randomness)(self._params, self._buffers),
-                                  prediction, compute_variance)
+        out = self._unbatch(vmap(fwd, randomness=self._randomness)(self._params, self._buffers), single, axis=1)
+
+        return self._parse_output(out, prediction, compute_variance)
 
     def fit(self, *args, idx=None, n_epochs=None, weights=None, epsilon=None, patience=1,
             validation_split=1., **kwargs):

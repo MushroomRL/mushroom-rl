@@ -205,7 +205,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
                                  **policy_params)
 
     # Agent
-    critic_params = dict(critic_params, input_shape=network_input_shape, output_shape=(1,))
+    critic_params = dict(critic_params, input_shape=network_input_shape, output_shape=())
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
     agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))

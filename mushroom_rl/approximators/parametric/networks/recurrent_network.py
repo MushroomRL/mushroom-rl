@@ -248,7 +248,9 @@ class RecurrentCriticNetwork(RecurrentNetwork):
         super().__init__()
 
         assert hidden_state_treatment in ['zero_initial', 'use_policy_hidden_state']
+        assert tuple(output_shape) != (1,), 'RecurrentCriticNetwork outputs a scalar: use output_shape=()'
 
+        self._output_shape = tuple(output_shape)
         dim_env_state = math.prod(input_shape)
         self._use_policy_hidden_states = hidden_state_treatment == 'use_policy_hidden_state'
         self._use_action_history = action_history_shape is not None
@@ -267,7 +269,7 @@ class RecurrentCriticNetwork(RecurrentNetwork):
                         batch_first=True)
 
         self._hq_1 = nn.Linear(n_hidden_features + n_features, n_features)
-        self._hq_2 = nn.Linear(n_features, 1)
+        self._hq_2 = nn.Linear(n_features, math.prod(output_shape))
         self._act_func = nn.ReLU()
 
         nn.init.xavier_uniform_(self._h1_o.weight, gain=nn.init.calculate_gain('relu'))
@@ -297,4 +299,4 @@ class RecurrentCriticNetwork(RecurrentNetwork):
         input_last_layer = torch.concat([feature_s, features_rnn], dim=1)
         q = self._hq_2(self._act_func(self._hq_1(input_last_layer)))
 
-        return torch.squeeze(q)
+        return q.reshape(q.shape[0], *self._output_shape)

@@ -10,6 +10,8 @@ def test_table():
     assert np.array_equal(table.table, [[0., 0.], [5., 0.], [0., 0.]])
     assert np.array_equal(table.predict(np.array([[1], [2]]), np.array([[0], [1]])), [5., 0.])
     assert table.predict(np.array([1]), np.array([0])) == 5.
+    assert np.array_equal(table.predict(np.array([[1]]), np.array([[0]])), [5.])
+    assert np.array_equal(table.predict(np.array([[1]])), [[5., 0.]])
 
     single = Table((1,))
     single[np.array([0])] = 3.

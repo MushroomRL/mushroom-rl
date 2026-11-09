@@ -41,7 +41,8 @@ class FeedForwardNetwork(nn.Module):
         n_input = math.prod(input_shape)
         if action_history_shape is not None:
             n_input += math.prod(action_history_shape)
-        n_output = output_shape[0]
+        self._output_shape = tuple(output_shape)
+        n_output = math.prod(output_shape)
 
         if n_features is None:
             hidden_sizes = []
@@ -80,7 +81,9 @@ class FeedForwardNetwork(nn.Module):
         activation = self._activation
         for layer in hidden_layers:
             x = activation(layer(x))
-        return output_layer(x)
+        out = output_layer(x)
+
+        return out.reshape(*out.shape[:-1], *self._output_shape)
 
 
 class ActorNetwork(FeedForwardNetwork):

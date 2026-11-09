@@ -62,7 +62,7 @@ class RainbowNetwork(nn.Module):
             q = softmax @ self._a_values
 
             if action is not None:
-                return torch.squeeze(q.gather(1, action))
+                return q.gather(1, action).squeeze(1)
             else:
                 return q
         else:
@@ -70,6 +70,6 @@ class RainbowNetwork(nn.Module):
                 action = torch.unsqueeze(
                     action.long(), 2).repeat(1, 1, self._n_atoms)
 
-                return torch.squeeze(softmax.gather(1, action))
+                return softmax.gather(1, action).squeeze(1)
             else:
                 return softmax

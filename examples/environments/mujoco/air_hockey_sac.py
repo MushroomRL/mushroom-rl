@@ -67,7 +67,7 @@ def experiment(n_epochs, n_steps, n_episodes_test, render=True, use_cuda=False, 
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     # Agent
     agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,

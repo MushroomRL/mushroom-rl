@@ -161,7 +161,7 @@ def test_agent_preprocessor_history(tmpdir):
     critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
                          loss=F.mse_loss, n_features=None, n_layers=0,
-                         input_shape=window_shape, output_shape=(1,))
+                         input_shape=window_shape, output_shape=())
 
     policy = GaussianTorchPolicy(ActorNetwork, window_shape, mdp.info.action_space.shape,
                                  std_0=1., n_features=None, n_layers=0)

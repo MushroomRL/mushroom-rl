@@ -59,7 +59,7 @@ class CategoricalNetwork(nn.Module):
             q = a_p @ self._a_values
 
             if action is not None:
-                return torch.squeeze(q.gather(1, action))
+                return q.gather(1, action).squeeze(1)
             else:
                 return q
         else:
@@ -67,6 +67,6 @@ class CategoricalNetwork(nn.Module):
                 action = torch.unsqueeze(
                     action.long(), 2).repeat(1, 1, self._n_atoms)
 
-                return torch.squeeze(a_p.gather(1, action))
+                return a_p.gather(1, action).squeeze(1)
             else:
                 return a_p

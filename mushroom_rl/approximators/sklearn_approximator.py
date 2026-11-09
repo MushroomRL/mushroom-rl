@@ -9,14 +9,14 @@ class SklearnApproximator(Approximator):
 
     """
 
-    def __init__(self, model_class, input_shape, output_shape=(1,), *, n_models=1, **model_params):
+    def __init__(self, model_class, input_shape, output_shape, *, n_models=1, **model_params):
         """
         Constructor.
 
         Args:
             model_class (class): the scikit-learn estimator class to instantiate;
             input_shape (tuple): shape of the input;
-            output_shape (tuple, list, (1,)): shape of the output, or a list of shapes for estimators returning a
+            output_shape (tuple, list): shape of the output, or a list of shapes for estimators returning a
                 tuple;
             n_models (int, 1): number of models; more than one builds an ``Ensemble``;
             **model_params: parameters passed to the constructor of the estimator.
@@ -39,7 +39,8 @@ class SklearnApproximator(Approximator):
 
         """
         output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
-        target_shape = () if tuple(output_shape) == (1,) else (int(np.prod(output_shape)),)
+        n_targets = int(np.prod(output_shape))
+        target_shape = () if n_targets == 1 else (n_targets,)
 
         x = self._flatten_inputs(np.asarray(x))
         y = np.asarray(y)
@@ -63,7 +64,7 @@ class SklearnApproximator(Approximator):
 
         """
         x = np.asarray(x)
-        single = x.ndim == len(self._input_shape)
+        single = self._is_single(x)
         if single:
             x = x[None]
         x = self._flatten_inputs(x)
@@ -71,14 +72,13 @@ class SklearnApproximator(Approximator):
         prediction = self._model.predict(x, **predict_params)
 
         if isinstance(prediction, tuple):
-            outputs = list()
-            for y, shape in zip(prediction, self._output_shape, strict=True):
-                outputs.append(self._parse_output(y, shape, single))
-
-            return tuple(outputs)
+            prediction = tuple(y.reshape(len(y), *shape)
+                               for y, shape in zip(prediction, self._output_shape, strict=True))
         else:
             output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
-            return self._parse_output(prediction, output_shape, single)
+            prediction = prediction.reshape(len(prediction), *output_shape)
+
+        return self._unbatch(prediction, single)
 
     @property
     def model(self):
@@ -92,14 +92,3 @@ class SklearnApproximator(Approximator):
     def _flatten_inputs(self, x):
         assert x.shape[1:] == tuple(self._input_shape)
         return x.reshape(len(x), -1)
-
-    @staticmethod
-    def _parse_output(y, shape, single):
-        y = y.reshape(len(y), *shape)
-
-        if single:
-            return y[0]
-        elif tuple(shape) == (1,):
-            return y[:, 0]
-        else:
-            return y

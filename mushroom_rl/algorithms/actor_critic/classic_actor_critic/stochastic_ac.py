@@ -39,7 +39,7 @@ class StochasticAC(Agent):
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = LinearApproximator(input_shape=input_shape, output_shape=(1,))
+        self._V = LinearApproximator(input_shape=input_shape, output_shape=())
 
         self._e_v = np.zeros(self._V.weights_size)
         self._e_theta = np.zeros(self.policy.weights_size)

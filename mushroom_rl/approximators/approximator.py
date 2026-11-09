@@ -1,3 +1,5 @@
+import numpy as np
+
 from mushroom_rl.core import MushroomObject, MushroomBackendObject
 
 
@@ -101,6 +103,18 @@ class Approximator(MushroomBackendObject):
                 loss = loss.squeeze()
             name = self._log_label or 'loss'
             self._logger.log_training(self._log_prefix, **{name: loss})
+
+    def _is_single(self, x):
+        input_shape = self._input_shape[0] if isinstance(self._input_shape, list) else self._input_shape
+
+        return np.ndim(x) == len(input_shape)
+
+    @staticmethod
+    def _unbatch(output, single, axis=0):
+        if isinstance(output, tuple):
+            return tuple(Approximator._unbatch(o, single, axis) for o in output)
+
+        return output[(slice(None),) * axis + (0,)] if single else output
 
 
 class Ensemble(Approximator):

@@ -53,7 +53,7 @@ class RudinPPO(PPO):
         with torch.no_grad():
             old_pol_dist = self.policy.distribution(state_old, action_history=prev_action)
 
-        old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
+        old_log_p = old_pol_dist.log_prob(action).detach()
 
         self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
 

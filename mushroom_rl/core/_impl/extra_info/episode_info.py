@@ -221,7 +221,7 @@ class EpisodeInfo(MushroomBackendObject):
 
         """
         mask = ArrayBackend.convert_mask(mask, to=self.backend_name, device=self._device)
-        indices = ArrayBackend.get_array_backend_from(mask).nonzero(mask).reshape(-1)
+        indices = ArrayBackend.get_array_backend_from(mask).nonzero(mask)
 
         if len(indices) > 0:
             if isinstance(entry, dict):

@@ -123,10 +123,10 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         dist, next_policy_state = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
         action = dist.rsample()
 
-        return action, dist.log_prob(action)[:, None], next_policy_state
+        return action, dist.log_prob(action), next_policy_state
 
     def log_prob(self, state, action, policy_state, lengths=None, **kwargs):
-        return self.distribution(state, policy_state, lengths, **kwargs).log_prob(action)[:, None]
+        return self.distribution(state, policy_state, lengths, **kwargs).log_prob(action)
 
     def entropy(self, state=None):
         return self._action_dim / 2 * torch.log(torch.tensor(2 * torch.pi * torch.e)) + torch.sum(self._log_sigma)

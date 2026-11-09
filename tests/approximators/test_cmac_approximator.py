@@ -60,7 +60,7 @@ def test_cmac():
     y = np.sin(x.dot(k) * 2 * np.pi)
 
     tilings = Tiles.generate(10, [10, 10], np.zeros(2), np.ones(2))
-    approximator = CMAC(tilings=tilings, input_shape=(2,))
+    approximator = CMAC(tilings=tilings, input_shape=(2,), output_shape=())
     approximator.fit(x, y)
 
     y_hat = approximator.predict(np.array([[.5, .5], [10., 10.], [-3., .5]]))

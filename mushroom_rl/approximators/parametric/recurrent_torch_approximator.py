@@ -69,6 +69,7 @@ class RecurrentTorchApproximator(TorchApproximator):
             The predictions of the model.
 
         """
+        single = self._is_single(state)
         state = self._pad_sequence(state, self._input_ndims[0])
         policy_state = self._pad_batch(policy_state, self._policy_state_ndim)
         for name, ndim in self._kwargs_ndims.items():
@@ -77,7 +78,7 @@ class RecurrentTorchApproximator(TorchApproximator):
         if lengths is None:
             lengths = torch.ones(state.shape[0], dtype=torch.long)
 
-        return self._parse_output(self.network(state, policy_state, lengths, **kwargs))
+        return self._unbatch(self.network(state, policy_state, lengths, **kwargs), single)
 
     def diff(self, *args, **kwargs):
         """

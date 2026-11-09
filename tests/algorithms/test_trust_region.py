@@ -28,7 +28,7 @@ def learn(alg, alg_params, logger=None):
                          n_features=None,
                          n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
@@ -65,7 +65,7 @@ def learn_history(alg, alg_params, history_length):
                          n_features=None,
                          n_layers=0,
                          input_shape=window_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
@@ -101,7 +101,7 @@ def learn_action_history(alg, alg_params, action_history_length):
                          n_features=None,
                          n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,),
+                         output_shape=(),
                          action_history_shape=action_history_shape)
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0, action_history_shape=action_history_shape)

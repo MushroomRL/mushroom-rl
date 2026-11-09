@@ -72,7 +72,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, render=True, use_cuda=False
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     # Agent
     agent = alg(mdp.info, policy_class, policy_params,

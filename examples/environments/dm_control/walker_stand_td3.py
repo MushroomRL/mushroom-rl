@@ -6,6 +6,7 @@ this task (Yarats et al., 2021). The encoder is not shared between actor and cri
 
 """
 import argparse
+import math
 
 import numpy as np
 
@@ -117,7 +118,8 @@ class CriticNetwork(nn.Module):
             'CriticNetwork requires input_shape=[state_shape, action_shape].'
 
         n_input_act = input_shape[1][0]
-        n_output = output_shape[0]
+        self._output_shape = tuple(output_shape)
+        n_output = math.prod(output_shape)
 
         self._encoder = Encoder(input_shape[0])
         self._trunk = Trunk(self._encoder.output_size, feature_dim)
@@ -134,7 +136,7 @@ class CriticNetwork(nn.Module):
         h = F.relu(self._h2(h))
         q = self._h3(h)
 
-        return torch.squeeze(q, -1)
+        return q.reshape(q.shape[0], *self._output_shape)
 
 
 class ActorNetwork(nn.Module):
@@ -214,7 +216,7 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
                          n_features=n_features,
                          feature_dim=feature_dim,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     # Agent
     agent = TD3(mdp.info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,

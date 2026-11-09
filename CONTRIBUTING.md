@@ -31,6 +31,17 @@ It is encouraged to include the citation to the paper describing the algorithm i
 Any function approximator can be used, provided it implements the ``Approximator`` interface;
 scikit-learn models are supported through ``SklearnApproximator``.
 
+### Shape conventions
+Every approximator, network, policy and algorithm follows the same shape rules:
+* ``predict`` returns ``output_shape`` for a single input and ``(n, *output_shape)`` for a batch of ``n`` inputs,
+  ``n = 1`` included: the batch axis is never dropped;
+* a per-sample scalar (a Q-value, a state value, a log-probability, an advantage, a reward) has
+  ``output_shape=()`` and is carried as an ``(n,)`` array or tensor, never ``(n, 1)``; ``(1,)`` means a vector with
+  one component, such as the action of a one-dimensional or discrete action space;
+* a network returns exactly ``(n, *output_shape)``: build the last layer with ``math.prod(output_shape)`` units and
+  reshape its output to ``(n, *output_shape)``;
+* never call a bare ``squeeze()``, which also drops the batch axis of a batch of one: squeeze a named axis.
+
 ### Environments
 The environment template of MushroomRL follows the style of the one introduced in OpenAI Gym.
 Customized environment can be added provided that this exact style is used, and extending

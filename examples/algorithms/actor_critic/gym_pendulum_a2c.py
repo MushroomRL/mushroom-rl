@@ -55,7 +55,7 @@ def experiment(env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_ste
                          activation='tanh',
                          batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = A2C(mdp.info, policy, critic_params=critic_params, **alg_params)
 

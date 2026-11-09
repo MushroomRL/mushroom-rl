@@ -739,7 +739,7 @@ class ArrayBackend(object):
             array: an array.
 
         Returns:
-            The indices of the nonzero elements of ``array``.
+            The indices of the nonzero elements of the flattened ``array``, as a one-dimensional array.
 
         """
         raise NotImplementedError
@@ -1512,7 +1512,7 @@ class TorchBackend(ArrayBackend):
 
     @staticmethod
     def nonzero(array):
-        return torch.nonzero(array)
+        return torch.nonzero(array.flatten()).squeeze(1)
 
     @staticmethod
     def abs(array):

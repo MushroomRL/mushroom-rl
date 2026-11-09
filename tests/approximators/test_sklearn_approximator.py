@@ -14,10 +14,10 @@ def test_sklearn_approximator():
     x = np.random.rand(20, 3)
     y = x @ np.array([1., -2., .5]) + .3
 
-    approximator = SklearnApproximator(LinearRegression, input_shape=(3,))
+    approximator = SklearnApproximator(LinearRegression, input_shape=(3,), output_shape=())
 
     assert approximator.input_shape == (3,)
-    assert approximator.output_shape == (1,)
+    assert approximator.output_shape == ()
     assert approximator.backend_name == 'numpy'
     assert approximator.device is None
     assert isinstance(approximator.model, LinearRegression)
@@ -36,7 +36,8 @@ def test_sklearn_approximator_matches_estimator():
     y = np.random.rand(50)
     x_test = np.random.rand(10, 2)
 
-    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), n_estimators=10, random_state=3)
+    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), output_shape=(), n_estimators=10,
+                                       random_state=3)
     estimator = ExtraTreesRegressor(n_estimators=10, random_state=3)
 
     assert approximator.model.get_params() == estimator.get_params()
@@ -53,7 +54,7 @@ def test_sklearn_approximator_fit_and_predict_params():
     y = np.random.rand(20)
     weights = np.random.rand(20)
 
-    approximator = SklearnApproximator(Ridge, input_shape=(2,), alpha=.5)
+    approximator = SklearnApproximator(Ridge, input_shape=(2,), output_shape=(), alpha=.5)
     estimator = Ridge(alpha=.5)
 
     approximator.fit(x, y, sample_weight=weights)
@@ -61,13 +62,14 @@ def test_sklearn_approximator_fit_and_predict_params():
 
     assert np.array_equal(approximator.predict(x), estimator.predict(x))
 
-    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), n_estimators=5, random_state=0)
+    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), output_shape=(), n_estimators=5,
+                                       random_state=0)
     approximator.fit(x, y)
 
     with pytest.raises(TypeError):
         approximator.predict(x, unknown_param=True)
 
-    approximator = SklearnApproximator(BayesianRidge, input_shape=(2,), output_shape=[(1,), (1,)])
+    approximator = SklearnApproximator(BayesianRidge, input_shape=(2,), output_shape=[(), ()])
     estimator = BayesianRidge()
 
     approximator.fit(x, y)
@@ -77,7 +79,7 @@ def test_sklearn_approximator_fit_and_predict_params():
 
     assert np.array_equal(mean, mean_estimator) and np.array_equal(std, std_estimator)
     assert np.array_equal(approximator.predict(x), mean_estimator)
-    assert np.array_equal(approximator.predict(x[0]), mean_estimator[:1])
+    assert np.array_equal(approximator.predict(x[0]), mean_estimator[0])
 
 
 def test_sklearn_approximator_forwards_estimator_param():
@@ -85,8 +87,8 @@ def test_sklearn_approximator_forwards_estimator_param():
     x = np.random.rand(20, 2)
     y = np.random.rand(20)
 
-    approximator = SklearnApproximator(BaggingRegressor, input_shape=(2,), estimator=Ridge(alpha=.5), n_estimators=3,
-                                       random_state=0)
+    approximator = SklearnApproximator(BaggingRegressor, input_shape=(2,), output_shape=(), estimator=Ridge(alpha=.5),
+                                       n_estimators=3, random_state=0)
     estimator = BaggingRegressor(estimator=Ridge(alpha=.5), n_estimators=3, random_state=0)
 
     assert isinstance(approximator.model.estimator, Ridge)
@@ -98,7 +100,7 @@ def test_sklearn_approximator_forwards_estimator_param():
 
 
 def test_sklearn_approximator_not_fitted():
-    approximator = SklearnApproximator(LinearRegression, input_shape=(2,))
+    approximator = SklearnApproximator(LinearRegression, input_shape=(2,), output_shape=())
 
     with pytest.raises(NotFittedError):
         approximator.predict(np.zeros((1, 2)))
@@ -114,7 +116,8 @@ def test_sklearn_approximator_ensemble():
     x = np.random.rand(30, 2)
     y = np.random.rand(30)
 
-    ensemble = SklearnApproximator(model_class=ExtraTreesRegressor, input_shape=(2,), n_models=3, n_estimators=5)
+    ensemble = SklearnApproximator(model_class=ExtraTreesRegressor, input_shape=(2,), output_shape=(), n_models=3,
+                                   n_estimators=5)
 
     assert isinstance(ensemble, Ensemble)
     assert len(ensemble) == 3
@@ -162,8 +165,9 @@ def test_sklearn_approximator_save_load(tmpdir):
     x = np.random.rand(30, 2)
     y = np.random.rand(30)
 
-    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), n_estimators=5)
-    ensemble = SklearnApproximator(model_class=ExtraTreesRegressor, input_shape=(2,), n_models=2, n_estimators=5)
+    approximator = SklearnApproximator(ExtraTreesRegressor, input_shape=(2,), output_shape=(), n_estimators=5)
+    ensemble = SklearnApproximator(model_class=ExtraTreesRegressor, input_shape=(2,), output_shape=(), n_models=2,
+                                   n_estimators=5)
     approximator.fit(x, y)
     ensemble.fit(x, y)
 
@@ -173,7 +177,7 @@ def test_sklearn_approximator_save_load(tmpdir):
     ensemble_load = MushroomObject.load(tmpdir / 'ensemble')
 
     assert approximator_load.input_shape == (2,)
-    assert approximator_load.output_shape == (1,)
+    assert approximator_load.output_shape == ()
     assert approximator_load.backend_name == 'numpy'
     assert np.array_equal(approximator_load.predict(x), approximator.predict(x))
     assert np.array_equal(ensemble_load.predict(x, prediction='all'), ensemble.predict(x, prediction='all'))
@@ -187,21 +191,27 @@ def test_sklearn_approximator_shapes():
     assert multi.predict(x).shape == (4, 2)
     assert multi.predict(x[0]).shape == (2,)
 
-    single = SklearnApproximator(LinearRegression, (2,))
+    scalar = SklearnApproximator(LinearRegression, (2,), ())
+    scalar.fit(x, [1., 2., 3., 4.])
+
+    assert scalar.predict(x).shape == (4,) and scalar.predict(x[:1]).shape == (1,) and scalar.predict(x[0]).shape == ()
+
+    single = SklearnApproximator(LinearRegression, (2,), (1,))
     single.fit(x, [1., 2., 3., 4.])
 
-    assert single.predict(x).shape == (4,) and single.predict(x[0]).shape == (1,)
+    assert single.predict(x).shape == (4, 1) and single.predict(x[:1]).shape == (1, 1)
+    assert single.predict(x[0]).shape == (1,)
 
     with pytest.raises(AssertionError):
         single.predict(np.arange(4.))
     with pytest.raises(AssertionError):
         single.fit(np.zeros((4, 3)), np.zeros(4))
 
-    std = SklearnApproximator(BayesianRidge, (2,), output_shape=[(1,), (1,)])
+    std = SklearnApproximator(BayesianRidge, (2,), output_shape=[(), ()])
     std.fit(x, [1., 2., 3., 4.])
     mean, deviation = std.predict(x, return_std=True)
     mean_single, deviation_single = std.predict(x[0], return_std=True)
 
     assert mean.shape == (4,) and deviation.shape == (4,) and np.all(deviation > 0)
-    assert mean_single.shape == (1,) and deviation_single.shape == (1,)
-    assert np.allclose(mean_single, mean[:1]) and np.allclose(deviation_single, deviation[:1])
+    assert mean_single.shape == () and deviation_single.shape == ()
+    assert np.allclose(mean_single, mean[0]) and np.allclose(deviation_single, deviation[0])

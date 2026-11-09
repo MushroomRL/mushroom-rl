@@ -66,7 +66,7 @@ def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, 
                          n_features=32,
                          batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
 

@@ -97,7 +97,7 @@ def experiment(
         gain_scale=0.1,
         batch_size=batch_size,
         input_shape=mdp.info.observation_space.shape,
-        output_shape=(1,),
+        output_shape=(),
     )
 
     agent = PPO(

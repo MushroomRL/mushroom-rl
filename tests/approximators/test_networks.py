@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import torch
 import torch.nn as nn
 
@@ -118,18 +119,20 @@ def test_q_and_critic():
     rng = np.random.RandomState(0)
     state = torch.as_tensor(rng.rand(3, 4), dtype=torch.float32)
     action = torch.as_tensor(rng.rand(3, 2), dtype=torch.float32)
-    net = CriticNetwork([(4,), (2,)], (1,), n_features=32)
+    net = CriticNetwork([(4,), (2,)], (), n_features=32)
     out = net(state, action).detach().numpy()
     expected = np.array([0.41429877, 0.27793425, 0.3294595])
     assert out.shape == (3,)
     assert np.allclose(out, expected, atol=1e-6)
+    with pytest.raises(AssertionError):
+        CriticNetwork([(4,), (2,)], (1,), n_features=32)
 
     torch.manual_seed(42)
     rng = np.random.RandomState(0)
     state = torch.as_tensor(rng.rand(3, 4), dtype=torch.float32)
     action = torch.as_tensor(rng.rand(3, 2), dtype=torch.float32)
     history = torch.as_tensor(rng.rand(3, 3, 2), dtype=torch.float32)
-    net = CriticNetwork([(4,), (2,)], (1,), n_features=[8, 4], activation='gelu', action_history_shape=(3, 2))
+    net = CriticNetwork([(4,), (2,)], (), n_features=[8, 4], activation='gelu', action_history_shape=(3, 2))
     out = net(state, action, history).detach().numpy()
 
     assert [tuple(p.shape) for p in net.parameters()] == [(8, 12), (8,), (4, 8), (4,), (1, 4), (1,)]
@@ -189,13 +192,15 @@ def test_recurrent():
     policy_state = torch.zeros(batch, 1, 16)
     lengths = torch.tensor([5, 3, 4])
     net = RecurrentCriticNetwork(
-        (dim_env,), (1,),
+        (dim_env,), (),
         rnn_type='gru', n_hidden_features=16, n_features=32, num_hidden_layers=1
     )
     q = net(state, policy_state, lengths).detach().numpy()
     expected = np.array([-1.7422979, -1.1620455, -1.4952478])
     assert q.shape == (batch,)
     assert np.allclose(q, expected, atol=1e-5)
+    with pytest.raises(AssertionError):
+        RecurrentCriticNetwork((dim_env,), (1,), rnn_type='gru')
 
     torch.manual_seed(42)
     dim_env, dim_action = 4, 2
@@ -217,7 +222,7 @@ def test_recurrent():
     assert h.shape == (batch, 1, 16)
 
     critic = RecurrentCriticNetwork(
-        (history_length, dim_env), (1,),
+        (history_length, dim_env), (),
         rnn_type='gru', n_hidden_features=16, n_features=32, num_hidden_layers=1,
         action_history_shape=(action_history_length, dim_action)
     )
@@ -411,7 +416,7 @@ def test_recurrent_lstm():
     policy_state_shape = RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden)
     policy_state = torch.zeros(batch, *policy_state_shape)
     net = RecurrentCriticNetwork(
-        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        (dim_env,), (), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
         num_hidden_layers=1, hidden_state_treatment='use_policy_hidden_state'
     )
     q = net(state, policy_state, lengths)
@@ -426,7 +431,7 @@ def test_recurrent_lstm():
     lengths = torch.tensor([5, 3, 4])
     policy_state = torch.zeros(batch, *RecurrentNetwork.compute_policy_state_shape('lstm', n_hidden))
     net = RecurrentCriticNetwork(
-        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        (dim_env,), (), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
         num_hidden_layers=1, hidden_state_treatment='zero_initial'
     )
     q = net(state, policy_state, lengths)
@@ -449,7 +454,7 @@ def test_recurrent_lstm():
     assert np.allclose(a.detach().numpy(), expected_a, atol=1e-6)
 
     critic = RecurrentCriticNetwork(
-        (dim_env,), (1,), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
+        (dim_env,), (), rnn_type='lstm', n_hidden_features=n_hidden, n_features=32,
         num_hidden_layers=num_layers, hidden_state_treatment='use_policy_hidden_state'
     )
     q = critic(state, policy_state, lengths)

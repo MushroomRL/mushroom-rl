@@ -34,7 +34,7 @@ def learn_a2c(logger=None, **extra_params):
                          n_features=None,
                          n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     algorithm_params = dict(critic_params=critic_params,
                             actor_optimizer={'class': optim.RMSprop,
@@ -77,7 +77,7 @@ def learn_a2c_history(history_length):
                          input_shape=window_shape,
                          n_features=None,
                          n_layers=0,
-                         output_shape=(1,))
+                         output_shape=())
 
     algorithm_params = dict(critic_params=critic_params,
                             actor_optimizer={'class': optim.RMSprop,
@@ -118,7 +118,7 @@ def learn_a2c_action_history(action_history_length):
                          n_features=None,
                          n_layers=0,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,),
+                         output_shape=(),
                          action_history_shape=action_history_shape)
 
     algorithm_params = dict(critic_params=critic_params,

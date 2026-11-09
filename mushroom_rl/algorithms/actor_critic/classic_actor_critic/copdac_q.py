@@ -43,9 +43,9 @@ class COPDAC_Q(Agent):
         else:
             input_shape = mdp_info.observation_space.shape
 
-        self._V = LinearApproximator(input_shape=input_shape, output_shape=(1,))
+        self._V = LinearApproximator(input_shape=input_shape, output_shape=())
 
-        self._A = LinearApproximator(input_shape=(self._mu.weights_size,), output_shape=(1,))
+        self._A = LinearApproximator(input_shape=(self._mu.weights_size,), output_shape=())
 
         super().__init__(mdp_info, policy)
 

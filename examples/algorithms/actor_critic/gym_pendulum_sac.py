@@ -50,7 +50,7 @@ def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_tr
                          loss=F.mse_loss,
                          n_features=n_features,
                          input_shape=critic_input_shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     return SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
                batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha)

@@ -102,7 +102,7 @@ class PPO_BPTT(OnPolicyDeepAC):
 
         old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
                                                 action_history=prev_action_seq)
-        old_log_p = old_pol_dist.log_prob(action)[:, None].detach()
+        old_log_p = old_pol_dist.log_prob(action).detach()
 
         self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
                     **self._critic_fit_params)

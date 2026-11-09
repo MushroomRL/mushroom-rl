@@ -55,7 +55,7 @@ class TDPolicy(Policy):
         """
         with torch.no_grad():
             q = self._approximator.predict(state, **self._predict_params)
-        max_a = self._backend.nonzero(q == q.max()).ravel()
+        max_a = self._backend.nonzero(q == q.max())
 
         if len(max_a) > 1:
             max_a = max_a[self._backend.randint(0, len(max_a), (1,), device=self._device)]
@@ -91,7 +91,7 @@ class EpsGreedy(TDPolicy):
         state = args[0]
         with torch.no_grad():
             q = self._approximator.predict(self._backend.expand_dims(state, 0), **self._predict_params).ravel()
-        max_a = self._backend.nonzero(q == q.max()).ravel()
+        max_a = self._backend.nonzero(q == q.max())
 
         p = self._epsilon.get_value(state) / self._n_actions
 

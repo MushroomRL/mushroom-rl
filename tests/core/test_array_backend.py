@@ -192,6 +192,8 @@ def test_math(backend, device):
     matrix = array([[4.0, 2.0], [2.0, 3.0]])
 
     assert_equal(ops.where(array([True, False]), array([1, 1]), array([2, 2])), [1, 2], out, device)
+    assert_equal(ops.nonzero(array([0, 1, 0, 2])), [1, 3], out, device)
+    assert_equal(ops.nonzero(array([0, 1, 0])), [1], out, device)
     assert ops.size(array([[1, 2, 3], [4, 5, 6]])) == 6
     assert ops.inf() == np.inf
     assert ops.to_torch(None) is None

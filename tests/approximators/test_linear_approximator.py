@@ -23,6 +23,7 @@ def test_linear():
     y_test = np.load('tests/approximators/data/test_linear_y_0.npy')
 
     assert np.allclose(y, y_test)
+    assert approximator.predict(x[:1]).shape == (1, 2) and approximator.predict(x[0]).shape == (2,)
 
     point = np.random.randn(3,)
     derivative = approximator.diff(point)

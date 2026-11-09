@@ -38,19 +38,18 @@ def test_next_action_history():
 def test_advantage_montecarlo():
     def advantage_montecarlo(V, s, ss, r, absorbing, last, gamma):
         with torch.no_grad():
-            r = r.squeeze()
             q = torch.zeros(len(r))
-            v = V(s).squeeze()
+            v = V(s)
 
             for rev_k in range(len(r)):
                 k = len(r) - rev_k - 1
                 if last[k] or rev_k == 0:
-                    q_next = V(ss[k]).squeeze().item()
+                    q_next = V(ss[k]).item()
                 q_next = r[k] + gamma * q_next * (1 - absorbing[k].int())
                 q[k] = q_next
 
             adv = q - v
-            return q[:, None], adv[:, None]
+            return q, adv
 
     torch.manual_seed(42)
     _value_functions_tester(compute_advantage_montecarlo, advantage_montecarlo, 0.99)
@@ -78,7 +77,7 @@ def test_compute_gae():
 
 def _value_functions_tester(test_fun, correct_fun, *args):
     mdp = Segway()
-    V = TorchApproximator(input_shape=mdp.info.observation_space.shape, output_shape=(1,),
+    V = TorchApproximator(input_shape=mdp.info.observation_space.shape, output_shape=(),
                           network=LinearNetwork, use_bias=True, loss=torch.nn.MSELoss(),
                           optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
@@ -116,7 +115,7 @@ def _get_episodes(mdp, n_episodes=100):
 
 
 def _edge_case_setup(n_steps):
-    V = TorchApproximator(input_shape=(3,), output_shape=(1,), network=LinearNetwork, use_bias=True,
+    V = TorchApproximator(input_shape=(3,), output_shape=(), network=LinearNetwork, use_bias=True,
                           loss=torch.nn.MSELoss(),
                           optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
@@ -146,10 +145,10 @@ def test_edge_cases(case, last, absorbing):
     expected = torch.tensor(np.load(f'tests/rl_utils/data/test_edge_cases_{case}.npy'))
     q_test, adv_test, v_target_test, gen_adv_test = expected
 
-    assert torch.allclose(q.squeeze(), q_test)
-    assert torch.allclose(adv.squeeze(), adv_test)
-    assert torch.allclose(v_target.squeeze(), v_target_test)
-    assert torch.allclose(gen_adv.squeeze(), gen_adv_test)
+    assert torch.allclose(q, q_test)
+    assert torch.allclose(adv, adv_test)
+    assert torch.allclose(v_target, v_target_test)
+    assert torch.allclose(gen_adv, gen_adv_test)
 
 
 def test_advantage():
@@ -160,8 +159,8 @@ def test_advantage():
     q, adv = compute_advantage(V, state, next_state, reward, absorbing, absorbing.clone(), .9)
 
     with torch.no_grad():
-        q_test = reward + .9 * V(next_state).squeeze() * ~absorbing
-        adv_test = q_test - V(state).squeeze()
+        q_test = reward + .9 * V(next_state) * ~absorbing
+        adv_test = q_test - V(state)
 
-    assert q.shape == (5, 1) and adv.shape == (5, 1)
-    assert torch.allclose(q[:, 0], q_test) and torch.allclose(adv[:, 0], adv_test)
+    assert q.shape == (5,) and adv.shape == (5,)
+    assert torch.allclose(q, q_test) and torch.allclose(adv, adv_test)

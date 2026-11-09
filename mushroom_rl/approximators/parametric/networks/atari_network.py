@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -38,7 +37,7 @@ class AtariNetwork(nn.Module):
         if action is None:
             return q
         else:
-            return torch.squeeze(q.gather(1, action.long()))
+            return q.gather(1, action.long()).squeeze(1)
 
 
 class AtariFeatureNetwork(nn.Module):

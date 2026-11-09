@@ -44,7 +44,7 @@ critic_params = dict(network=CriticNetwork,
                      loss=F.mse_loss,
                      n_features=n_features,
                      input_shape=critic_input_shape,
-                     output_shape=(1,))
+                     output_shape=())
 
 # Agent
 agent = DDPG(mdp.info, policy_class, policy_params,

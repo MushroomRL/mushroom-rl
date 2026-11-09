@@ -57,7 +57,7 @@ def experiment(n_epochs, n_steps, n_steps_per_fit, n_steps_test, render=True, us
                          n_features=32,
                          batch_size=64,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = A2C(mdp.info, pi,
                 actor_optimizer={'class': optim.RMSprop,

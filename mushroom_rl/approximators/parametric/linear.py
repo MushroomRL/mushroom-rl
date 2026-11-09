@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 from mushroom_rl.approximators.approximator import Approximator
@@ -8,7 +9,7 @@ class LinearApproximator(Approximator):
     This class implements a linear approximator.
 
     """
-    def __init__(self, input_shape, output_shape=(1,), phi=None, **kwargs):
+    def __init__(self, input_shape, output_shape, phi=None, **kwargs):
         """
         Constructor.
 
@@ -16,7 +17,7 @@ class LinearApproximator(Approximator):
              input_shape (tuple): the shape of the input of the model. If ``phi`` is given, the input is
                 featurized internally, so the number of weights is given by the size of ``phi`` and not by
                 this shape;
-             output_shape (tuple, (1,)): the shape of the output of the model;
+             output_shape (tuple): the shape of the output of the model;
              phi (Features, None): features to extract from the state;
              **kwargs: other params of the approximator.
 
@@ -24,10 +25,10 @@ class LinearApproximator(Approximator):
         super().__init__(input_shape=input_shape, output_shape=output_shape)
 
         assert isinstance(input_shape, tuple) and isinstance(output_shape, tuple)
-        assert len(input_shape) == 1 and len(output_shape) == 1
+        assert len(input_shape) == 1 and len(output_shape) <= 1
 
         feature_dim = phi.size if phi is not None else input_shape[0]
-        output_dim = output_shape[0]
+        output_dim = math.prod(output_shape)
 
         self._w = np.zeros((output_dim, feature_dim))
 
@@ -43,8 +44,10 @@ class LinearApproximator(Approximator):
         self._w = np.atleast_2d(np.linalg.pinv(phi).dot(y).T)
 
     def predict(self, x, **predict_params):
-        phi = np.atleast_2d(self.phi(x))
-        return np.atleast_1d((phi @ self._w.T).squeeze())
+        prediction = np.atleast_2d(self.phi(x)) @ self._w.T
+        prediction = prediction.reshape(len(prediction), *self._output_shape)
+
+        return self._unbatch(prediction, self._is_single(x))
 
     def get_weights(self):
         """

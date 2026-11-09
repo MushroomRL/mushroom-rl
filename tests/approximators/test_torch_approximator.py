@@ -225,7 +225,7 @@ def test_fit_options(n_models):
             self.history_shape = action_history_shape
             self.modes = list()
             self.inits = 0
-            self._h = nn.Linear(input_shape[0] + action_history_shape[0], output_shape[0])
+            self._h = nn.Linear(input_shape[0] + action_history_shape[0], 1)
             self._dropout = nn.Dropout(.5)
 
         def forward(self, x, action_history=None):
@@ -236,7 +236,7 @@ def test_fit_options(n_models):
             self.inits += 1
 
     torch.manual_seed(1)
-    approximator = TorchApproximator(Net, (2,), (1,), optimizer={'class': optim.SGD, 'params': {'lr': .1}},
+    approximator = TorchApproximator(Net, (2,), (), optimizer={'class': optim.SGD, 'params': {'lr': .1}},
                                      loss=F.mse_loss, batch_size=4, reinitialize=True, dropout=True,
                                      n_models=n_models, action_history_shape=(3,))
     x, y, history = torch.rand(8, 2), torch.rand(8), torch.rand(8, 3)
@@ -323,8 +323,8 @@ def test_ensemble_predict():
     assert ensemble.predict(unbatched).shape == (6,)
 
     batch_one = torch.rand(1, 4, 20, 20)
-    assert single.predict(batch_one).shape == (6,)
-    assert ensemble.predict(batch_one).shape == (6,)
+    assert single.predict(batch_one).shape == (1, 6)
+    assert ensemble.predict(batch_one).shape == (1, 6)
 
     batch_five = torch.rand(5, 4, 20, 20)
     assert single.predict(batch_five).shape == (5, 6)
@@ -342,8 +342,8 @@ def test_ensemble_predict():
     assert ensemble.predict(unbatched).shape == (2,)
 
     batch_one = torch.rand(1, 4)
-    assert single.predict(batch_one).shape == (2,)
-    assert ensemble.predict(batch_one).shape == (2,)
+    assert single.predict(batch_one).shape == (1, 2)
+    assert ensemble.predict(batch_one).shape == (1, 2)
 
     batch_five = torch.rand(5, 4)
     assert single.predict(batch_five).shape == (5, 2)
@@ -372,7 +372,7 @@ def test_ensemble_predict_all():
 
     batch_one = torch.rand(1, 4, 20, 20)
     stacked_one = ensemble.predict(batch_one)
-    assert stacked_one.shape == (3, 6)
+    assert stacked_one.shape == (3, 1, 6)
     for i in range(3):
         assert torch.allclose(stacked_one[i], ensemble.predict(batch_one, idx=i), atol=1e-6)
 

@@ -135,11 +135,9 @@ def test_distribution():
 
     log_prob = policy.log_prob(state, action, policy_state, lengths)
 
-    log_prob_test = torch.tensor([[-1.9125082],
-                                  [-1.9125082],
-                                  [-1.9125082]])
+    log_prob_test = torch.tensor([-1.9125082, -1.9125082, -1.9125082])
 
-    assert log_prob.shape == (batch, 1)
+    assert log_prob.shape == (batch,)
     assert torch.allclose(log_prob[0], log_prob[1])
     assert torch.allclose(log_prob[0], log_prob[2])
     assert torch.allclose(log_prob, log_prob_test, atol=1e-5)
@@ -156,12 +154,10 @@ def test_distribution():
     action, log_prob, next_policy_state = policy.draw_with_log_prob(state, policy_state, lengths)
 
     action_test = torch.tensor(np.load('tests/policy/data/test_distribution.npy'))
-    log_prob_test = torch.tensor([[-1.9028531],
-                                  [-1.8918899],
-                                  [-2.4856393]])
+    log_prob_test = torch.tensor([-1.9028531, -1.8918899, -2.4856393])
 
     assert action.shape == (batch, n_action)
-    assert log_prob.shape == (batch, 1)
+    assert log_prob.shape == (batch,)
     assert next_policy_state.shape == (batch, 1, n_hidden)
     assert action.requires_grad and log_prob.requires_grad
     assert torch.allclose(action, action_test, atol=1e-5)

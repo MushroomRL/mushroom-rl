@@ -68,7 +68,7 @@ def experiment(env, horizon, gamma, n_epochs, n_steps_per_epoch, n_steps_per_fit
                          loss=torch.nn.MSELoss(),
                          batch_size=batch_size_critic,
                          input_shape=(dim_env_state,),
-                         output_shape=(1,),
+                         output_shape=(),
                          n_features=128,
                          n_hidden_features=n_hidden_features,
                          rnn_type=rnn_type,

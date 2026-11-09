@@ -42,7 +42,9 @@ class CriticNetwork(nn.Module):
         n_input = input_shape[0][-1] + input_shape[1][-1]
         if action_history_shape is not None:
             n_input += math.prod(action_history_shape)
-        n_output = output_shape[0]
+        assert tuple(output_shape) != (1,), 'CriticNetwork outputs a scalar: use output_shape=()'
+        self._output_shape = tuple(output_shape)
+        n_output = math.prod(output_shape)
 
         if n_features is None:
             hidden_sizes = []
@@ -82,4 +84,4 @@ class CriticNetwork(nn.Module):
         for layer in hidden_layers:
             x = activation(layer(x))
         q = output_layer(x)
-        return torch.squeeze(q)
+        return q.reshape(q.shape[0], *self._output_shape)

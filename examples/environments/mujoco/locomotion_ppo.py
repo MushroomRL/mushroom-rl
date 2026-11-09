@@ -65,7 +65,7 @@ def experiment(env, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, render=
                          gain_scale=0.1,
                          batch_size=batch_size,
                          input_shape=mdp.info.observation_space.shape,
-                         output_shape=(1,))
+                         output_shape=())
 
     agent = PPO(mdp.info, policy, critic_params=critic_params,
                 actor_optimizer={'class': optim.Adam, 'params': {'lr': actor_lr}},
