@@ -27,7 +27,7 @@ extras = {
     'minigrid': ['minigrid'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
-    'mujoco': ['mujoco>=3.11,<3.15'],
+    'mujoco': ['mujoco==3.14.0'],
     'mujoco_warp': ['mujoco-warp<3.15'],
     'isaacsim': ['isaacsim[all,extscache]>=6.1'],
     'dm_control': ['dm_control>=1.0.44,<1.0.48'],
