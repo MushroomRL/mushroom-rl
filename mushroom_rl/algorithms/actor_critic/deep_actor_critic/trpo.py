@@ -183,4 +183,4 @@ class TRPO(OnPolicyDeepAC):
         ratio = torch.exp(self.policy.log_prob(obs, act, action_history=action_history) - old_log_prob)
         J = torch.mean(ratio * adv)
 
-        return J + self._ent_coeff() * self.policy.entropy(obs)
+        return J + self._ent_coeff() * self.policy.entropy(obs, action_history=action_history)

@@ -103,7 +103,7 @@ class PPO(OnPolicyDeepAC):
                                        - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
-                loss -= self._ent_coeff() * self.policy.entropy(obs_i)
+                loss -= self._ent_coeff() * self.policy.entropy(obs_i, action_history=action_history_i)
                 loss.backward()
                 self._optimizer.step()
 

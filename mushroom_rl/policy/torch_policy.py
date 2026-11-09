@@ -33,14 +33,16 @@ class TorchPolicy(Policy):
     def __call__(self, state, action):
         return torch.exp(self.log_prob(state, action))
 
-    def draw_with_log_prob(self, state):
+    def draw_with_log_prob(self, state, action_history=None):
         """
         Sample an action in ``state`` using the reparametrization trick and compute its log probability. Since the
         action is sampled through the reparametrization trick, gradients can flow through both the action and its
         log probability.
 
         Args:
-            state (torch.Tensor): the set of states where the action is sampled.
+            state (torch.Tensor): the set of states where the action is sampled;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
 
         Returns:
             The sampled action and its log probability.
@@ -48,13 +50,15 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def log_prob(self, state, action):
+    def log_prob(self, state, action, action_history=None):
         """
         Compute the logarithm of the probability of taking ``action`` in ``state``.
 
         Args:
             state (torch.Tensor): set of states;
-            action (torch.Tensor): set of actions.
+            action (torch.Tensor): set of actions;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
 
         Returns:
             The tensor of log-probability.
@@ -62,13 +66,15 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def entropy(self, state=None):
+    def entropy(self, state=None, action_history=None):
         """
         Compute the entropy of the policy.
 
         Args:
             state (torch.Tensor, None): the set of states to consider. If the entropy of the policy can be computed in
-                closed form, then ``state`` can be None.
+                closed form, then ``state`` can be None;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
 
         Returns:
             The value of the entropy of the policy.
@@ -76,12 +82,14 @@ class TorchPolicy(Policy):
         """
         raise NotImplementedError
 
-    def distribution(self, state):
+    def distribution(self, state, action_history=None):
         """
         Compute the policy distribution in the given states.
 
         Args:
-            state (torch.Tensor): the set of states where the distribution is computed.
+            state (torch.Tensor): the set of states where the distribution is computed;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
 
         Returns:
             The torch distribution for the provided states.
@@ -179,7 +187,7 @@ class GaussianTorchPolicy(TorchPolicy):
     def log_prob(self, state, action, action_history=None):
         return self.distribution(state, action_history=action_history).log_prob(action)
 
-    def entropy(self, state=None):
+    def entropy(self, state=None, action_history=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e, self._device))\
                + torch.sum(self._log_sigma)
 
@@ -245,27 +253,28 @@ class BoltzmannTorchPolicy(TorchPolicy):
             _logits='mushroom'
         )
 
-    def draw_action(self, state):
+    def draw_action(self, state, action_history=None):
         with torch.no_grad():
             self._beta.update(state)
 
-            return self.distribution(state).sample().unsqueeze(-1)
+            return self.distribution(state, action_history=action_history).sample().unsqueeze(-1)
 
-    def draw_action_greedy(self, state):
+    def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state).mode.unsqueeze(-1)
+            return self.distribution(state, action_history=action_history).mode.unsqueeze(-1)
 
-    def draw_with_log_prob(self, state):
+    def draw_with_log_prob(self, state, action_history=None):
         raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
 
-    def log_prob(self, state, action):
-        return self.distribution(state).log_prob(action)
+    def log_prob(self, state, action, action_history=None):
+        return self.distribution(state, action_history=action_history).log_prob(action)
 
-    def entropy(self, state=None):
-        return torch.mean(self.distribution(state).entropy())
+    def entropy(self, state=None, action_history=None):
+        return torch.mean(self.distribution(state, action_history=action_history).entropy())
 
-    def distribution(self, state):
-        logits = self._logits(state, **self._predict_params) * self._beta.get_value(state)
+    def distribution(self, state, action_history=None):
+        history_kwargs = dict() if action_history is None else dict(action_history=action_history)
+        logits = self._logits(state, **history_kwargs, **self._predict_params) * self._beta.get_value(state)
         return CategoricalWrapper(logits)
 
     def set_weights(self, weights):
@@ -325,27 +334,28 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
             _eps='primitive'
         )
 
-    def draw_action(self, state):
+    def draw_action(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state).sample()
+            return self.distribution(state, action_history=action_history).sample()
 
-    def draw_action_greedy(self, state):
+    def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state).median
+            return self.distribution(state, action_history=action_history).median
 
-    def draw_with_log_prob(self, state):
-        return self.distribution(state).rsample_and_log_prob()
+    def draw_with_log_prob(self, state, action_history=None):
+        return self.distribution(state, action_history=action_history).rsample_and_log_prob()
 
-    def log_prob(self, state, action):
-        return self.distribution(state).log_prob(action)
+    def log_prob(self, state, action, action_history=None):
+        return self.distribution(state, action_history=action_history).log_prob(action)
 
-    def entropy(self, state=None):
-        _, log_prob = self.draw_with_log_prob(state)
+    def entropy(self, state=None, action_history=None):
+        _, log_prob = self.draw_with_log_prob(state, action_history=action_history)
         return -log_prob.mean()
 
-    def distribution(self, state):
-        mu = self._mu_approximator.predict(state)
-        log_sigma = self._sigma_approximator.predict(state)
+    def distribution(self, state, action_history=None):
+        history_kwargs = dict() if action_history is None else dict(action_history=action_history)
+        mu = self._mu_approximator.predict(state, **history_kwargs)
+        log_sigma = self._sigma_approximator.predict(state, **history_kwargs)
         log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
         return SquashedGaussian(mu, log_sigma.exp(), self._min_a, self._max_a, eps=self._eps)
 

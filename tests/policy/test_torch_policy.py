@@ -44,6 +44,13 @@ class Network(nn.Module):
         return a
 
 
+class HistoryNetwork(Network):
+    def forward(self, state, action_history=None, **kwargs):
+        a = super().forward(state)
+
+        return a if action_history is None else a + action_history.float() * torch.tensor([1., -1.])
+
+
 def test_interface():
     tmp = TorchPolicy()
     abstract_method_tester(tmp.draw_with_log_prob, None)
@@ -196,6 +203,38 @@ def test_squashed_gaussian():
     assert torch.all(action >= torch.as_tensor(min_a)) and torch.all(action <= torch.as_tensor(max_a))
     assert torch.allclose(action, pi.distribution(state).median)
     assert torch.allclose(action, pi.draw_action_greedy(state))
+
+
+def test_action_history():
+    torch.manual_seed(42)
+    state = torch.rand(3, 3)
+    history = torch.tensor([[10.], [-10.], [10.]])
+
+    boltzmann = BoltzmannTorchPolicy(HistoryNetwork, (3,), (2,), Parameter(1.), n_features=50)
+    action = torch.tensor([[0], [1], [0]])
+
+    assert torch.equal(boltzmann.draw_action_greedy(state, action_history=history), action)
+    assert torch.equal(boltzmann.draw_action(state, action_history=history), action)
+    assert torch.all(boltzmann.log_prob(state, action, action_history=history) > -1e-6)
+    assert not torch.equal(boltzmann.draw_action_greedy(state), action)
+    assert boltzmann.entropy(state, action_history=history) < 1e-6 < boltzmann.entropy(state)
+
+    mu_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=HistoryNetwork, n_features=50)
+    sigma_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=Network, n_features=50)
+    squashed = SquashedGaussianTorchPolicy(mu_approximator, sigma_approximator, np.array([-2., -2.]),
+                                           np.array([2., 2.]), -20, 2)
+    bound = torch.tensor([[2., -2.], [-2., 2.], [2., -2.]])
+
+    greedy = squashed.draw_action_greedy(state, action_history=history)
+    assert torch.allclose(greedy, bound, atol=1e-3)
+    assert not torch.allclose(squashed.draw_action_greedy(state), bound, atol=1e-3)
+    assert torch.allclose(squashed.draw_action(state, action_history=history), bound, atol=1e-1)
+
+    assert torch.allclose(squashed.draw_with_log_prob(state, action_history=history)[0], bound, atol=1e-1)
+
+    log_prob = squashed.log_prob(state, torch.zeros(3, 2), action_history=history / 10)
+    assert log_prob.shape == (3,)
+    assert not torch.allclose(log_prob, squashed.log_prob(state, torch.zeros(3, 2)))
 
 
 @needs_cuda()
