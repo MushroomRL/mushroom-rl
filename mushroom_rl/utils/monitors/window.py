@@ -1,10 +1,12 @@
 import time
 
-from pyqtgraph.Qt.QtGui import QGuiApplication
+from pyqtgraph.Qt.QtGui import QGuiApplication, QIcon, QPixmap
 from pyqtgraph.Qt.QtWidgets import QTreeWidget, QTreeWidgetItem, QSplitter
 from pyqtgraph.Qt import QtCore
 
 import pyqtgraph as pg
+
+from mushroom_rl.utils.icons import ICON_SIZES, icon_path
 
 
 class Window(QSplitter):
@@ -58,6 +60,7 @@ class Window(QSplitter):
 
         super().__init__(QtCore.Qt.Horizontal)
         self.setWindowTitle(title)
+        self.setWindowIcon(self._make_icon())
         self.setStyleSheet(self._SPLITTER_STYLE)
         self.setHandleWidth(3)
 
@@ -262,6 +265,15 @@ class Window(QSplitter):
 
         """
         return item.checkState(0) == QtCore.Qt.CheckState.Checked
+
+    @staticmethod
+    def _make_icon():
+        icon = QIcon()
+        for size in ICON_SIZES:
+            # addFile hands back the 32 px image for every size on a scaled screen
+            icon.addPixmap(QPixmap(icon_path(size)))
+
+        return icon
 
     @staticmethod
     def _new_tree_item(parent, text):

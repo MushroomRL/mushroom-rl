@@ -6,6 +6,8 @@ import pygame
 import time
 import numpy as np
 
+from mushroom_rl.utils.icons import icon_path
+
 
 class ImageViewer:
     """
@@ -44,7 +46,7 @@ class ImageViewer:
             self._initialized = True
 
         if self._screen is None:
-            self._screen = pygame.display.set_mode(self._size)
+            self._screen = _open_window(self._size)
 
         img = np.transpose(img, (1, 0, 2))
         surf = pygame.surfarray.make_surface(img)
@@ -147,7 +149,7 @@ class Viewer:
             self._initialized = True
 
         if self._screen is None:
-            self._screen = pygame.display.set_mode(self._size)
+            self._screen = _open_window(self._size)
 
         return self._screen
 
@@ -436,3 +438,10 @@ class Viewer:
     def _rotate(p, theta):
         return np.array([np.cos(theta) * p[0] - np.sin(theta) * p[1],
                          np.sin(theta) * p[0] + np.cos(theta) * p[1]])
+
+
+def _open_window(size):
+    # the icon has to be set before the window is created
+    pygame.display.set_icon(pygame.image.load(icon_path(64)))
+
+    return pygame.display.set_mode(size)
