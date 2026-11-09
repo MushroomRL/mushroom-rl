@@ -38,7 +38,7 @@ class QApproximatorSimple(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape, output_shape=(), n_models=1,
+    def __init__(self, approximator, n_actions, input_shape, output_shape, n_models=1,
                  **params):
         """
         Constructor.
@@ -47,7 +47,7 @@ class QApproximatorSimple(QApproximator):
             approximator (class): the model class to approximate the Q-function;
             n_actions (int): number of actions;
             input_shape (tuple): shape of the input of the model;
-            output_shape (tuple, ()): shape of the output of the model;
+            output_shape (tuple): shape of the output of the model;
             **params: other parameters passed to the approximator.
 
         """
@@ -150,7 +150,7 @@ class QApproximatorSimple(QApproximator):
         """
         if action is None:
             return self._models[0].diff(state)
-        return self._models[0].diff(state, action).squeeze()
+        return self._models[0].diff(state, action)
 
 
 class QApproximatorAction(QApproximator):
@@ -281,14 +281,17 @@ class QApproximatorAction(QApproximator):
                 derivative of the selected action's model in the corresponding block.
 
         Returns:
-            A list of per-action gradients when ``action`` is ``None``, or a single
-            zero-padded gradient vector otherwise.
+            The zero-padded gradients of all actions, one column per action, when ``action`` is ``None``, or
+            the single zero-padded gradient vector of ``action`` otherwise.
 
         """
-        if action is None:
-            return [m.diff(state) for m in self._models]
-        a = action[0]
         s = self._models[0].weights_size
+        if action is None:
+            diff = self._backend.zeros(s * self._n_actions, self._n_actions, dtype=float, device=self._device)
+            for a, m in enumerate(self._models):
+                diff[s * a:s * (a + 1), a] = m.diff(state)
+            return diff
+        a = action[0]
         diff = self._backend.zeros(s * self._n_actions, dtype=float, device=self._device)
         diff[s * a:s * (a + 1)] = self._models[a].diff(state)
         return diff

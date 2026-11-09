@@ -98,6 +98,12 @@ def test_diff():
     with pytest.raises(KeyError):
         approximator.diff(unbatched)
 
+    approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=QNetwork, n_features=[5], n_layers=1)
+
+    assert approximator.diff(unbatched, torch.tensor([1])).shape == (approximator.weights_size,)
+    with pytest.raises(AssertionError):
+        approximator.diff(torch.rand(3, 4), torch.tensor([[1], [0], [1]]))
+
     torch.manual_seed(14)
 
     class TwoHeadNet(nn.Module):

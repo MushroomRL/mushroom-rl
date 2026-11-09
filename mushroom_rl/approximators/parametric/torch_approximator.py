@@ -290,19 +290,15 @@ class TorchApproximator(Approximator):
 
     def diff(self, *args, **kwargs):
         """
-        Compute the derivative of the output w.r.t. ``state``, and ``action`` if provided. The positional
-        inputs and the keyword inputs declared via ``kwargs_shape`` / ``action_history_shape`` are
-        batch-padded when a single (unbatched) sample is provided, exactly as by ``predict``. Positional
-        inputs beyond the declared ones, such as the ``action`` a Q-network gathers with, carry no declared
-        rank and are padded to two dimensions instead. Only single-output networks are supported, since
-        there is no single matrix packing the gradients of outputs of different shape.
+        Compute the derivative of the output w.r.t. the model parameters for a single sample, given either unbatched
+        or as a batch of one. Multi-output networks are not supported.
 
         Args:
             *args: input;
             **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
-            The derivative of the output w.r.t. ``state``, and ``action`` if provided.
+            The derivative of the output w.r.t. the model parameters.
 
         """
         assert not isinstance(self._output_shape, list), 'diff is not supported by multi-output networks.'
@@ -312,13 +308,12 @@ class TorchApproximator(Approximator):
         args = args[:n_declared] + [torch.atleast_2d(a) for a in args[n_declared:]]
 
         y_hat = self.network(*args, **kwargs)
-        n_outs = 1 if len(y_hat.shape) == 0 else y_hat.shape[-1]
-        y_hat = y_hat.view(-1, n_outs)
+        assert y_hat.shape[0] == 1, 'diff supports a single sample only.'
 
         gradients = list()
-        for i in range(y_hat.shape[1]):
+        for y in y_hat.flatten():
             TorchUtils.zero_grad(self.network.parameters())
-            y_hat[:, i].backward(retain_graph=True)
+            y.backward(retain_graph=True)
 
             gradient = list()
             for p in self.network.parameters():
@@ -328,7 +323,7 @@ class TorchApproximator(Approximator):
             g = torch.concatenate(gradient)
             gradients.append(g)
 
-        return torch.stack(gradients, -1)
+        return torch.stack(gradients, -1).reshape(-1, *y_hat.shape[1:])
 
 
 class TorchEnsemble(Ensemble):
@@ -704,7 +699,7 @@ class TorchEnsemble(Ensemble):
             **kwargs: other parameters used by the diff method of the approximator.
 
         Returns:
-            The stacked derivatives of all models w.r.t. the input, shape ``(n_models, weights_size, n_outputs)``.
+            The stacked derivatives of all models w.r.t. the input, shape ``(n_models, weights_size, *output_shape)``.
 
         """
         return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)

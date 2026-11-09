@@ -86,11 +86,11 @@ def test_q_weights():
     approximator = QApproximator(LinearApproximator, n_actions=3, input_shape=(2,))
     weights = np.arange(6.)
     approximator.set_weights(weights)
-    gradients = approximator.diff(state)
+    gradient = approximator.diff(state)
 
     assert approximator.weights_size == 6
     assert np.array_equal(approximator.get_weights(), weights)
-    assert len(gradients) == 3 and all(np.array_equal(gradient, state) for gradient in gradients)
+    assert np.array_equal(gradient, np.kron(np.eye(3), state[:, None]))
 
     approximator.fit(np.random.rand(4, 2), np.array([[0], [1], [0], [1]]), np.random.rand(4))
 
@@ -105,6 +105,7 @@ def test_q_weights():
     assert ensemble.weights_size == (2, 6)
     assert np.array_equal(ensemble.get_weights(), weights)
     assert np.shape(ensemble.diff(state, np.array([1]))) == (2, 6)
+    assert np.shape(ensemble.diff(state)) == (2, 6, 3)
 
 
 def test_q_torch():
