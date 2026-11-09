@@ -223,6 +223,26 @@ def test_logger(tmpdir):
     assert not (logger.path / 'training' / 'critic_loss.npy').exists()
 
 
+@pytest.mark.parametrize('n_models', [None, 2])
+def test_reinitialize(n_models):
+    def make(reinitialize):
+        return TorchApproximator(QNetwork, (2,), (1,), n_features=4,
+                                 optimizer={'class': optim.SGD, 'params': {'lr': .5}},
+                                 loss=F.mse_loss, reinitialize=reinitialize, n_models=n_models)
+
+    torch.manual_seed(0)
+    x, y = torch.rand(8, 2), torch.rand(8, 1)
+    torch.manual_seed(1)
+    fresh = make(False)
+    fresh.fit(x, y, n_epochs=1)
+    reinitialized = make(True)
+    reinitialized.fit(x, y, n_epochs=3)
+    torch.manual_seed(1)
+    reinitialized.fit(x, y, n_epochs=1)
+
+    assert torch.equal(reinitialized.predict(x), fresh.predict(x))
+
+
 @pytest.mark.parametrize('n_models', [1, 2])
 def test_fit_options(n_models):
     class Net(nn.Module):
@@ -238,7 +258,7 @@ def test_fit_options(n_models):
             self.modes.append(self.training)
             return self._h(self._dropout(torch.cat([x.float(), action_history.float()], -1))).squeeze(-1)
 
-        def weights_init(self):
+        def reset_parameters(self):
             self.inits += 1
 
     torch.manual_seed(1)

@@ -3,8 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 
-class NoisyNetwork(nn.Module):
+
+class NoisyNetwork(MushroomNetwork):
     """
     Network for Noisy DQN, outputting the Q-values through a noisy linear layer whose learnable noise provides
     state-dependent exploration.

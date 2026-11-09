@@ -1,13 +1,14 @@
 Networks
 ========
 
-Pre-built PyTorch network architectures for use with ``TorchApproximator``. They are ordinary ``torch.nn.Module``
-subclasses: they are given to the approximator through its ``network`` argument, and the shapes are passed by the
-approximator itself.
+Pre-built PyTorch network architectures for use with ``TorchApproximator``. They are ``torch.nn.Module``
+subclasses deriving from ``MushroomNetwork``: they are given to the approximator through its ``network`` argument, and
+the shapes are passed by the approximator itself.
 
 .. autosummary::
    :nosignatures:
 
+   ~mushroom_rl.approximators.parametric.networks.mushroom_network.MushroomNetwork
    ~mushroom_rl.approximators.parametric.networks.linear_network.LinearNetwork
    ~mushroom_rl.approximators.parametric.networks.feed_forward_network.FeedForwardNetwork
    ~mushroom_rl.approximators.parametric.networks.feed_forward_network.ActorNetwork
@@ -21,6 +22,8 @@ approximator itself.
    ~mushroom_rl.approximators.parametric.networks.categorical_network.CategoricalNetwork
    ~mushroom_rl.approximators.parametric.networks.quantile_network.QuantileNetwork
    ~mushroom_rl.approximators.parametric.networks.rainbow_network.RainbowNetwork
+
+.. automodule:: mushroom_rl.approximators.parametric.networks.mushroom_network
 
 .. toctree::
    :maxdepth: 1

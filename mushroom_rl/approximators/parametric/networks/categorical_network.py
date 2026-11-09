@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
 
-class CategoricalNetwork(nn.Module):
+class CategoricalNetwork(MushroomNetwork):
     """
     Distributional network for Categorical DQN (C51), modeling the value distribution of each action as a
     categorical distribution over a fixed support of ``n_atoms`` between ``v_min`` and ``v_max``.
@@ -45,9 +46,7 @@ class CategoricalNetwork(nn.Module):
         self._p = nn.ModuleList(
             [nn.Linear(n_features, n_atoms) for _ in range(self._n_output)])
 
-        for i in range(self._n_output):
-            nn.init.xavier_uniform_(self._p[i].weight,
-                                    gain=nn.init.calculate_gain('linear'))
+        self._init_weights()
 
     def forward(self, state, action=None, get_distribution=False, **kwargs):
         features = self._phi(state)
@@ -70,3 +69,8 @@ class CategoricalNetwork(nn.Module):
                 return a_p.gather(1, action).squeeze(1)
             else:
                 return a_p
+
+    def _init_weights(self):
+        for i in range(self._n_output):
+            nn.init.xavier_uniform_(self._p[i].weight,
+                                    gain=nn.init.calculate_gain('linear'))

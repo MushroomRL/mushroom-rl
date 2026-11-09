@@ -3,10 +3,11 @@ import math
 import torch
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class RecurrentNetwork(nn.Module):
+class RecurrentNetwork(MushroomNetwork):
     """
     Base class for the recurrent networks. This class holds the conversions between the policy state carried by
     the agent and the hidden state the recurrent layer expects.
@@ -192,9 +193,7 @@ class RecurrentActorNetwork(RecurrentNetwork):
         self._act_func = nn.ReLU()
         self._tanh = nn.Tanh()
 
-        nn.init.xavier_uniform_(self._h1_o.weight, gain=nn.init.calculate_gain('relu') * 0.05)
-        nn.init.xavier_uniform_(self._h1_o_post_rnn.weight, gain=nn.init.calculate_gain('relu') * 0.05)
-        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('relu') * 0.05)
+        self._init_weights()
 
     def forward(self, state, policy_state, lengths, action_history=None, **kwargs):
         state = state.flatten(start_dim=2)
@@ -217,6 +216,11 @@ class RecurrentActorNetwork(RecurrentNetwork):
         a = self._h3(input_last_layer)
 
         return a, self._merge_policy_state(next_hidden)
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self._h1_o.weight, gain=nn.init.calculate_gain('relu') * 0.05)
+        nn.init.xavier_uniform_(self._h1_o_post_rnn.weight, gain=nn.init.calculate_gain('relu') * 0.05)
+        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('relu') * 0.05)
 
 
 class RecurrentCriticNetwork(RecurrentNetwork):
@@ -272,10 +276,7 @@ class RecurrentCriticNetwork(RecurrentNetwork):
         self._hq_2 = nn.Linear(n_features, math.prod(output_shape))
         self._act_func = nn.ReLU()
 
-        nn.init.xavier_uniform_(self._h1_o.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h1_o_post_rnn.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._hq_1.weight, gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._hq_2.weight, gain=nn.init.calculate_gain('relu'))
+        self._init_weights()
 
     def forward(self, state, policy_state, lengths, action_history=None, **kwargs):
         state = state.flatten(start_dim=2)
@@ -300,3 +301,9 @@ class RecurrentCriticNetwork(RecurrentNetwork):
         q = self._hq_2(self._act_func(self._hq_1(input_last_layer)))
 
         return q.reshape(q.shape[0], *self._output_shape)
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self._h1_o.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h1_o_post_rnn.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._hq_1.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._hq_2.weight, gain=nn.init.calculate_gain('relu'))

@@ -3,10 +3,11 @@ import math
 import torch
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class CriticNetwork(nn.Module):
+class CriticNetwork(MushroomNetwork):
     """
     Simple critic network taking ``state`` and ``action`` as two separate inputs.
 
@@ -68,9 +69,11 @@ class CriticNetwork(nn.Module):
             for i in range(len(layer_sizes) - 1)
         ])
 
-        for layer in self._layers[:-1]:
-            TorchUtils.init_weights(layer, hidden_gain, weights_init, bias_init)
-        TorchUtils.init_weights(self._layers[-1], output_gain, weights_init, bias_init)
+        self._hidden_gain = hidden_gain
+        self._output_gain = output_gain
+        self._weights_init = weights_init
+        self._bias_init = bias_init
+        self._init_weights()
 
     def forward(self, state, action, action_history=None, **kwargs):
         inputs = [state.float(), action.float()]
@@ -85,3 +88,8 @@ class CriticNetwork(nn.Module):
             x = activation(layer(x))
         q = output_layer(x)
         return q.reshape(q.shape[0], *self._output_shape)
+
+    def _init_weights(self):
+        for layer in self._layers[:-1]:
+            TorchUtils.init_weights(layer, self._hidden_gain, self._weights_init, self._bias_init)
+        TorchUtils.init_weights(self._layers[-1], self._output_gain, self._weights_init, self._bias_init)

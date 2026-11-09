@@ -49,10 +49,8 @@ class TorchApproximator(Approximator):
                 dataset is fed to the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit
                 method of the network;
-            reinitialize (bool, False): if True, the approximator is
-                reinitialized at every fit call. To perform the initialization,
-                the weights_init method must be defined properly for the
-                selected model network;
+            reinitialize (bool, False): if True, the weights of the network are drawn anew at the start of
+                every fit call; requires the network to define a ``reset_parameters`` method;
             dropout (bool, False): if True, dropout is applied only during
                 train;
             quiet (bool, True): if False, shows two progress bars, one for
@@ -157,7 +155,7 @@ class TorchApproximator(Approximator):
 
         """
         if self._trainer.reinitialize:
-            self.network.weights_init()
+            self.network.reset_parameters()
 
         if self._trainer.dropout:
             self.network.train()
@@ -353,7 +351,9 @@ class TorchEnsemble(Ensemble):
             batch_size (int, 0): the size of each minibatch. If 0, the whole dataset is fed to
                 the optimizer at each epoch;
             n_fit_targets (int, 1): the number of fit targets used by the fit method of the network;
-            reinitialize (bool, False): if True, the approximator is reinitialized at every fit call;
+            reinitialize (bool, False): if True, the weights of every model are drawn anew at the start of
+                every fit call on the whole ensemble; requires the network to define a ``reset_parameters``
+                method;
             dropout (bool, False): if True, dropout is applied only during train;
             quiet (bool, True): if False, shows a progress bar over epochs;
             n_models (int): number of models in the ensemble;
@@ -497,7 +497,8 @@ class TorchEnsemble(Ensemble):
 
         if self._trainer.reinitialize:
             for m in self._models:
-                m.network.weights_init()
+                m.network.reset_parameters()
+                m._dirty = True
 
         if self._trainer.dropout:
             self._base_model.train()

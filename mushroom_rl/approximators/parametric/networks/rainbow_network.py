@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.approximators.parametric.networks.noisy_network import NoisyNetwork
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 eps = torch.finfo(torch.float32).eps
 
 
-class RainbowNetwork(nn.Module):
+class RainbowNetwork(MushroomNetwork):
     """
     Network for Rainbow, combining a distributional categorical head (``n_atoms`` over ``[v_min, v_max]``) with
     a dueling architecture built from noisy linear layers.

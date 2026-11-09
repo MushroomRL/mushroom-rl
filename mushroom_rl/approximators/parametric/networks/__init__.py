@@ -1,3 +1,4 @@
+from .mushroom_network import MushroomNetwork
 from .linear_network import LinearNetwork
 from .feed_forward_network import FeedForwardNetwork, ActorNetwork
 from .q_network import QNetwork
@@ -11,7 +12,7 @@ from .quantile_network import QuantileNetwork
 from .rainbow_network import RainbowNetwork
 
 __all__ = [
-    'LinearNetwork', 'FeedForwardNetwork', 'ActorNetwork', 'QNetwork', 'CriticNetwork',
+    'MushroomNetwork', 'LinearNetwork', 'FeedForwardNetwork', 'ActorNetwork', 'QNetwork', 'CriticNetwork',
     'AtariNetwork', 'AtariFeatureNetwork',
     'RecurrentNetwork', 'RecurrentActorNetwork', 'RecurrentCriticNetwork',
     'DuelingNetwork', 'NoisyNetwork',

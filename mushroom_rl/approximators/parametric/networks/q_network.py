@@ -1,9 +1,10 @@
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
-class QNetwork(nn.Module):
+class QNetwork(MushroomNetwork):
     """
     Simple feedforward network outputting the Q-values for every discrete action given the ``state``, or the
     Q-value of a specific ``action`` when one is provided.
@@ -54,9 +55,11 @@ class QNetwork(nn.Module):
             for i in range(len(layer_sizes) - 1)
         ])
 
-        for layer in self._layers[:-1]:
-            TorchUtils.init_weights(layer, hidden_gain, weights_init, bias_init)
-        TorchUtils.init_weights(self._layers[-1], output_gain, weights_init, bias_init)
+        self._hidden_gain = hidden_gain
+        self._output_gain = output_gain
+        self._weights_init = weights_init
+        self._bias_init = bias_init
+        self._init_weights()
 
     def forward(self, state, action=None, **kwargs):
         x = state.float()
@@ -70,3 +73,8 @@ class QNetwork(nn.Module):
             return q
         else:
             return q.gather(1, action.long()).squeeze(1)
+
+    def _init_weights(self):
+        for layer in self._layers[:-1]:
+            TorchUtils.init_weights(layer, self._hidden_gain, self._weights_init, self._bias_init)
+        TorchUtils.init_weights(self._layers[-1], self._output_gain, self._weights_init, self._bias_init)

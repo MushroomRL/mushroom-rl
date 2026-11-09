@@ -1,7 +1,9 @@
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 
-class DuelingNetwork(nn.Module):
+
+class DuelingNetwork(MushroomNetwork):
     """
     Dueling architecture for DQN, splitting the shared features into a state-value stream and an advantage
     stream that are recombined into the Q-values.
@@ -32,10 +34,7 @@ class DuelingNetwork(nn.Module):
         self._A = nn.Linear(n_features, self._n_output)
         self._V = nn.Linear(n_features, 1)
 
-        nn.init.xavier_uniform_(self._A.weight,
-                                gain=nn.init.calculate_gain('linear'))
-        nn.init.xavier_uniform_(self._V.weight,
-                                gain=nn.init.calculate_gain('linear'))
+        self._init_weights()
 
     def forward(self, state, action=None, **kwargs):
         features = self._phi(state)
@@ -55,3 +54,9 @@ class DuelingNetwork(nn.Module):
             q_acted = q.gather(1, action.long()).squeeze(1)
 
             return q_acted
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self._A.weight,
+                                gain=nn.init.calculate_gain('linear'))
+        nn.init.xavier_uniform_(self._V.weight,
+                                gain=nn.init.calculate_gain('linear'))

@@ -2,8 +2,10 @@ import math
 
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 
-class LinearNetwork(nn.Module):
+
+class LinearNetwork(MushroomNetwork):
     """
     Single fully connected layer mapping the ``state`` to the network output, with no activation function.
 
@@ -31,9 +33,13 @@ class LinearNetwork(nn.Module):
         if gain is None:
             gain = nn.init.calculate_gain('linear')
 
-        nn.init.xavier_uniform_(self._f.weight, gain=gain)
+        self._gain = gain
+        self._init_weights()
 
     def forward(self, state, **kwargs):
         out = self._f(state)
 
         return out.reshape(*out.shape[:-1], *self._output_shape)
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self._f.weight, gain=self._gain)

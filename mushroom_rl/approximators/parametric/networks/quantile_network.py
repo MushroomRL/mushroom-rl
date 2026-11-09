@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
 
+from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
 
-class QuantileNetwork(nn.Module):
+
+class QuantileNetwork(MushroomNetwork):
     """
     Distributional network for Quantile Regression DQN (QR-DQN), approximating the value distribution of each
     action with ``n_quantiles`` quantiles whose mean gives the Q-value.
@@ -32,9 +34,7 @@ class QuantileNetwork(nn.Module):
         self._quant = nn.ModuleList(
             [nn.Linear(n_features, n_quantiles) for _ in range(self._n_output)])
 
-        for i in range(self._n_output):
-            nn.init.xavier_uniform_(self._quant[i].weight,
-                                    gain=nn.init.calculate_gain('linear'))
+        self._init_weights()
 
     def forward(self, state, action=None, get_quantiles=False, **kwargs):
         features = self._phi(state)
@@ -57,3 +57,8 @@ class QuantileNetwork(nn.Module):
                 return a_quant.gather(1, action).squeeze(1)
             else:
                 return a_quant
+
+    def _init_weights(self):
+        for i in range(self._n_output):
+            nn.init.xavier_uniform_(self._quant[i].weight,
+                                    gain=nn.init.calculate_gain('linear'))

@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 
 from mushroom_rl.approximators.parametric.networks import (
+    MushroomNetwork,
+    LinearNetwork,
     FeedForwardNetwork,
     ActorNetwork,
     QNetwork,
@@ -474,3 +476,63 @@ def test_distributional_support():
         if torch.cuda.is_available():
             net.to('cuda')
             assert net._a_values.device.type == 'cuda'
+
+
+def _network_factories():
+    features = dict(features_network=FeedForwardNetwork, n_features=8)
+    image = (4, 36, 36)
+    return {
+        'linear': lambda: LinearNetwork((4,), (2,), use_bias=True, gain=.3),
+        'feed_forward': lambda: FeedForwardNetwork((3, 4), (2,), n_features=[8, 6], activation='tanh',
+                                                   weights_init='orthogonal', bias_init='zeros',
+                                                   action_history_shape=(2,)),
+        'actor': lambda: ActorNetwork((4,), (2,), n_features=8),
+        'q': lambda: QNetwork((4,), (3,), n_features=8),
+        'critic': lambda: CriticNetwork([(4,), (2,)], (), n_features=8),
+        'atari': lambda: AtariNetwork(image, (3,), n_features=16),
+        'atari_features': lambda: AtariFeatureNetwork(image, (16,)),
+        'dueling': lambda: DuelingNetwork((4,), (3,), avg_advantage=True, **features),
+        'categorical': lambda: CategoricalNetwork((4,), (3,), n_atoms=5, v_min=-1, v_max=1, **features),
+        'quantile': lambda: QuantileNetwork((4,), (3,), n_quantiles=4, **features),
+        'noisy': lambda: NoisyNetwork((4,), (3,), **features),
+        'rainbow': lambda: RainbowNetwork((4,), (3,), n_atoms=5, v_min=-1, v_max=1, sigma_coeff=.5, **features),
+        'recurrent_actor': lambda: RecurrentActorNetwork((4,), [(2,), (2, 2, 6)], n_features=8, rnn_type='lstm',
+                                                         n_hidden_features=6, num_hidden_layers=2),
+        'recurrent_critic': lambda: RecurrentCriticNetwork((4,), (), rnn_type='gru', n_hidden_features=6,
+                                                           n_features=8),
+    }
+
+
+@pytest.mark.parametrize('make', _network_factories().values(), ids=_network_factories().keys())
+def test_reset_parameters(make):
+    torch.manual_seed(0)
+    constructed = make()
+    constructed_next = torch.rand(3)
+
+    torch.manual_seed(1)
+    net = make()
+    with torch.no_grad():
+        for parameter in net.parameters():
+            parameter.add_(1.)
+    torch.manual_seed(0)
+    net.reset_parameters()
+
+    assert net.state_dict().keys() == constructed.state_dict().keys()
+    assert all(torch.equal(value, constructed.state_dict()[key]) for key, value in net.state_dict().items())
+    assert torch.equal(torch.rand(3), constructed_next)
+
+
+def test_reset_parameters_error():
+    class Encoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self._h = nn.Linear(4, 2)
+
+    class Network(MushroomNetwork):
+        def __init__(self):
+            super().__init__()
+            self._activation = nn.ReLU()
+            self._encoder = Encoder()
+
+    with pytest.raises(TypeError, match='Encoder'):
+        Network().reset_parameters()
