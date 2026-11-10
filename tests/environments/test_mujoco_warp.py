@@ -8,6 +8,7 @@ pytest.importorskip("mujoco_warp")
 
 import warp as wp  # noqa: E402
 from mushroom_rl.environments.mujoco_warp_envs import AntWarp, HopperWarp  # noqa: E402
+from mushroom_rl.utils.mujoco import ObservationType  # noqa: E402
 
 
 def test_interface():
@@ -188,7 +189,42 @@ def test_collisions():
     state, _ = mdp.reset_all(mask)
     state[0, 0] = .1
     mdp.reset_all(mask, state)
-    mdp.step_all(mask, torch.zeros(num_envs, 8, device='cpu'))
 
     assert torch.equal(mdp._check_collision('torso', 'floor'), torch.tensor([True, False]))
     assert torch.equal(mdp._check_collision('floor', 'torso'), torch.tensor([True, False]))
+
+    force = mdp._get_collision_force('torso', 'floor')
+    expected = torch.zeros(num_envs, 6, dtype=torch.float32)
+    expected[0, :3] = torch.tensor([300.4520263671875, -7.62939453125e-06, 1.52587890625e-05])
+    assert force.dtype == torch.float32
+    assert torch.equal(force, expected)
+    assert torch.equal(mdp._get_collision_force('floor', 'torso'), expected)
+
+    mdp.step_all(mask, torch.zeros(num_envs, 8, device='cpu'))
+
+    assert not mdp._check_collision('torso', 'floor').any()
+
+    mdp = MuJoCoWarp('mushroom_rl/environments/mujoco_envs/data/ant/model.xml', ['hip_1'],
+                     [('root_pose', 'root', ObservationType.JOINT_POS)], .99, 100, num_envs,
+                     collision_groups=[('body', ['torso_geom', 'left_ankle_geom', 'right_ankle_geom',
+                                                 'third_ankle_geom', 'fourth_ankle_geom']), ('floor', ['floor'])])
+    state, _ = mdp.reset_all(mask)
+    state[0, 2] = .2
+    state[0, 3:5] = torch.tensor([.98, .2])
+    mdp.reset_all(mask, state)
+    mdp._mj_warp.forward(mdp._model_wp, mdp._data_wp)
+    expected = torch.zeros(num_envs, 6)
+    expected[0, :2] = 36.0725555419921875
+
+    assert torch.equal(mdp._check_collision('body', 'floor'), torch.tensor([True, False]))
+    assert torch.equal(mdp._get_collision_force('body', 'floor'), expected)
+
+    mdp = MuJoCoWarp('tests/environments/data/flex_cloth.xml', [],
+                     [('box_pose', 'box_joint', ObservationType.JOINT_POS)], .99, 100, num_envs,
+                     collision_groups=[('box', ['box_geom']), ('floor', ['floor'])])
+    mdp.reset_all(mask)
+    mdp._mj_warp.forward(mdp._model_wp, mdp._data_wp)
+
+    assert wp.to_torch(mdp._data_wp.nacon)[0] == 18
+    assert not mdp._check_collision('box', 'floor').any()
+    assert not mdp._get_collision_force('box', 'floor').any()

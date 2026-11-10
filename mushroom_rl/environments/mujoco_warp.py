@@ -157,6 +157,13 @@ class MuJoCoWarp(VectorizedEnvironment):
                     col_group.append(mj_id)
                 self.collision_groups[name] = set(col_group)
 
+        self._collision_masks = dict()
+        for name, ids in self.collision_groups.items():
+            mask = torch.zeros(self._model.ngeom, dtype=torch.bool, device=device)
+            mask[list(ids)] = True
+            self._collision_masks[name] = mask
+        self._contact_slots = torch.arange(self._data_wp.naconmax, dtype=torch.int32, device=device)
+
         mdp_info = MDPInfo(
             observation_space,
             action_space,
@@ -540,31 +547,12 @@ class MuJoCoWarp(VectorizedEnvironment):
             between the given groups or not.
 
         """
-        ids1 = self.collision_groups[group1]
-        ids2 = self.collision_groups[group2]
+        match, worldid = self._match_contacts(group1, group2)
 
-        ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
-        if ncon == 0:
-            return torch.zeros(self._num_envs, dtype=torch.bool, device=self.info.device)
+        n_matches = torch.zeros(self._num_envs, dtype=torch.int32, device=self.info.device)
+        n_matches.scatter_add_(0, worldid, match.int())
 
-        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
-        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
-
-        ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
-        ids1_mask[list(ids1)] = True
-        ids2_mask[list(ids2)] = True
-
-        g1 = geom[:, 0].long()
-        g2 = geom[:, 1].long()
-        match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
-
-        result = torch.zeros(self._num_envs, dtype=torch.bool, device=self.info.device)
-        if match.any():
-            matched_envs = worldid[match].long()
-            result[matched_envs] = True
-        return result
+        return n_matches > 0
 
     def _get_collision_force(self, group1, group2):
         """
@@ -577,40 +565,51 @@ class MuJoCoWarp(VectorizedEnvironment):
                 constructor.
 
         Returns:
-            A torch.Tensor of shape (num_envs, 6) specifying the collision forces/torques [3D force + 3D torque]
-            between the given groups, for every world. Zero vector for worlds with no collision between the groups.
+            A torch.Tensor of shape (num_envs, 6) specifying, for every world, the forces/torques [3D force + 3D
+            torque] of the first contact between the given groups, in the contact frame. Zero vector for worlds with
+            no contact between the groups.
             http://mujoco.org/book/programming.html#siContact
 
         """
-        ids1 = self.collision_groups[group1]
-        ids2 = self.collision_groups[group2]
+        match, worldid = self._match_contacts(group1, group2)
 
-        ncon = int(wp.to_torch(self._data_wp.ncollision)[0].item())
-        result = torch.zeros((self._num_envs, 6), dtype=torch.float64, device=self.info.device)
-        if ncon == 0:
-            return result
+        no_contact = torch.iinfo(torch.int32).max
+        contact_ids = torch.where(match, self._contact_slots, no_contact)
+        first = torch.full((self._num_envs,), no_contact, dtype=torch.int32, device=self.info.device)
+        first.scatter_reduce_(0, worldid, contact_ids, reduce='amin')
 
-        geom = wp.to_torch(self._data_wp.contact.geom)[:ncon]
-        worldid = wp.to_torch(self._data_wp.contact.worldid)[:ncon]
-        frame = wp.to_torch(self._data_wp.contact.frame)[:ncon]
+        force = torch.zeros((self._num_envs, 6), dtype=torch.float32, device=self.info.device)
+        mj_warp.contact_force(self._model_wp, self._data_wp, wp.from_torch(first), False,
+                              wp.from_torch(force, dtype=wp.spatial_vector))
 
-        ngeoms = self._model.ngeom
-        ids1_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
-        ids2_mask = torch.zeros(ngeoms, dtype=torch.bool, device=self.info.device)
-        ids1_mask[list(ids1)] = True
-        ids2_mask[list(ids2)] = True
+        return force
 
-        g1 = geom[:, 0].long()
-        g2 = geom[:, 1].long()
-        match = (ids1_mask[g1] & ids2_mask[g2]) | (ids1_mask[g2] & ids2_mask[g1])
+    def _match_contacts(self, group1, group2):
+        """
+        Find the contacts between the specified groups.
 
-        if match.any():
-            matched_worldids = worldid[match].long()
-            matched_frames = frame[match, :6].to(result.dtype)
-            # multiple contacts in the same env: last match wins
-            result[matched_worldids] = matched_frames
+        Args:
+            group1 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor;
+            group2 (string): A name referring to an entry contained in the collision_groups list handed to the
+                constructor.
 
-        return result
+        Returns:
+            A boolean torch.Tensor over the slots of the contact buffer, True for the contacts between the given
+            groups, and a torch.Tensor with the world index of every slot.
+
+        """
+        mask1 = self._collision_masks[group1]
+        mask2 = self._collision_masks[group2]
+
+        geom = wp.to_torch(self._data_wp.contact.geom).long()
+        g1 = geom[:, 0]
+        g2 = geom[:, 1]
+        is_contact = self._contact_slots < wp.to_torch(self._data_wp.nacon)
+        is_flex = (g1 < 0) | (g2 < 0)
+        match = is_contact & ~is_flex & ((mask1[g1] & mask2[g2]) | (mask1[g2] & mask2[g1]))
+
+        return match, wp.to_torch(self._data_wp.contact.worldid).long()
 
     # ------------------------------------------------------------------
     # Misc helpers

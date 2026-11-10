@@ -1,0 +1,12 @@
+<mujoco>
+  <worldbody>
+    <geom name="floor" type="plane" size="1 1 .1"/>
+    <flexcomp name="cloth" type="grid" count="3 3 1" spacing=".05 .05 .05" pos="0 0 .005" radius=".01" dim="2">
+      <edge equality="true"/>
+    </flexcomp>
+    <body pos="0 0 1">
+      <freejoint name="box_joint"/>
+      <geom name="box_geom" type="box" size=".05 .05 .05"/>
+    </body>
+  </worldbody>
+</mujoco>
