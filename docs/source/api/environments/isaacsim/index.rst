@@ -13,17 +13,17 @@ This interface targets **Isaac Sim 6.1**. The simulator is started by
 The default physics engine is PhysX; the launcher can select Newton instead.
 
 ``IsaacSim`` is the base class of every environment, and
-:class:`~mushroom_rl.environments.isaacsim_envs.quadruped.QuadrupedIsaac` a further one shared by the legged
+:class:`~mushroom_rl.environments.isaacsim_envs.quadruped.quadruped.QuadrupedIsaac` a further one shared by the legged
 robots. These are the environments that can be instantiated:
 
 .. autosummary::
    :nosignatures:
 
    ~mushroom_rl.environments.isaacsim_envs.cartpole.CartPoleIsaac
-   ~mushroom_rl.environments.isaacsim_envs.a1.A1Isaac
-   ~mushroom_rl.environments.isaacsim_envs.go2.Go2Isaac
-   ~mushroom_rl.environments.isaacsim_envs.honey_badger.HoneyBadgerIsaac
-   ~mushroom_rl.environments.isaacsim_envs.silver_badger.SilverBadgerIsaac
+   ~mushroom_rl.environments.isaacsim_envs.quadruped.a1.A1Isaac
+   ~mushroom_rl.environments.isaacsim_envs.quadruped.go2.Go2Isaac
+   ~mushroom_rl.environments.isaacsim_envs.quadruped.honey_badger.HoneyBadgerIsaac
+   ~mushroom_rl.environments.isaacsim_envs.quadruped.silver_badger.SilverBadgerIsaac
 
 The environments, their base classes and the components of the quadruped tasks are documented on the following
 pages:

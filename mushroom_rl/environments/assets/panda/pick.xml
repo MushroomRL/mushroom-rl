@@ -1,11 +1,10 @@
 <mujoco model="panda scene">
 
-<option timestep="5e-3" integrator="implicitfast">S
-</option>
-
+  <option cone="elliptic" timestep="5e-3" integrator="implicitfast">
+  </option>
   <include file="panda.xml"/>
-  <include file="assets/table.xml"/>
-  <include file="assets/cube.xml"/>
+  <include file="table.xml"/>
+  <include file="cube.xml"/>
 
   <statistic center="0.3 0 0.4" extent="1"/>
 
@@ -24,15 +23,15 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <geom name="floor" pos="0 0 -1.05" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="floor" pos="0.0 0.0 -1.05" size="0 0 0.05" type="plane" material="groundplane"/>
 
-    <body name="goal" mocap="true" pos="0.5 -0.15 0.024">
-      <site name="goal" size="0.05 0.05 0.024" rgba="1 0 0 0.25" type="box"/>
+    <body name="goal" mocap="true" pos="0.5 0.0 0.375">
+      <site name="goal" size="0.024 0.024 0.024" rgba="1 0 0 0.25" type="box"/>
     </body>
+
   </worldbody>
   <keyframe>
-    <key name="home" qpos="0 -0.569 0 -2.810 0 3.037 0.741 0.04 0.04 0.5 0.15 0.024 1 0 0 0" ctrl="0 0 0 0 0 0 0 0" act="0 -0.569 0 -2.810 0 3.037 0.741"/>
+    <key name="home" qpos="0 -0.569 0 -2.810 0 3.037 0.741 0.04 0.04 0.5 0.0 0.024 1 0 0 0" ctrl="0 0 0 0 0 0 0 0.04" act="0 -0.569 0 -2.810 0 3.037 0.741"/>
   </keyframe>
 </mujoco>
-
 

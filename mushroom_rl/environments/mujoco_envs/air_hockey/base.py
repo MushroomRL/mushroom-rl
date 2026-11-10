@@ -1,12 +1,9 @@
-import os
-
 import numpy as np
 import mujoco
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
-
-from mushroom_rl.environments.mujoco_envs import __file__ as path_robots
 
 
 class AirHockeyBase(MuJoCo):
@@ -47,7 +44,7 @@ class AirHockeyBase(MuJoCo):
                           ("rim_short_sides", ["rim_home_l", "rim_home_r", "rim_away_l", "rim_away_r"])]
 
         if 1 <= self.n_agents <= 2:
-            scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "single.xml")
+            scene = asset_path('air_hockey', 'single.xml')
 
             action_spec += ["planar_robot_1/joint_1", "planar_robot_1/joint_2", "planar_robot_1/joint_3"]
             observation_spec += [("robot_1/joint_1_pos", "planar_robot_1/joint_1", ObservationType.JOINT_POS),
@@ -63,7 +60,7 @@ class AirHockeyBase(MuJoCo):
             collision_spec += [("robot_1/ee", ["planar_robot_1/ee_collision"])]
 
             if self.n_agents == 2:
-                scene = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "double.xml")
+                scene = asset_path('air_hockey', 'double.xml')
 
                 action_spec += ["planar_robot_2/joint_1", "planar_robot_2/joint_2", "planar_robot_2/joint_3"]
                 # Add puck pos/vel again to transform into second agents frame
@@ -89,8 +86,7 @@ class AirHockeyBase(MuJoCo):
         self.env_spec['mallet'] = {"radius": 0.05}
 
         # Load just the robot model for to use for kinematics
-        robot_path = os.path.join(os.path.dirname(os.path.abspath(path_robots)),
-                                  "data", "air_hockey", "planar_robot_1.xml")
+        robot_path = asset_path('air_hockey', 'planar_robot_1.xml')
 
         self.robot_model = mujoco.MjModel.from_xml_path(robot_path)
         # Move robot to zero pos

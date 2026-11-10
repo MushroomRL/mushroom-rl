@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import numpy as np
 import mujoco
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
@@ -29,9 +28,7 @@ class PegInsertion(Panda):
         contact_force_range=(-1.0, 1.0),
         **viewer_params,
     ):
-        xml_path = (
-            Path(__file__).resolve().parent.parent / "data" / "panda" / "peg_insertion.xml"
-        ).as_posix()
+        xml_path = asset_path('panda', 'peg_insertion.xml')
 
         actuation_spec = [
             "actuator1",

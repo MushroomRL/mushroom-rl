@@ -13,9 +13,9 @@ IsaacLauncher.launch(headless=True)
 
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 from mushroom_rl.environments.isaacsim_envs import A1Isaac, Go2Isaac, HoneyBadgerIsaac, SilverBadgerIsaac
-from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
-from mushroom_rl.environments.isaacsim_envs.quadruped_commands import CommandGenerator, VelocityCommandGenerator, \
-    UniformVelocityCommands, EllipticVelocityCommands
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_randomizer import QuadrupedRandomizationParams
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_commands import CommandGenerator, \
+    VelocityCommandGenerator, UniformVelocityCommands, EllipticVelocityCommands
 from mushroom_rl.utils.isaac_sim.torch_maths import quat_apply, wrap_to_pi
 
 

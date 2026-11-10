@@ -3,6 +3,7 @@ import torch
 
 from mushroom_rl.core import Environment
 from mushroom_rl.environments import MuJoCoWarp
+from mushroom_rl.environments.assets import asset_path
 
 pytest.importorskip("mujoco_warp")
 
@@ -204,7 +205,7 @@ def test_collisions():
 
     assert not mdp._check_collision('torso', 'floor').any()
 
-    mdp = MuJoCoWarp('mushroom_rl/environments/mujoco_envs/data/ant/model.xml', ['hip_1'],
+    mdp = MuJoCoWarp(asset_path('ant', 'model.xml'), ['hip_1'],
                      [('root_pose', 'root', ObservationType.JOINT_POS)], .99, 100, num_envs,
                      collision_groups=[('body', ['torso_geom', 'left_ankle_geom', 'right_ankle_geom',
                                                  'third_ankle_geom', 'fourth_ankle_geom']), ('floor', ['floor'])])

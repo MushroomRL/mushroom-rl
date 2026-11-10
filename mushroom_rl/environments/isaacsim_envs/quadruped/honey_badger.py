@@ -1,9 +1,9 @@
 import torch
-from pathlib import Path
 
 from mushroom_rl.core import register_env
-from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
-from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams
+from mushroom_rl.environments.assets import asset_path
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped import QuadrupedIsaac
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_randomizer import QuadrupedRandomizationParams
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
@@ -118,7 +118,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             of the same family.
 
         """
-        usd_path = str(Path(__file__).resolve().parent / "robots_usds/honey_badger/honey_badger.usd")
+        usd_path = asset_path('honey_badger', 'honey_badger.usd')
         action_spec = [
             "fl_j0", "fl_j1", "fl_j2",
             "fr_j0", "fr_j1", "fr_j2",

@@ -16,3 +16,4 @@ logs/
 *.so
 CLAUDE.md
 .claude/
+.thumbs/

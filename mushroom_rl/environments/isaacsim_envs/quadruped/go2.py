@@ -1,8 +1,8 @@
 import torch
-from pathlib import Path
 
 from mushroom_rl.core import register_env
-from mushroom_rl.environments.isaacsim_envs.quadruped import QuadrupedIsaac
+from mushroom_rl.environments.assets import asset_path
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped import QuadrupedIsaac
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 
@@ -31,7 +31,7 @@ class Go2Isaac(QuadrupedIsaac):
             **quadruped_params: Further parameters of :class:`QuadrupedIsaac`, e.g. the reward weights.
 
         """
-        usd_path = str(Path(__file__).resolve().parent / "robots_usds/go2/go2.usd")
+        usd_path = asset_path('go2', 'go2.usd')
         device = TorchUtils.get_device()
 
         legs = ("FL", "FR", "RL", "RR")

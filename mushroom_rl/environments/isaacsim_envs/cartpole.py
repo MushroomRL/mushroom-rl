@@ -1,8 +1,8 @@
 import math
 import torch
-from pathlib import Path
 
 from mushroom_rl.core import register_env
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.isaacsim_env import IsaacSim
 from mushroom_rl.utils.isaac_sim import ObservationType
 from mushroom_rl.utils import TorchUtils
@@ -27,7 +27,7 @@ class CartPoleIsaac(IsaacSim):
             camera_target (tuple, None): The point the camera looking at the scene points to.
 
         """
-        usd_path = str(Path(__file__).resolve().parent / "robots_usds/cartpole/cartpole.usd")
+        usd_path = asset_path('cartpole', 'cartpole.usd')
         action_spec = ["rail_cart_joint"]
         observation_spec = [
             ("poleJointPos", "", ObservationType.JOINT_POS, "cart_pole_joint"),

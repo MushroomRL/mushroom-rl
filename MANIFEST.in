@@ -1,5 +1,8 @@
-include requirements.txt
-include setup.py
+exclude *
+include README.rst LICENSE pyproject.toml MANIFEST.in
 prune tests
 prune examples
-prune .github
+prune docs
+prune logs
+prune **/.*
+global-exclude *.py[cod]

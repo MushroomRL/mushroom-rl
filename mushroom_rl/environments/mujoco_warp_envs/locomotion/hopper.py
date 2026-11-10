@@ -1,7 +1,7 @@
 import torch
 import warp as wp
-from pathlib import Path
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.utils.mujoco import ObservationType
@@ -39,13 +39,7 @@ class HopperWarp(MuJoCoWarp):
         njmax=200,
         **viewer_params,
     ):
-        xml_path = (
-            Path(__file__).resolve().parent.parent.parent
-            / "mujoco_envs"
-            / "data"
-            / "hopper"
-            / "model.xml"
-        ).as_posix()
+        xml_path = asset_path('hopper', 'model.xml')
 
         actuation_spec = ["thigh_joint", "leg_joint", "foot_joint"]
 

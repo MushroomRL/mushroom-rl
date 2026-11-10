@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import numpy as np
 import mujoco
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import ObservationType
@@ -34,9 +33,7 @@ class HalfCheetah(MuJoCo):
         Constructor.
 
         """
-        xml_path = (
-            Path(__file__).resolve().parent.parent / "data" / "half_cheetah" / "model.xml"
-        ).as_posix()
+        xml_path = asset_path('half_cheetah', 'model.xml')
         actuation_spec = ["bthigh", "bshin", "bfoot", "fthigh", "fshin", "ffoot"]
 
         observation_spec = [

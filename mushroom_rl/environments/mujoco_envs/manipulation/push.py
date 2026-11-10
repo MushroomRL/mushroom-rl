@@ -1,8 +1,7 @@
-from pathlib import Path
-
 import numpy as np
 import mujoco
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.utils.mujoco import ObservationType
 from mushroom_rl.core.spaces import Box
@@ -28,7 +27,7 @@ class Push(Panda):
         **viewer_params,
     ):
 
-        xml_path = (Path(__file__).resolve().parent.parent / "data" / "panda" / "push.xml").as_posix()
+        xml_path = asset_path('panda', 'push.xml')
 
         actuation_spec = [
             "actuator1",

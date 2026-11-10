@@ -1,7 +1,7 @@
 import torch
 import warp as wp
-from pathlib import Path
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.utils.mujoco import ObservationType
@@ -32,13 +32,7 @@ class HalfCheetahWarp(MuJoCoWarp):
         njmax=200,
         **viewer_params,
     ):
-        xml_path = (
-            Path(__file__).resolve().parent.parent.parent
-            / "mujoco_envs"
-            / "data"
-            / "half_cheetah"
-            / "model.xml"
-        ).as_posix()
+        xml_path = asset_path('half_cheetah', 'model.xml')
 
         actuation_spec = ["bthigh", "bshin", "bfoot", "fthigh", "fshin", "ffoot"]
 

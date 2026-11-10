@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import torch
 
+from mushroom_rl.environments.assets import asset_path
+
 mujoco = pytest.importorskip('mujoco')
 
 from mushroom_rl.utils.mujoco import (ObservationHelper, ObservationType, MuJoCoObservationHelper,  # noqa: E402
@@ -9,7 +11,7 @@ from mushroom_rl.utils.mujoco import (ObservationHelper, ObservationType, MuJoCo
 
 
 def make_worlds(mjw, wp):
-    spec = mujoco.MjSpec.from_file('mushroom_rl/environments/mujoco_envs/data/ant/model.xml')
+    spec = mujoco.MjSpec.from_file(asset_path('ant', 'model.xml'))
     spec.body('torso').add_site(name='probe', pos=[.1, .2, .3])
     model = spec.compile()
     observation_spec = [('root_pose', 'root', ObservationType.JOINT_POS), ('hip', 'hip_1', ObservationType.JOINT_POS),
@@ -79,7 +81,7 @@ def test_warp_observation_helper():
 
 
 def test_observation_helper():
-    spec = mujoco.MjSpec.from_file('mushroom_rl/environments/mujoco_envs/data/ant/model.xml')
+    spec = mujoco.MjSpec.from_file(asset_path('ant', 'model.xml'))
     body = spec.worldbody.add_body(name='ball_body', pos=[0, 0, 2])
     body.add_joint(name='ball', type=mujoco.mjtJoint.mjJNT_BALL)
     body.add_geom(size=[.1, 0, 0])

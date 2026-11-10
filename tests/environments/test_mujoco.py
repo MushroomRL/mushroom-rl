@@ -3,6 +3,7 @@ import pytest
 
 from mushroom_rl.core import Core, Agent
 from mushroom_rl.environments import MuJoCo, MultiMuJoCo
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.policy import Policy
 
 mujoco = pytest.importorskip('mujoco')
@@ -11,7 +12,7 @@ from mushroom_rl.utils.mujoco import ObservationType  # noqa: E402
 
 
 def make_multi_hopper():
-    xml_file = 'mushroom_rl/environments/mujoco_envs/data/hopper/model.xml'
+    xml_file = asset_path('hopper', 'model.xml')
 
     observation_spec = [("z_pos", "rootz", ObservationType.JOINT_POS),
                         ("y_pos", "rooty", ObservationType.JOINT_POS),
@@ -70,7 +71,7 @@ def test_multi_mujoco():
 
 
 def make_spec():
-    return ('mushroom_rl/environments/mujoco_envs/data/hopper/model.xml', ["thigh_joint", "leg_joint", "foot_joint"],
+    return (asset_path('hopper', 'model.xml'), ["thigh_joint", "leg_joint", "foot_joint"],
             [("z_pos", "rootz", ObservationType.JOINT_POS), ("thigh_pos", "thigh_joint", ObservationType.JOINT_POS),
              ("z_vel", "rootz", ObservationType.JOINT_VEL)])
 

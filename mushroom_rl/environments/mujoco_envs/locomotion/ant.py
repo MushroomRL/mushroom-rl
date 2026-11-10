@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import numpy as np
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import ObservationType
@@ -39,7 +38,7 @@ class Ant(MuJoCo):
         Constructor.
 
         """
-        xml_path = (Path(__file__).resolve().parent.parent / "data" / "ant" / "model.xml").as_posix()
+        xml_path = asset_path('ant', 'model.xml')
 
         # This order is correct as specified in gymnasium
         actuation_spec = [

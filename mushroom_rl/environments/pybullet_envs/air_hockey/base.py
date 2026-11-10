@@ -1,12 +1,10 @@
-import os
-
 import numpy as np
 import pybullet
 import pybullet_utils.transformations as transformations
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.pybullet import PyBullet
 from mushroom_rl.utils.pybullet import PyBulletObservationType
-from mushroom_rl.environments.pybullet_envs import __file__ as path_robots
 
 
 class AirHockeyBaseBullet(PyBullet):
@@ -35,13 +33,10 @@ class AirHockeyBaseBullet(PyBullet):
         self.step_action_function = step_action_function
         self.table_boundary_terminate = table_boundary_terminate
 
-        puck_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "puck.urdf")
-        table_file = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey",
-                                  "air_hockey_table.urdf")
-        robot_file_1 = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "planar",
-                                    "planar_robot_1.urdf")
-        robot_file_2 = os.path.join(os.path.dirname(os.path.abspath(path_robots)), "data", "air_hockey", "planar",
-                                    "planar_robot_2.urdf")
+        puck_file = asset_path('air_hockey', 'puck.urdf')
+        table_file = asset_path('air_hockey', 'air_hockey_table.urdf')
+        robot_file_1 = asset_path('air_hockey', 'planar_robot_1.urdf')
+        robot_file_2 = asset_path('air_hockey', 'planar_robot_2.urdf')
 
         model_files = dict()
         model_files[puck_file] = dict(flags=pybullet.URDF_USE_IMPLICIT_CYLINDER,

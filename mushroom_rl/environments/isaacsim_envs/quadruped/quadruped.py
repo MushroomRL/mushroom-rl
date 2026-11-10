@@ -4,8 +4,8 @@ from mushroom_rl.utils.isaac_sim.torch_maths import torch_rand_float, quat_mul, 
 
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.environments.isaacsim_env import IsaacSim
-from mushroom_rl.environments.isaacsim_envs.quadruped_commands import UniformVelocityCommands
-from mushroom_rl.environments.isaacsim_envs.quadruped_randomizer import QuadrupedRandomizationParams, \
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_commands import UniformVelocityCommands
+from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_randomizer import QuadrupedRandomizationParams, \
     QuadrupedRandomizer
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ActuationType, ObservationType, IsaacGpuParams

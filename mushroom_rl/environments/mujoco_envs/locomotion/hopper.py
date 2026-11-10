@@ -1,7 +1,7 @@
 import numpy as np
 import mujoco
-from pathlib import Path
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import ObservationType
@@ -38,9 +38,7 @@ class Hopper(MuJoCo):
         Constructor.
 
         """
-        xml_path = (
-            Path(__file__).resolve().parent.parent / "data" / "hopper" / "model.xml"
-        ).as_posix()
+        xml_path = asset_path('hopper', 'model.xml')
         actuation_spec = ["thigh_joint", "leg_joint", "foot_joint"]
 
         observation_spec = [

@@ -4,7 +4,7 @@
   </option>
 
   <include file="panda.xml"/>
-  <include file="assets/table.xml"/>
+  <include file="table.xml"/>
   <statistic center="0.3 0 0.4" extent="1"/> 
 
   <visual>

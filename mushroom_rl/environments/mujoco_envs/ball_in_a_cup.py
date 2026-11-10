@@ -1,9 +1,9 @@
 import mujoco
 import numpy as np
 
-from pathlib import Path
 from copy import deepcopy
 
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
@@ -24,7 +24,7 @@ class BallInACup(MuJoCo):
         viewer_params["camera_params"]["static"].update(
             dict(distance=2.0, elevation=-25.0, azimuth=45.0, lookat=np.array([0.0, -0.4, 1.1])))
 
-        xml_path = (Path(__file__).resolve().parent / "data" / "ball_in_a_cup" / "model.xml").as_posix()
+        xml_path = asset_path('ball_in_a_cup', 'model.xml')
         action_spec = ["act/wam/base_yaw_joint", "act/wam/shoulder_pitch_joint", "act/wam/shoulder_yaw_joint",
                        "act/wam/elbow_pitch_joint", "act/wam/wrist_yaw_joint", "act/wam/wrist_pitch_joint",
                        "act/wam/palm_yaw_joint"]

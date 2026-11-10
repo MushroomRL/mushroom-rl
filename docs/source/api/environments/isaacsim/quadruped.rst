@@ -10,7 +10,7 @@ limits.
 reward terms, the joint-position-relative action space, the randomized PD control law and the observations common to
 every robot.
 
-.. automodule:: mushroom_rl.environments.isaacsim_envs.quadruped
+.. automodule:: mushroom_rl.environments.isaacsim_envs.quadruped.quadruped
     :private-members:
 
 .. rubric:: Reward terms beyond the baseline

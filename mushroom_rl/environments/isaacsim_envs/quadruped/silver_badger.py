@@ -1,8 +1,8 @@
 import torch
-from pathlib import Path
 
 from mushroom_rl.core import register_env
-from mushroom_rl.environments.isaacsim_envs.honey_badger import HoneyBadgerIsaac
+from mushroom_rl.environments.assets import asset_path
+from mushroom_rl.environments.isaacsim_envs.quadruped.honey_badger import HoneyBadgerIsaac
 from mushroom_rl.utils import TorchUtils
 
 
@@ -18,7 +18,7 @@ class SilverBadgerIsaac(HoneyBadgerIsaac):
     """
     @staticmethod
     def _robot_config():
-        usd_path = str(Path(__file__).resolve().parent / "robots_usds/silver_badger/silver_badger.usd")
+        usd_path = asset_path('silver_badger', 'silver_badger.usd')
         action_spec = [
             "fl_j0", "fl_j1", "fl_j2",
             "fr_j0", "fr_j1", "fr_j2",
