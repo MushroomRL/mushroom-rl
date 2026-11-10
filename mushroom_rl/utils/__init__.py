@@ -7,7 +7,7 @@ from .minibatches import minibatch_number, minibatch_generator, ensemble_minibat
 from .plot import plot_mean_conf, get_mean_and_confidence
 from .record import VideoRecorder
 from .torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian, TorchTrainer
-from .viewer import Viewer, CV2Viewer, ImageViewer
+from .viewer import PygameWindow, Viewer, ImageViewer
 
 __all__ = ['normalize_angle_positive', 'normalize_angle', 'shortest_angular_distance',
            'quat_to_euler', 'euler_to_quat', 'euler_to_mat', 'mat_to_euler',
@@ -18,4 +18,4 @@ __all__ = ['normalize_angle_positive', 'normalize_angle', 'shortest_angular_dist
            'plot_mean_conf', 'get_mean_and_confidence',
            'VideoRecorder',
            'TorchUtils', 'CategoricalWrapper', 'SquashedGaussian', 'TorchTrainer',
-           'Viewer', 'CV2Viewer', 'ImageViewer']
+           'PygameWindow', 'Viewer', 'ImageViewer']

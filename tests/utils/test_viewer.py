@@ -1,8 +1,10 @@
+import os
+
 import pygame
 import numpy as np
 
 from mushroom_rl.utils.viewer import Viewer
-from mushroom_rl.utils.viewer.pygame_viewer import ImageViewer
+from mushroom_rl.utils.viewer.image_viewer import ImageViewer
 
 
 def test_window():
@@ -73,3 +75,75 @@ def test_image_viewer():
     ImageViewer((40, 30), 0., headless=True).display(image)
 
     assert not pygame.display.get_init()
+
+
+def test_image_viewer_close():
+    image = np.zeros((30, 40, 3), dtype=np.uint8)
+    viewer = ImageViewer((40, 30), 0.)
+    viewer.display(image)
+    pygame.event.post(pygame.event.Event(pygame.QUIT))
+    viewer.display(image)
+
+    assert not pygame.display.get_init()
+
+    viewer.display(image)
+
+    assert not pygame.display.get_init()
+
+    viewer.close()
+    viewer.display(image)
+
+    assert pygame.display.get_init()
+
+    viewer.close()
+
+
+def test_viewer_close():
+    viewer = Viewer(5, 5, min_scale=40)
+    viewer.grid(5, 5)
+    viewer.display(0.)
+    pygame.event.post(pygame.event.Event(pygame.QUIT))
+    viewer.display(0.)
+
+    assert not pygame.display.get_init()
+
+    viewer.grid(5, 5)
+    frame = viewer.get_frame()
+    viewer.display(0.)
+
+    assert not pygame.display.get_init()
+    assert [row for row in range(frame.shape[0]) if frame[row].all()] == [0, 100, 200, 300, 400, 499]
+
+    viewer.close()
+    viewer.grid(5, 5)
+
+    assert pygame.display.get_init()
+
+    viewer.close()
+
+
+def test_software_framebuffer(monkeypatch):
+    hints = []
+    set_mode = pygame.display.set_mode
+
+    def recording_set_mode(*args, **kwargs):
+        hints.append(os.environ.get('SDL_FRAMEBUFFER_ACCELERATION'))
+        return set_mode(*args, **kwargs)
+
+    monkeypatch.setattr(pygame.display, 'set_mode', recording_set_mode)
+    image = np.zeros((30, 40, 3), dtype=np.uint8)
+
+    for previous in ('1', None):
+        if previous is None:
+            monkeypatch.delenv('SDL_FRAMEBUFFER_ACCELERATION')
+        else:
+            monkeypatch.setenv('SDL_FRAMEBUFFER_ACCELERATION', previous)
+
+        for software_framebuffer in (False, True):
+            viewer = ImageViewer((40, 30), 0., software_framebuffer=software_framebuffer)
+            viewer.display(image)
+            viewer.close()
+
+        assert os.environ.get('SDL_FRAMEBUFFER_ACCELERATION') == previous
+
+    assert hints == ['1', '0', None, '0']

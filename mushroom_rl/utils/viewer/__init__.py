@@ -1,4 +1,5 @@
-from .pygame_viewer import ImageViewer, Viewer
-from .opencv_viewer import CV2Viewer
+from .pygame_window import PygameWindow
+from .image_viewer import ImageViewer
+from .viewer import Viewer
 
-__all__ = ['ImageViewer', 'Viewer', 'CV2Viewer']
+__all__ = ['PygameWindow', 'ImageViewer', 'Viewer']

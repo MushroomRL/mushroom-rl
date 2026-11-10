@@ -1,80 +1,10 @@
-import os
-if 'PYGAME_HIDE_SUPPORT_PROMPT' not in os.environ:
-    os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-
 import pygame
-import time
 import numpy as np
 
-from mushroom_rl.utils.icons import icon_path
+from mushroom_rl.utils.viewer.pygame_window import PygameWindow
 
 
-class ImageViewer:
-    """
-    Interface to pygame for visualizing plain images.
-
-    """
-    def __init__(self, size, dt, headless=False):
-        """
-        Constructor.
-
-        Args:
-            size ([list, tuple]): size of the displayed image;
-            dt (float): duration of a control step.
-            headless (bool, False): skip the display.
-
-        """
-        self._size = size
-        self._dt = dt
-        self._initialized = False
-        self._screen = None
-        self._headless = headless
-
-    def display(self, img):
-        """
-        Display given frame.
-
-        Args:
-            img: image to display.
-
-        """
-        if self._headless:
-            return
-
-        if not self._initialized:
-            pygame.init()
-            self._initialized = True
-
-        if self._screen is None:
-            self._screen = _open_window(self._size)
-
-        img = np.transpose(img, (1, 0, 2))
-        surf = pygame.surfarray.make_surface(img)
-        self._screen.blit(surf, (0, 0))
-        pygame.display.flip()
-        time.sleep(self._dt)
-
-    @property
-    def size(self):
-        """
-        Property.
-
-        Returns:
-            The size of the screen.
-
-        """
-        return self._size
-
-    def close(self):
-        """
-        Close the viewer, destroy the window.
-
-        """
-        self._screen = None
-        pygame.display.quit()
-
-
-class Viewer:
+class Viewer(PygameWindow):
     """
     Interface to pygame for visualizing mushroom native environments.
 
@@ -125,44 +55,13 @@ class Viewer:
         width = int(max(width, min_width))
         height = int(max(height, min_height))
 
-        self._size = (width, height)
+        super().__init__((width, height))
+
         self._width = width
         self._height = height
-        self._screen = None
         self._scale = scale
         self._margin = np.array([(width / scale - env_width) / 2, (height / scale - env_height) / 2])
         self._background = background
-
-        self._initialized = False
-
-    @property
-    def screen(self):
-        """
-        Property.
-
-        Returns:
-            The screen created by this viewer.
-
-        """
-        if not self._initialized:
-            pygame.init()
-            self._initialized = True
-
-        if self._screen is None:
-            self._screen = _open_window(self._size)
-
-        return self._screen
-
-    @property
-    def size(self):
-        """
-        Property.
-
-        Returns:
-            The size of the screen.
-
-        """
-        return self._size
 
     @property
     def fits(self):
@@ -393,17 +292,15 @@ class Viewer:
         points = [self._transform([a, b]) for a, b in zip(x, y)]
         pygame.draw.lines(self.screen, color, False, points, width)
 
-    @staticmethod
-    def get_frame():
+    def get_frame(self):
         """
         Getter.
 
         Returns:
-            The current Pygame surface as an RGB array.
+            The current frame as an RGB array.
 
         """
-        surf = pygame.display.get_surface()
-        pygame_frame = pygame.surfarray.array3d(surf)
+        pygame_frame = pygame.surfarray.array3d(self.screen)
         frame = pygame_frame.swapaxes(0, 1)
 
         return frame
@@ -417,18 +314,9 @@ class Viewer:
             s: time to wait in visualization.
 
         """
-        pygame.display.flip()
-        time.sleep(s)
+        self._show(s)
 
         self.screen.fill(self._background)
-
-    def close(self):
-        """
-        Close the viewer, destroy the window.
-
-        """
-        self._screen = None
-        pygame.display.quit()
 
     def _transform(self, p):
         return np.array([(p[0] + self._margin[0]) * self._scale,
@@ -438,10 +326,3 @@ class Viewer:
     def _rotate(p, theta):
         return np.array([np.cos(theta) * p[0] - np.sin(theta) * p[1],
                          np.sin(theta) * p[0] + np.cos(theta) * p[1]])
-
-
-def _open_window(size):
-    # the icon has to be set before the window is created
-    pygame.display.set_icon(pygame.image.load(icon_path(64)))
-
-    return pygame.display.set_mode(size)

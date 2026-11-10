@@ -11,7 +11,6 @@ dependencies = [
     "joblib",
     "tqdm",
     "pygame-ce",
-    "opencv-python>=4.7",
     "av",
     "torch"
 ]

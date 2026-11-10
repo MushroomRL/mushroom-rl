@@ -6,7 +6,7 @@ from dm_control.suite.wrappers import pixels
 
 from mushroom_rl.core import Environment, MDPInfo, register_env
 from mushroom_rl.core.spaces import Box
-from mushroom_rl.utils.viewer import CV2Viewer
+from mushroom_rl.utils.viewer import ImageViewer
 
 
 @register_env
@@ -74,7 +74,7 @@ class DMControl(Environment):
 
         self._height_screen = height_screen
         self._width_screen = width_screen
-        self._viewer = CV2Viewer("dm_control", dt, self._width_screen, self._height_screen)
+        self._viewer = ImageViewer((self._width_screen, self._height_screen), dt, software_framebuffer=True)
         self._camera_id = camera_id
 
         super().__init__(mdp_info)

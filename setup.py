@@ -23,8 +23,8 @@ here = path.abspath(path.dirname(__file__))
 
 extras = {
     'gymnasium': ['gymnasium'],
-    'atari': ['ale-py', 'Pillow', 'opencv-python'],
-    'minigrid': ['minigrid'],
+    'atari': ['ale-py', 'Pillow', 'opencv-python>=4.7'],
+    'minigrid': ['minigrid', 'opencv-python>=4.7'],
     'box2d': ['box2d-py'],
     'bullet': ['pybullet'],
     'mujoco': ['mujoco==3.14.0'],
