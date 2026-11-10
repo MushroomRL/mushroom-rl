@@ -1,0 +1,12 @@
+<mujoco>
+  <worldbody>
+    <geom name="floor" type="plane" size="1 1 .1"/>
+    <body pos="0 0 .5">
+      <freejoint name="ball_joint"/>
+      <geom name="ball" type="sphere" size=".1"/>
+    </body>
+  </worldbody>
+  <sensor>
+    <distance name="ball_floor" geom1="ball" geom2="floor" cutoff="1"/>
+  </sensor>
+</mujoco>

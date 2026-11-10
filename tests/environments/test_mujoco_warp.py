@@ -228,3 +228,13 @@ def test_collisions():
     assert wp.to_torch(mdp._data_wp.nacon)[0] == 18
     assert not mdp._check_collision('box', 'floor').any()
     assert not mdp._get_collision_force('box', 'floor').any()
+
+    mdp = MuJoCoWarp('tests/environments/data/distance_sensor.xml', [],
+                     [('ball_pose', 'ball_joint', ObservationType.JOINT_POS)], .99, 100, num_envs,
+                     collision_groups=[('ball', ['ball']), ('floor', ['floor'])])
+    mdp.reset_all(mask)
+    mdp._mj_warp.forward(mdp._model_wp, mdp._data_wp)
+
+    assert wp.to_torch(mdp._data_wp.nacon)[0] == 2
+    assert not mdp._check_collision('ball', 'floor').any()
+    assert not mdp._get_collision_force('ball', 'floor').any()

@@ -556,7 +556,9 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     def _get_collision_force(self, group1, group2):
         """
-        Return the collision force and torques between the specified groups, for every world.
+        Return the collision force and torques between the specified groups, for every world. The groups are assumed
+        to touch in at most one contact per world: with several contacts, the force of the first one found is
+        returned.
 
         Args:
             group1 (string): A name referring to an entry contained in the collision_groups list handed to the
@@ -566,8 +568,8 @@ class MuJoCoWarp(VectorizedEnvironment):
 
         Returns:
             A torch.Tensor of shape (num_envs, 6) specifying, for every world, the forces/torques [3D force + 3D
-            torque] of the first contact between the given groups, in the contact frame. Zero vector for worlds with
-            no contact between the groups.
+            torque] of the contact between the given groups, in the contact frame. Zero vector for worlds with no
+            contact between the groups.
             http://mujoco.org/book/programming.html#siContact
 
         """
@@ -606,8 +608,9 @@ class MuJoCoWarp(VectorizedEnvironment):
         g1 = geom[:, 0]
         g2 = geom[:, 1]
         is_contact = self._contact_slots < wp.to_torch(self._data_wp.nacon)
+        in_solver = wp.to_torch(self._data_wp.contact.efc_address)[:, 0] >= 0
         is_flex = (g1 < 0) | (g2 < 0)
-        match = is_contact & ~is_flex & ((mask1[g1] & mask2[g2]) | (mask1[g2] & mask2[g1]))
+        match = is_contact & in_solver & ~is_flex & ((mask1[g1] & mask2[g2]) | (mask1[g2] & mask2[g1]))
 
         return match, wp.to_torch(self._data_wp.contact.worldid).long()
 
