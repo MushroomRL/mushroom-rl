@@ -120,8 +120,8 @@ def experiment(
     # RUN
     dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-    J = dataset.discounted_return.mean()
-    R = dataset.undiscounted_return.mean()
+    J = dataset.discounted_return.mean().item()
+    R = dataset.undiscounted_return.mean().item()
     E = agent.policy.entropy().item()
 
     logger.log_evaluation(0, J=J, R=R, entropy=E)
@@ -130,8 +130,8 @@ def experiment(
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
         dataset = core.evaluate(n_episodes=n_episodes_test, render=False)
 
-        J = dataset.discounted_return.mean()
-        R = dataset.undiscounted_return.mean()
+        J = dataset.discounted_return.mean().item()
+        R = dataset.undiscounted_return.mean().item()
         E = agent.policy.entropy().item()
 
         logger.log_evaluation(it + 1, J=J, R=R, entropy=E)

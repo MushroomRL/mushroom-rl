@@ -38,6 +38,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         njmax=None,
         use_graph_capture=False,
         device=None,
+        warp_log_level=wp.LOG_WARNING,
         **viewer_params,
     ):
         """
@@ -79,6 +80,8 @@ class MuJoCoWarp(VectorizedEnvironment):
                instead of dispatching each Warp kernel launch individually;
             device (str, None): the device the simulation data and every tensor returned by the environment live
                on. If None, the default torch device is used;
+            warp_log_level (int, wp.LOG_WARNING): the process-wide Warp log level (``wp.config.log_level``) set on
+               construction. Pass ``wp.LOG_INFO`` to print Warp's initialization banner and module-load messages;
             **viewer_params: other parameters to be passed to the viewer.
                See MujocoViewer documentation for the available options.
 
@@ -86,6 +89,7 @@ class MuJoCoWarp(VectorizedEnvironment):
         self._mj_warp = mj_warp
         self._wp = wp
 
+        wp.config.log_level = warp_log_level
         wp.init()
         device = TorchUtils.get_device(device)
         wp.set_device(wp.device_from_torch(device))
