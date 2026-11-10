@@ -122,5 +122,5 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    experiment(env='HalfCheetah-v5', horizon=1000, gamma=0.99, n_epochs=300, n_steps_per_epoch=50000,
+    experiment(env='HalfCheetah-v5', horizon=1000, gamma=0.99, n_epochs=25, n_steps_per_epoch=50000,
                n_steps_per_fit=2000, n_episodes_test=10, use_cuda=args.use_cuda, seed=args.seed)
