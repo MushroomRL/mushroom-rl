@@ -68,6 +68,9 @@ For ubuntu>20.04, you may need to install pygame and gym dependencies:
 
 Notice that you still need to install some of these dependencies for different operating systems, e.g. swig for macOS 
 
+On macOS, opening the MuJoCo viewer window requires running your script with ``mjpython`` instead of
+``python``.
+
 Below is the code that you need to run to install the live monitors dependencies:
 
 .. code:: shell

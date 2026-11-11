@@ -14,6 +14,9 @@ class MujocoViewer:
     Thin wrapper over mujoco.viewer.launch_passive (interactive window) and mujoco.Renderer (headless
     rendering and recording).
 
+    On macOS, the interactive window (``headless=False``) requires running the script with ``mjpython``
+    instead of ``python``.
+
     """
 
     def __init__(self, model, dt, width=640, height=480, start_paused=False,

@@ -1,10 +1,10 @@
+from copy import deepcopy
+
 import mujoco
 import numpy as np
 
-from copy import deepcopy
-
-from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.mujoco import MuJoCo
 from mushroom_rl.utils.mujoco import MujocoViewer, ObservationType
 

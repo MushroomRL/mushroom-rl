@@ -1,5 +1,5 @@
-import numpy as np
 import mujoco
+import numpy as np
 
 from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.mujoco import MuJoCo

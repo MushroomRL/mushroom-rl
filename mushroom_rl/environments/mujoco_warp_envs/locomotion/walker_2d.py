@@ -1,11 +1,11 @@
 import torch
 import warp as wp
 
-from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.core import register_env
+from mushroom_rl.core.spaces import Box
+from mushroom_rl.environments.assets import asset_path
 from mushroom_rl.environments.mujoco_warp import MuJoCoWarp
 from mushroom_rl.utils.mujoco import ObservationType
-from mushroom_rl.core.spaces import Box
 
 
 @register_env
