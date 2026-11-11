@@ -33,7 +33,8 @@ IsaacLauncher.launch(headless=True)
 logging.getLogger("isaacsim.asset.transformer.rules.utils").setLevel(logging.WARNING)
 
 from mushroom_rl.environments.isaacsim_envs import Go2Isaac
-from mushroom_rl.environments.isaacsim_envs.quadruped.commands import UniformVelocityCommands
+from mushroom_rl.environments.isaacsim_envs.quadruped.commands import EllipticVelocityCommands
+from mushroom_rl.environments.isaacsim_envs.quadruped.randomizer import QuadrupedRandomizationParams
 
 
 class PolicyNetwork(ActorNetwork):
@@ -65,19 +66,23 @@ class Curriculum:
     """
     The schedule the task is tightened along, applied after every policy update.
 
-    The command ranges and the actuation delay ceiling change in stages, while the tracking tolerance is
-    interpolated linearly.
+    The command ranges and the actuation delay ceiling change in stages, each on its own schedule, while the
+    tracking tolerance is interpolated linearly.
 
     """
-    def __init__(self, mdp, command_steps, command_ranges, delay_steps, tracking_steps, tracking_stds):
+    def __init__(self, mdp, command_steps, command_ranges, delay_steps, max_delays, tracking_steps,
+                 tracking_stds):
         """
         Constructor.
 
         Args:
             mdp (Go2Isaac): The environment the schedule is applied to.
-            command_steps (list): The step counts at which the next stage begins, one fewer than the stages.
-            command_ranges (list): The linear velocity command range of each stage, applied to x and y.
-            delay_steps (list): The ceiling on the actuation delay of each stage, in physics steps.
+            command_steps (list): The step counts at which the next command stage begins.
+            command_ranges (dict): The ranges of each stage, keyed by command; a command with fewer ranges
+                than stages keeps its last one.
+            delay_steps (list): The step counts at which the next delay stage begins, one fewer than
+                ``max_delays``.
+            max_delays (list): The ceiling on the actuation delay of each delay stage, in physics steps.
             tracking_steps (tuple): The step counts the tracking tolerance is interpolated between.
             tracking_stds (tuple): The tolerances at the two ends of that interpolation.
 
@@ -86,6 +91,7 @@ class Curriculum:
         self._command_steps = command_steps
         self._command_ranges = command_ranges
         self._delay_steps = delay_steps
+        self._max_delays = max_delays
         self._tracking_steps = tracking_steps
         self._tracking_stds = tracking_stds
 
@@ -98,9 +104,9 @@ class Curriculum:
         self.apply()
 
     def apply(self):
-        low, high = self._command_ranges[self.stage]
-        self._mdp.command_generator.command_ranges = dict(lin_vel_x=(low, high), lin_vel_y=(low, high))
-        self._mdp.max_delay_steps = self._delay_steps[self.stage]
+        self._mdp.command_generator.command_ranges = {name: ranges[min(self.stage, len(ranges) - 1)]
+                                                      for name, ranges in self._command_ranges.items()}
+        self._mdp.max_delay_steps = self._max_delays[self.delay_stage]
 
         start, end = self._tracking_stds
         self._mdp.tracking_stds = {name: start[name] + self.progress * (end[name] - start[name])
@@ -109,6 +115,10 @@ class Curriculum:
     @property
     def stage(self):
         return sum(self._step >= threshold for threshold in self._command_steps)
+
+    @property
+    def delay_stage(self):
+        return sum(self._step >= threshold for threshold in self._delay_steps)
 
     @property
     def progress(self):
@@ -178,8 +188,28 @@ def tracking_errors(mdp, dataset):
     return lin_error, ang_error
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, critic_params,
-               mdp_params, curriculum_params, privileged_observations, n_envs, horizon, render=True, seed=None):
+def evaluate(core, agent, mdp, curriculum, logger, epoch, n_episodes_test, render):
+    """
+    Evaluates the agent and logs the result under the given epoch.
+
+    """
+    dataset = core.evaluate(n_episodes=n_episodes_test, render=render, record=render)
+
+    J = dataset.discounted_return.mean().item()
+    R = dataset.undiscounted_return.mean().item()
+    E = agent.policy.entropy().item()
+    V = initial_value(agent, dataset)
+
+    L, falls = episode_metrics(dataset)
+    lin_error, ang_error = tracking_errors(mdp, dataset)
+
+    logger.log_evaluation(epoch, J=J, R=R, entropy=E, V=V, length=L, falls=falls, lin_error=lin_error,
+                          ang_error=ang_error, stage=curriculum.stage, progress=curriculum.progress)
+
+
+def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, eval_frequency, alg_params, policy_params,
+               critic_params, mdp_params, curriculum_params, privileged_observations, n_envs, horizon, render=True,
+               seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)
@@ -190,7 +220,8 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
 
     logger = Logger('RudinPPO_go2', results_dir=get_log_dir(__file__), log_console=True, use_timestamp=True)
     logger.log_experiment_info(alg, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_per_fit=n_steps_per_fit,
-                               n_episodes_test=n_episodes_test, n_envs=n_envs, horizon=horizon,
+                               n_episodes_test=n_episodes_test, eval_frequency=eval_frequency, n_envs=n_envs,
+                               horizon=horizon,
                                critic_params=critic_params, curriculum_params=curriculum_params,
                                privileged_observations=privileged_observations,
                                **alg_params, **policy_params)
@@ -214,38 +245,13 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_par
     core = Core(agent, mdp, callbacks_fit=[curriculum], logger=logger)
 
     # RUN
-    dataset = core.evaluate(n_episodes=n_episodes_test, render=render, record=render)
-
-    J = dataset.discounted_return.mean().item()
-    R = dataset.undiscounted_return.mean().item()
-    E = agent.policy.entropy().item()
-    V = initial_value(agent, dataset)
-
-    L, falls = episode_metrics(dataset)
-    lin_error, ang_error = tracking_errors(mdp, dataset)
-
-    logger.log_evaluation(0, J=J, R=R, entropy=E, V=V, length=L, falls=falls, lin_error=lin_error,
-                          ang_error=ang_error, stage=curriculum.stage, progress=curriculum.progress)
+    evaluate(core, agent, mdp, curriculum, logger, 0, n_episodes_test, render)
 
     for it in trange(n_epochs, leave=False):
         core.learn(n_steps=n_steps, n_steps_per_fit=n_steps_per_fit)
 
-        # record the run only once every five epochs, to keep the videos to a manageable size
-        record = render and ((it + 1) % 5 == 0 or it == n_epochs - 1)
-        dataset = core.evaluate(n_episodes=n_episodes_test, render=record, record=record)
-
-        J = dataset.discounted_return.mean().item()
-        R = dataset.undiscounted_return.mean().item()
-        E = agent.policy.entropy().item()
-        V = initial_value(agent, dataset)
-
-        L, falls = episode_metrics(dataset)
-        lin_error, ang_error = tracking_errors(mdp, dataset)
-
-        logger.log_evaluation(it + 1, J=J, R=R, entropy=E, V=V, length=L, falls=falls, lin_error=lin_error,
-                              ang_error=ang_error, stage=curriculum.stage, progress=curriculum.progress)
-
-        del dataset
+        if (it + 1) % eval_frequency == 0 or it == n_epochs - 1:
+            evaluate(core, agent, mdp, curriculum, logger, it + 1, n_episodes_test, render)
 
 
 if __name__ == '__main__':
@@ -261,22 +267,29 @@ if __name__ == '__main__':
                           collision=-1.0, feet_air_time=0., flat_orientation=-0.2, joint_vel_limits=-0.1,
                           power_draw=-4e-6, similar_to_default=-0.085, stand_still_deviation=-1.4,
                           base_height=-50., feet_air_time_high=0.125, feet_air_time_low=0.75,
-                          feet_air_time_symmetry=-0.25, feet_clearance=0.085, feet_clearance_lateral=0.1,
+                          feet_air_time_symmetry=-0.25, feet_clearance=0.085, feet_clearance_lateral=0.,
                           feet_slide=-0.04, feet_slide_low=-0.2, feet_z_velocity=-0.03, long_contact=-0.7,
-                          stand_still_short_contact=-0.5)
+                          stand_still_short_contact=-0.01)
 
-    command_generator = UniformVelocityCommands(
-        max_command_ranges=dict(lin_vel_x=(-2.5, 2.5), lin_vel_y=(-2.5, 2.5), ang_vel_z=(-1.5, 1.5)),
-        command_ranges=dict(ang_vel_z=(-1.5, 1.5)), command_resampling_time_range=(5., 10.),
-        heading_control_stiffness=1., rel_heading_envs=0.5, rel_standing_envs=0.1, command_dead_zone=0.,
-        frac_rotating_envs=0.15, frac_low_speed_envs=0.35, low_speed_threshold=0.5
+    command_generator = EllipticVelocityCommands(
+        max_command_ranges=dict(lin_vel_x=(-2.5, 2.5), lin_vel_y=(-2., 2.), ang_vel_z=(-2., 2.)),
+        command_resampling_time_range=(5., 10.), heading_control_stiffness=1., rel_heading_envs=0.5,
+        rel_standing_envs=0.1, command_dead_zone=0., frac_rotating_envs=0.1, frac_low_speed_envs=0.35,
+        low_speed_threshold=0.5, frac_max_speed_envs=0.05
     )
 
-    mdp_params = dict(reward_weights=reward_weights, command_generator=command_generator)
+    randomization_params = QuadrupedRandomizationParams(static_friction=0.875, dynamic_friction=0.7,
+                                                        ground_friction_factor=3. / 7.)
+
+    mdp_params = dict(reward_weights=reward_weights, command_generator=command_generator,
+                      randomization_params=randomization_params)
 
     curriculum_params = dict(command_steps=[24000, 48000],
-                             command_ranges=[(-1., 1.), (-2., 2.), (-2.5, 2.5)],
-                             delay_steps=[2, 3, 4],
+                             command_ranges=dict(lin_vel_x=[(-1., 1.), (-2., 2.), (-2.5, 2.5)],
+                                                 lin_vel_y=[(-1., 1.), (-2., 2.)],
+                                                 ang_vel_z=[(-1., 1.), (-2., 2.)]),
+                             delay_steps=[18000, 36000],
+                             max_delays=[2, 3, 4],
                              tracking_steps=(8000, 20000),
                              tracking_stds=(dict(lin_vel=0.5, lin_vel_slope=0., ang_vel=0.5, ang_vel_slope=0.),
                                             dict(lin_vel=0.05, lin_vel_slope=0.2, ang_vel=0.1,
@@ -284,6 +297,7 @@ if __name__ == '__main__':
 
     n_epochs = 60
     n_episodes_test = 256
+    eval_frequency = 10
     n_envs = 4096
     horizon = 1000
     n_steps_per_env = 24
@@ -330,6 +344,7 @@ if __name__ == '__main__':
         n_steps=n_steps_per_fit * n_fits_per_epoch,
         n_steps_per_fit=n_steps_per_fit,
         n_episodes_test=n_episodes_test,
+        eval_frequency=eval_frequency,
         alg_params=ppo_params,
         policy_params=policy_params,
         critic_params=critic_params,
