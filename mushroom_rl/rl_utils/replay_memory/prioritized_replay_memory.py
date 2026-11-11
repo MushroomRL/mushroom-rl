@@ -1,8 +1,5 @@
-import numpy as np
-
-from mushroom_rl.core import ArrayBackend
 from mushroom_rl.rl_utils.parameters import Parameter
-from mushroom_rl.utils.sum_tree import SumTree
+from mushroom_rl.utils.priority_sampler import PrioritySampler
 
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
 
@@ -30,8 +27,8 @@ class PrioritizedReplayMemory(ReplayMemory):
                 reused offline so that the stacked observation matches the one built online;
             n_steps_return (int, 1): number of steps used for the n-step return;
             store_policy_state (bool, False): whether the policy internal state is stored in the replay memory;
-            return_extra (bool, False): whether :meth:`get` appends the ``extra_data`` dictionary of the history
-                windows not delivered in-band in the state, inserted just before the ``idxs``/``is_weight`` pair.
+            return_extra (bool, False): whether :meth:`get` also returns the ``extra_data`` dictionary of the history
+                windows not delivered in-band in the state.
 
         """
         self._alpha = alpha
@@ -45,7 +42,7 @@ class PrioritizedReplayMemory(ReplayMemory):
             _alpha='primitive',
             _beta='primitive',
             _epsilon='primitive',
-            _tree='mushroom'
+            _sampler='mushroom'
         )
 
     def add(self, dataset, p=None):
@@ -64,13 +61,12 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         if len(dataset) > 0:
             if p is None:
-                p = self._dataset.backend.full((len(dataset),), self.max_priority, device=self._agent_info.device)
+                p = self.max_priority * self._dataset.backend.ones(len(dataset), device=self._agent_info.device)
 
             start = self._dataset.write_head
             positions, relinked, orphans = self._dataset.append_replay_batch(dataset)
-            tree_idxs = ArrayBackend.convert(positions, to='numpy') + self._max_size - 1
-            self._tree.update(tree_idxs, ArrayBackend.convert(p, to='numpy'))
-            self._sync_tree_mask(self._affected_window(start, len(positions), relinked, orphans))
+            self._sampler.update(positions, p)
+            self._sync_sampler_mask(self._affected_window(start, len(positions), relinked, orphans))
 
     def get(self, n_samples):
         """
@@ -80,51 +76,37 @@ class PrioritizedReplayMemory(ReplayMemory):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples, followed by the tree indices and importance-sampling weights of the drawn
-            transitions. When ``return_extra`` is set, the ``extra_data`` dictionary assembled by the history manager is
-            inserted just before this trailing pair.
+            The requested number of samples, followed by the buffer positions and importance-sampling weights of the
+            drawn transitions. When ``return_extra`` is set, the ``extra_data`` dictionary assembled by the history
+            manager is inserted just before this trailing pair.
 
         """
-        idxs = np.zeros(n_samples, dtype=int)
-        priorities = self._dataset.backend.zeros(n_samples, device=self._agent_info.device)
+        total_priority = self._sampler.total_priority
+        idxs, priorities = self._sampler.sample(n_samples)
 
-        total_p = self._tree.total_p
-        segment = total_p / n_samples
-        samples = np.random.uniform(
-            np.arange(n_samples) * segment,
-            np.arange(1, n_samples + 1) * segment
-        )
+        importance_sampling_weights = (self.size * priorities / total_priority) ** -self._beta()
+        importance_sampling_weights /= importance_sampling_weights.max()
 
-        for i, s in enumerate(samples):
-            idxs[i], priorities[i] = self._tree.get(s)
-
-        is_weight = (self.size * priorities / total_p) ** -self._beta()
-        is_weight /= is_weight.max()
-
-        data_idxs = ArrayBackend.convert(idxs - self._max_size + 1, to=self._agent_info.backend_name,
-                                         device=self._agent_info.device)
-        out = self._assemble_batch(data_idxs)
-        out += [idxs, is_weight]
+        out = self._assemble_batch(idxs)
+        out += [idxs, importance_sampling_weights]
 
         return tuple(out)
 
     def reset(self):
         super().reset()
-        self._tree = SumTree(self._max_size)
+        self._sampler = PrioritySampler(self._max_size, backend=self._agent_info.backend_name,
+                                        device=self._agent_info.device)
 
-    def update(self, error, idx):
+    def update(self, errors, idxs):
         """
         Update the priority of the sample at the provided index in the dataset.
 
         Args:
-            error (Array): errors to consider to compute the priorities;
-            idx (Array): indexes of the transitions in the dataset.
+            errors (Array): errors to consider to compute the priorities;
+            idxs (Array): buffer positions of the transitions, as returned by :meth:`get`.
 
         """
-        error = ArrayBackend.convert(error, to='numpy')
-        idx = ArrayBackend.convert(idx, to='numpy')
-        p = self._get_priority(error)
-        self._tree.update(idx, p)
+        self._sampler.update(idxs, self._get_priority(errors))
 
     @property
     def max_priority(self):
@@ -133,13 +115,11 @@ class PrioritizedReplayMemory(ReplayMemory):
             The maximum value of priority inside the replay memory.
 
         """
-        return self._tree.max_p if self.initialized else 1.
+        return self._sampler.max_priority if self.initialized else 1.
 
-    def _sync_tree_mask(self, window):
+    def _sync_sampler_mask(self, window):
         """
-        Mirror the sampling mask of ``window`` (see :meth:`_compute_mask`) into the sum tree: mask the leaves that are
-        excluded and unmask the ones that are sampleable. Both tree operations are idempotent and the leaf keeps its
-        true priority while masked, so this is a plain copy of the mask over the affected leaves.
+        Mirror the sampling mask of ``window`` (see :meth:`_compute_mask`) into the priority sampler.
 
         Args:
             window: the buffer positions whose mask changed (see :meth:`_affected_window`), or ``None`` when no masking
@@ -147,10 +127,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
         """
         if window is not None:
-            leaves = ArrayBackend.convert(window, to='numpy') + self._max_size - 1
-            desired = ArrayBackend.convert(self._compute_mask(window), to='numpy')
-            self._tree.mask(leaves[desired])
-            self._tree.unmask(leaves[~desired])
+            self._sampler.set_mask(window, self._compute_mask(window))
 
     def _get_priority(self, error):
-        return (np.abs(error) + self._epsilon) ** self._alpha
+        return (abs(error) + self._epsilon) ** self._alpha

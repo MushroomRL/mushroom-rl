@@ -194,9 +194,11 @@ class ReplayMemory(MushroomObject):
         full = self._dataset.full
         history_reserve = self._history_manager.max_reach if full else 0
         window_length = n_written + (self._n_steps_return - 1) + history_reserve
-        range_vec = backend.arange(0, window_length, device=self._agent_info.device)
-        raw = (start - (self._n_steps_return - 1)) + range_vec
-        window = raw % self._max_size if full else raw[(raw >= 0) & (raw < size)]
+        first = start - (self._n_steps_return - 1)
+        if full:
+            window = (first + backend.arange(0, window_length, device=self._agent_info.device)) % self._max_size
+        else:
+            window = backend.arange(max(first, 0), min(first + window_length, size), device=self._agent_info.device)
         if len(relinked) > 0 and self._dataset.links is not None:
             ends = backend.as_array(relinked, device=self._agent_info.device)
             reached = self._dataset.walk_back(ends, self._n_steps_return - 1)[0]

@@ -20,6 +20,7 @@ from mushroom_rl.rl_utils.parameters import Parameter, VariableParameter, Linear
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer, SGDOptimizer, AdamOptimizer
 
 from mushroom_rl.features._impl import TilesFeatures, FunctionalFeatures, BasisFeatures
+from mushroom_rl.utils.priority_sampler import PrioritySampler, SumTree
 
 
 class TestUtils:
@@ -261,18 +262,22 @@ class TestUtils:
         res &= this._alpha == that._alpha
         res &= cls.eq_linear_parameter(this._beta, that._beta)
         res &= this._epsilon == that._epsilon
-        res &= cls.eq_sum_tree(this._tree, that._tree)
+        res &= cls.eq_priority_sampler(this._sampler, that._sampler)
         return res
 
     @classmethod
-    def eq_sum_tree(cls, this, that):
+    def eq_priority_sampler(cls, this, that):
         """
-        Compare two SumTree objects for equality
+        Compare two PrioritySampler objects for equality
         """
 
-        res = this._max_size == that._max_size
-        res &= cls._eq_numpy(this._tree, that._tree)
-        res &= cls._eq_numpy(this._masked, that._masked)
+        res = type(this) is type(that) and this._max_size == that._max_size
+        if isinstance(this, SumTree):
+            res &= cls._eq_numpy(this._nodes, that._nodes)
+            res &= cls._eq_numpy(this._masked, that._masked)
+        else:
+            res &= cls._eq_numpy(this._priorities, that._priorities)
+            res &= cls._eq_numpy(this._masked_priorities, that._masked_priorities)
         return res
 
     @classmethod
@@ -462,6 +467,7 @@ class TestUtils:
             (exact, Dataset, asserting(cls.eq_dataset)),
             (exact, PrioritizedReplayMemory, asserting(cls.eq_prioritized_replay_memory)),
             (exact, ReplayMemory, asserting(cls.eq_replay_memory)),
+            (sub, PrioritySampler, asserting(cls.eq_priority_sampler)),
             (exact, OrnsteinUhlenbeckPolicy, asserting(cls.eq_ornstein_uhlenbeck_policy)),
             (exact, TilesFeatures, asserting(cls.eq_tiles_features)),
             (exact, LinearParameter, asserting(cls.eq_linear_parameter)),

@@ -822,6 +822,21 @@ class ArrayBackend(object):
         raise NotImplementedError
 
     @staticmethod
+    def searchsorted(sorted_array, values, side='left'):
+        """
+        Args:
+            sorted_array: a 1-D array sorted in ascending order;
+            values: the values to locate;
+            side (str, 'left'): with ``'left'``, the first index whose element is greater than or equal to the value
+                is returned; with ``'right'``, the first index whose element is strictly greater.
+
+        Returns:
+            For each value, the index at which it would be inserted in ``sorted_array`` to keep it sorted.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
     def median(array):
         """
         Args:
@@ -1242,6 +1257,10 @@ class NumpyBackend(ArrayBackend):
         return np.cumsum(array, axis=dim)
 
     @staticmethod
+    def searchsorted(sorted_array, values, side='left'):
+        return np.searchsorted(sorted_array, values, side=side)
+
+    @staticmethod
     def median(array):
         return np.median(array)
 
@@ -1539,6 +1558,10 @@ class TorchBackend(ArrayBackend):
         return torch.cumsum(array, dim=dim)
 
     @staticmethod
+    def searchsorted(sorted_array, values, side='left'):
+        return torch.searchsorted(sorted_array, values, side=side)
+
+    @staticmethod
     def median(array):
         return array.median()
 
@@ -1815,6 +1838,10 @@ class ListBackend(ArrayBackend):
     @staticmethod
     def cumsum(array, dim=0):
         return NumpyBackend.cumsum(array, dim)
+
+    @staticmethod
+    def searchsorted(sorted_array, values, side='left'):
+        return NumpyBackend.searchsorted(sorted_array, values, side)
 
     @staticmethod
     def median(array):

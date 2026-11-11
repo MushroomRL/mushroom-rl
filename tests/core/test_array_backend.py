@@ -86,6 +86,7 @@ def test_abstract():
         lambda: ArrayBackend.as_array(None),
         lambda: ArrayBackend.masked_init(None, None),
         lambda: ArrayBackend.cumsum(None),
+        lambda: ArrayBackend.searchsorted(None, None),
     ]
 
     for call in calls:
@@ -223,6 +224,9 @@ def test_math(backend, device):
     assert_equal(ops.sqrt(array([4.0, 9.0])), [2.0, 3.0], out, device)
     assert_equal(ops.clip(array([-5, 0, 5]), -1, 1), [-1, 0, 1], out, device)
     assert_equal(ops.arange(0, 5, device=device), [0, 1, 2, 3, 4], out, device)
+    assert_equal(ops.searchsorted(array([1.0, 3.0, 3.0, 6.0]), array([0.0, 3.0, 7.0])), [0, 1, 4], out, device)
+    assert_equal(ops.searchsorted(array([1.0, 3.0, 3.0, 6.0]), array([0.0, 3.0, 7.0]), side='right'), [0, 3, 4], out,
+                 device)
 
     if backend != 'list':
         kept = array([1, 2])

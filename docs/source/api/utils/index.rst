@@ -17,6 +17,7 @@ already implemented.
    features
    record
    torch_utils
+   priority_sampler
    viewer
    callbacks
    monitors

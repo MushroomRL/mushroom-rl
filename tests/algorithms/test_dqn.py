@@ -260,8 +260,8 @@ def test_categorical_dqn_prioritized(device):
 
     tu.assert_recorded(w, 'test_categorical_dqn_prioritized', device)
 
-    leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
-    assert len(np.unique(leaves)) == dict(cpu=492, cuda=493)[device]
+    priorities = agent._replay_memory._sampler._priorities
+    assert len(torch.unique(priorities)) == dict(cpu=494, cuda=495)[device]
 
 
 @pytest.mark.parametrize('device', devices())
@@ -291,8 +291,8 @@ def test_quantile_dqn_prioritized(device):
 
     tu.assert_recorded(w, 'test_quantile_dqn_prioritized', device)
 
-    leaves = agent._replay_memory._tree._tree[-agent._replay_memory._max_size:]
-    assert len(np.unique(leaves)) == dict(cpu=485, cuda=489)[device]
+    priorities = agent._replay_memory._sampler._priorities
+    assert len(torch.unique(priorities)) == dict(cpu=487, cuda=486)[device]
 
 
 @pytest.mark.parametrize('device', devices())

@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import torch
 
+from helper.arrays import assert_backend, make_array, to_numpy
+from helper.cases import backend_devices
 from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.vectorized_dataset import VectorizedDataset
@@ -9,6 +11,7 @@ from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
+from mushroom_rl.utils.priority_sampler import PrioritySampler, SumTree, PrefixSumSampler
 
 
 def make_mdp_info(obs_shape, act_shape, backend='numpy', gamma=0.99):
@@ -43,6 +46,12 @@ def make_dataset(n, rng, obs_shape, act_shape, policy_state_shape=None, backend=
                                policy_state=policy_state, policy_next_state=policy_next_state,
                                backend=backend),
             states, actions, rewards, next_states, policy_state, policy_next_state)
+
+
+def prioritized_cases():
+    return [pytest.param(impl, *case.values, id=f'{impl.__name__}-{case.id}', marks=case.marks)
+            for impl in (SumTree, PrefixSumSampler) for case in backend_devices('numpy', 'torch')
+            if not (impl is SumTree and case.id == 'torch-cuda')]
 
 
 def make_scalar_mdp_info():
@@ -735,12 +744,12 @@ def test_prioritized():
     rm.add(dataset, np.ones(n))
 
     assert rm.initialized
-    assert np.isclose(rm._tree.total_p, 10.0)
+    assert np.isclose(rm._sampler.total_priority, 10.0)
 
     np.random.seed(3)
-    s, a, r, ss, ab, last, idxs, is_weight = rm.get(4)
+    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(4)
 
-    assert np.allclose(is_weight, 1.0)
+    assert np.allclose(importance_sampling_weights, 1.0)
 
     s_test = np.load('tests/rl_utils/data/test_prioritized_s.npy')
     r_test = np.load('tests/rl_utils/data/test_prioritized_r.npy')
@@ -762,7 +771,7 @@ def test_prioritized():
     rm.add(dataset)
 
     assert np.isclose(rm.max_priority, 1.0)
-    assert np.isclose(rm._tree.total_p, 10.0)
+    assert np.isclose(rm._sampler.total_priority, 10.0)
 
     np.random.seed(3)
     *_, idxs, _ = rm.get(4)
@@ -771,11 +780,11 @@ def test_prioritized():
     expected_max = (5.0 + 0.01) ** 0.6
     assert np.isclose(rm.max_priority, expected_max)
 
-    total_before = rm._tree.total_p
+    total_before = rm._sampler.total_priority
     rm.add(dataset2)
 
-    assert np.isclose(rm._tree.max_p, expected_max)
-    assert np.isclose(rm._tree.total_p, total_before + n * expected_max)
+    assert np.isclose(rm._sampler.max_priority, expected_max)
+    assert np.isclose(rm._sampler.total_priority, total_before + n * expected_max)
 
     obs_shape = (4,)
     act_shape = (2,)
@@ -797,7 +806,7 @@ def test_prioritized():
 
     new_priorities = (np.abs(errors) + 0.01) ** 0.6
     expected_total = 10.0 - 4.0 + np.sum(new_priorities)
-    assert np.isclose(rm._tree.total_p, expected_total)
+    assert np.isclose(rm._sampler.total_priority, expected_total)
 
     obs_shape = (4,)
     act_shape = (2,)
@@ -846,12 +855,13 @@ def test_prioritized_history():
     assert rm._dataset.full
     assert rm._dataset.write_head == 3          # chronological order of positions is [3, 4, 0, 1, 2] -> values [3..7]
 
-    # the (history_length - 1) oldest samples occupy positions [3, 4], which are masked in the tree
-    assert rm._tree._masked[3 + max_size - 1]
-    assert rm._tree._masked[4 + max_size - 1]
+    # the (history_length - 1) oldest samples occupy positions [3, 4], which are masked in the sampler
+    masked = rm._sampler._masked_priorities != rm._sampler._priorities
+    assert masked[3]
+    assert masked[4]
 
     np.random.seed(0)
-    s, a, r, ss, ab, last, idxs, is_weight = rm.get(200)
+    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(200)
 
     # each stacked observation must be a contiguous chronological window (no write-head crossing)
     assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
@@ -859,6 +869,48 @@ def test_prioritized_history():
     # the (history_length - 1) oldest samples (values 3 and 4) can never be rebuilt, so must never be sampled
     anchors = s[:, history_length - 1, 0]
     assert not np.any(np.isin(anchors, [3.0, 4.0]))
+
+
+@pytest.mark.parametrize('impl, backend, device', prioritized_cases())
+def test_prioritized_backends(impl, backend, device, monkeypatch):
+    if impl is SumTree:
+        monkeypatch.setitem(PrioritySampler.PREFIX_SUM_MAX_SIZE, backend, 0)
+
+    def array(data):
+        return make_array(backend, data, device)
+
+    history_length = 3
+    max_size = 5
+
+    mdp_info = make_mdp_info((1,), (1,), backend=backend)
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend=backend, device=device)
+    history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=history_length)
+    rm = PrioritizedReplayMemory(mdp_info, agent_info, initial_size=1, max_size=max_size, alpha=0.6, beta=1.,
+                                 history_manager=history_manager)
+
+    assert type(rm._sampler) is impl
+
+    # one continuous episode longer than the buffer: the (history_length - 1) oldest positions [3, 4] are masked
+    for v in range(8):
+        s = array([[float(v)]])
+        rm.add(Dataset.from_array(s, array([[0.]]), array([0.]), s + 0.5, array([False]), array([False]),
+                                  backend=backend, device=device, continuing=v > 0))
+
+    np.random.seed(0)
+    torch.manual_seed(0)
+    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(200)
+
+    assert_backend(idxs, backend, device)
+    assert_backend(importance_sampling_weights, backend, device)
+    assert importance_sampling_weights.dtype == (torch.float32 if backend == 'torch' else np.float64)
+    assert set(to_numpy(idxs).tolist()) == {0, 1, 2}
+    assert np.allclose(to_numpy(s)[:, history_length - 1, 0], to_numpy(rm._dataset.state)[to_numpy(idxs), 0])
+    assert np.allclose(to_numpy(importance_sampling_weights), 1.0)
+
+    rm.update(array(np.full(200, 2.0)), idxs)
+
+    assert np.isclose(to_numpy(rm.max_priority), 2.01 ** 0.6)
+    assert np.isclose(to_numpy(rm._sampler.total_priority), 3 * 2.01 ** 0.6)
 
 
 def test_history():
@@ -1015,7 +1067,8 @@ def test_links():
     rm.add(first)
     rm.add(second)
 
-    assert np.array_equal(rm._tree._masked[5:], np.array([False, False, False, False, True, True]))
+    assert np.array_equal(rm._sampler._masked_priorities != rm._sampler._priorities,
+                          np.array([False, False, False, False, True, True]))
 
     rm = ReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=10, n_steps_return=2)
     first, second = vectorized_blocks([0, 1, 2], [3, 4, 5, 6])
@@ -1129,18 +1182,19 @@ def test_joined_blocks():
     rm.add(joined, p=joined.state[:, 0] + 1.)
 
     assert np.array_equal(rm._dataset.state[:rm.size, 0], np.array([0., 1., 2., 3., 10., 11., 12., 13.]))
-    assert np.array_equal(rm._tree._tree[99:107], np.array([1., 2., 3., 4., 11., 12., 13., 14.]))
+    assert np.array_equal(rm._sampler._priorities[:8], np.array([1., 2., 3., 4., 11., 12., 13., 14.]))
 
     rm = PrioritizedReplayMemory(make_scalar_mdp_info(), make_agent_info(), initial_size=2, max_size=100, alpha=1.,
                                  beta=1.)
     rm.add(make_block([1, 2, 3], [False, False, False]), p=np.array([1., 2., 3.]))
-    tree = rm._tree._tree.copy()
+    priorities, masked_priorities = rm._sampler._priorities.copy(), rm._sampler._masked_priorities.copy()
 
     rm.add(make_block([], []))
 
-    assert rm.size == 3 and np.array_equal(rm._tree._tree, tree)
+    assert rm.size == 3 and np.array_equal(rm._sampler._priorities, priorities)
+    assert np.array_equal(rm._sampler._masked_priorities, masked_priorities)
 
     rm.add(make_block([4], [True], continuing=True), p=np.array([4.]))
 
     assert rm.size == 4 and not rm._dataset.last[2]
-    assert np.array_equal(rm._tree._tree[99:103], np.array([1., 2., 3., 4.]))
+    assert np.array_equal(rm._sampler._priorities[:4], np.array([1., 2., 3., 4.]))
