@@ -10,7 +10,8 @@ For Mushroom 2.0:
 
 For Mushroom 2.1:
     * Port to Mujoco 4.0
-    * make utils/angles.py backend-agnostic and drop QuadrupedIsaac.wrap_to_pi
+    * make utils/angles.py backend-agnostic and drop utils/isaac_sim/torch_maths.wrap_to_pi (used by the Isaac
+      quadruped commands)
     * Improve the HistoryManager:
         - support HasNextAction agents with history_length > 1: HasNextAction.draw_action returns the stored next
           action without calling the history manager, so the manager's buffer is not advanced on that step
@@ -25,6 +26,9 @@ For Mushroom 2.1:
       editing both. fix the similar issue with the to_<backend> method if possible
     * Improve replay memory:
         - vectorize SequenceReplayMemory.get: build all sequences at once, removing the per-sample host-device syncs
+        - drop the stored next_state column, at least on CircularDataset: resolve the next state from the state
+          column and keep only boundary rows (episode and segment ends) in a side buffer. Saves storage between
+          fits, not peak; worth it only when boundaries are rare (negative at horizon 1)
     * vectorization of the TD policies: `EpsGreedy` and `Boltzmann` draw a single action regardless of the
       batch size, so a TD algorithm cannot run on a vectorized environment
     * vectorization of the numpy policy gradient algorithms (REINFORCE, GPOMDP, eNAC):
@@ -35,10 +39,10 @@ For Mushroom 2.1:
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
       - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
-    * Implement diff properly for recurrent approximators
-      - TorchApproximator.diff is written for the feedforward calling convention, so it fails on
-        RecurrentTorchApproximator: `lengths` is padded to 2-D and breaks pack_padded_sequence, `lengths` is not
-        defaulted to ones as predict does, and the observation gets only the batch pad instead of the batch and
-        sequence pads applied by _pad_sequence
+    * Implement diff for recurrent approximators
+      - RecurrentTorchApproximator.diff currently raises NotImplementedError. The inherited TorchApproximator.diff
+        follows the feedforward calling convention: an implementation must pass `lengths` 1-D to
+        pack_padded_sequence, default it to ones as predict does, and apply the batch and sequence pads of
+        _pad_sequence to the observation
       - multi-output networks (e.g. RecurrentActorNetwork, returning action and next hidden state) are rejected by
         an assertion, since there is no single matrix packing gradients of outputs of different shapes
