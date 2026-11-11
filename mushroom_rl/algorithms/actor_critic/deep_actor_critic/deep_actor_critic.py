@@ -1,5 +1,3 @@
-import torch
-
 from mushroom_rl.core import Agent
 from mushroom_rl.utils.torch_utils import TorchUtils
 
@@ -35,28 +33,21 @@ class OnPolicyDeepAC(Agent):
             self._logger.weak_line(debug=True)
             self._logger.debug('Iteration ' + str(self._iter))
 
-    def _log_info(self, dataset, x, old_pol_dist, *args, **kwargs):
+    def _log_info(self, dataset, kl, entropy):
         """
-        Log the fit information of the current iteration and advance the iteration counter. The extra
-        arguments are forwarded to the policy distribution, to support policies requiring more than the
-        state to be evaluated.
+        Log the fit information of the current iteration and advance the iteration counter.
 
         Args:
             dataset (Dataset): the dataset used by the current fit;
-            x (torch.Tensor): the states used to evaluate the policy;
-            old_pol_dist (torch.distributions.Distribution): the policy distribution before the fit;
-            *args: additional positional arguments for the policy distribution;
-            **kwargs: additional keyword arguments for the policy distribution.
+            kl (torch.Tensor): the KL divergence between the policy before the fit and the updated policy, or an
+                estimate of it computed during the fit;
+            entropy (torch.Tensor): the entropy of the policy, or an estimate of it computed during the fit.
 
         """
         if self._logger:
-            with torch.no_grad():
-                new_pol_dist = self.policy.distribution(x, *args, **kwargs)
-                kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist, new_pol_dist))
-
-                self._logger.log_training(R=dataset.compute_J(skip_incomplete=False).mean().item())
-                self._logger.log_training('actor', entropy=self.policy.entropy(x, **kwargs).item(), kl=kl.item())
-                self._logger.advance_step()
+            self._logger.log_training(R=dataset.compute_J(skip_incomplete=False).mean().item())
+            self._logger.log_training('actor', entropy=entropy.item(), kl=kl.item())
+            self._logger.advance_step()
 
         self._iter += 1
 

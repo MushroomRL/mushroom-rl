@@ -57,32 +57,40 @@ class RudinPPO(PPO):
 
         self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
 
-        self._update_policy(state, action, adv, old_log_p, old_pol_dist, prev_action)
+        kl, entropy = self._update_policy(state, action, adv, old_log_p, old_pol_dist, prev_action)
 
-        self._log_info(dataset, state, old_pol_dist, action_history=prev_action)
+        self._log_info(dataset, kl, entropy)
 
     def _update_policy(self, obs, act, adv, old_log_p, old_pol_dist, action_history=None):
         tensors = (obs, act, adv, old_log_p, old_pol_dist) if action_history is None \
             else (obs, act, adv, old_log_p, old_pol_dist, action_history)
+        kls = list()
+        entropies = list()
         for epoch in range(self._n_epochs_policy()):
             for batch in minibatch_generator(self._batch_size(), *tensors):
-                obs_i, act_i, adv_i, old_log_p_i, old_pol_dist_i, *rest = batch
+                obs_i, act_i, adv_i, old_log_p_i, old_dist_i, *rest = batch
                 action_history_i = rest[0] if rest else None
 
-                with torch.inference_mode():
-                    new_pol_dist = self.policy.distribution(obs_i, action_history=action_history_i)
-                    kl = torch.mean(torch.distributions.kl.kl_divergence(old_pol_dist_i, new_pol_dist))
+                dist = self.policy.distribution(obs_i, action_history=action_history_i)
+
+                with torch.no_grad():
+                    kl = torch.mean(torch.distributions.kl.kl_divergence(old_dist_i, dist))
                     self._adapt_learning_rate(kl)
 
                 self._optimizer.zero_grad()
-                prob_ratio = torch.exp(self.policy.log_prob(obs_i, act_i, action_history=action_history_i)
-                                       - old_log_p_i)
+                prob_ratio = torch.exp(dist.log_prob(act_i) - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
+                entropy = self.policy.entropy(obs_i, action_history=action_history_i)
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
-                loss -= self._ent_coeff() * self.policy.entropy(obs_i, action_history=action_history_i)
+                loss -= self._ent_coeff() * entropy
                 loss.backward()
                 self._clip_gradient()
                 self._optimizer.step()
+
+                kls.append(kl)
+                entropies.append(entropy.detach())
+
+        return torch.stack(kls).mean(), torch.stack(entropies).mean()
 
     def _clip_gradient(self):
         if self._clip_grad_norm:

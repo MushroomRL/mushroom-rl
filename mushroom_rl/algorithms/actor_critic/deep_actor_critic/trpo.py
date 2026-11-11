@@ -108,12 +108,15 @@ class TRPO(OnPolicyDeepAC):
         stepdir = self._conjugate_gradient(g, state, old_pol_dist, prev_action)
 
         # Line search
-        self._line_search(state, action, adv, old_log_prob, old_pol_dist, prev_loss, stepdir, prev_action)
+        kl = self._line_search(state, action, adv, old_log_prob, old_pol_dist, prev_loss, stepdir, prev_action)
 
         # VF update
         self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
 
-        self._log_info(dataset, state, old_pol_dist, action_history=prev_action)
+        with torch.no_grad():
+            entropy = self.policy.entropy(state, action_history=prev_action)
+
+        self._log_info(dataset, kl, entropy)
 
     def _fisher_vector_product(self, p, obs, old_pol_dist, action_history=None):
         kl = self._compute_kl(obs, old_pol_dist, action_history)
@@ -174,6 +177,10 @@ class TRPO(OnPolicyDeepAC):
 
         if violation:
             self.policy.set_weights(theta_old)
+            with torch.no_grad():
+                kl = self._compute_kl(obs, old_pol_dist, action_history)
+
+        return kl.detach()
 
     def _compute_kl(self, obs, old_pol_dist, action_history=None):
         new_pol_dist = self.policy.distribution(obs, action_history=action_history)

@@ -107,9 +107,10 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
                     **self._critic_fit_params)
 
-        self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p, prev_action_seq)
+        kl, entropy = self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p,
+                                          prev_action_seq)
 
-        self._log_info(dataset, state_seq, old_pol_dist, policy_state_seq, lengths, action_history=prev_action_seq)
+        self._log_info(dataset, kl, entropy)
 
     @staticmethod
     def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam,
@@ -227,18 +228,28 @@ class PPO_BPTT(OnPolicyDeepAC):
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
         tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
             else (obs, pi_h, act, lengths, adv, old_log_p, prev_action)
+        kls = list()
+        entropies = list()
         for epoch in range(self._n_epochs_policy()):
             for batch in minibatch_generator(self._batch_size(), *tensors):
                 obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, *rest = batch
                 prev_action_i = rest[0] if rest else None
                 self._optimizer.zero_grad()
                 log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)
-                prob_ratio = torch.exp(log_p - old_log_p_i)
+                log_ratio = log_p - old_log_p_i
+                prob_ratio = torch.exp(log_ratio)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
+                entropy = self.policy.entropy(obs_i)
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
-                loss -= self._ent_coeff()*self.policy.entropy(obs_i)
+                loss -= self._ent_coeff() * entropy
                 loss.backward()
                 self._optimizer.step()
+
+                kl_est = ((prob_ratio - 1) - log_ratio).detach()
+                kls.append(kl_est.mean())
+                entropies.append(entropy.detach())
+
+        return torch.stack(kls).mean(), torch.stack(entropies).mean()
 
     def _post_load(self, device):
         if self._optimizer is not None:
