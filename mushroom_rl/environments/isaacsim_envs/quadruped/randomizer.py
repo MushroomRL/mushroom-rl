@@ -216,7 +216,8 @@ class QuadrupedRandomizer:
             position_offset=torch.zeros(shape, device=device)
         )
 
-        self._mixed = torch.zeros((n_envs, ), dtype=torch.bool, device=device)
+        self._redraws_delay_per_action = torch.zeros((n_envs, ), dtype=torch.bool, device=device)
+        self._any_redraws_delay = False
         self._n_delay_steps = torch.zeros((n_envs, ), dtype=torch.long, device=device)
         self._time_to_push = torch.zeros((n_envs, ), device=device)
 
@@ -289,7 +290,8 @@ class QuadrupedRandomizer:
         self._unseen["motor_strength"][:] = 1.
         self._unseen["position_offset"][:] = 0.
 
-        self._mixed[:] = False
+        self._redraws_delay_per_action[:] = False
+        self._any_redraws_delay = False
         self._n_delay_steps[:] = 0
         self._time_to_push[:] = 0.
 
@@ -321,40 +323,36 @@ class QuadrupedRandomizer:
 
         return self._params["static_friction"] * factor, self._params["dynamic_friction"] * factor
 
-    def sample_disturbance(self, env_indices, episode_length, dt):
+    def sample_disturbance(self, env_mask, episode_length, dt):
         """
         Draws the random pushes of the environments alive longer than ``push_min_episode_length`` steps.
 
         Args:
-            env_indices (torch.tensor): The environments a push may be applied to.
+            env_mask (torch.tensor): A boolean mask of the environments a push may be applied to.
             episode_length (torch.tensor): The number of steps every environment has been alive for.
             dt (float): The duration of a control step.
 
         Returns:
-            The indices of the environments to push and the horizontal velocity to push each of them with.
+            The mask of the environments to push, and the horizontal velocity to push every environment with.
 
         """
-        device = TorchUtils.get_device()
         interval_range = self._params["push_interval_range"]
 
         if interval_range is None:
-            do_push = self._bernoulli(self._params["push_probability"], len(env_indices))
+            do_push = env_mask & self._bernoulli(self._params["push_probability"], self._n_envs)
         else:
-            self._time_to_push[env_indices] -= dt
-            do_push = self._time_to_push[env_indices] <= 0.
+            self._time_to_push -= dt * env_mask
+            do_push = env_mask & (self._time_to_push <= 0.)
 
-        push_indices = env_indices[do_push]
-        push_indices = push_indices[episode_length[push_indices] > self._params["push_min_episode_length"]]
+            time_to_push = self._uniform(interval_range, (self._n_envs, ))
+            self._time_to_push = time_to_push.where(do_push, self._time_to_push)
 
-        if interval_range is not None:
-            self._time_to_push[env_indices[do_push]] = torch_rand_float(
-                *interval_range, (int(do_push.sum()), 1), device
-            ).squeeze(1)
+        push_mask = do_push & (episode_length > self._params["push_min_episode_length"])
 
         max_velocity = self._params["push_max_velocity"]
-        velocities = self._uniform((-max_velocity, max_velocity), (push_indices.shape[0], 2))
+        velocities = self._uniform((-max_velocity, max_velocity), (self._n_envs, 2))
 
-        return push_indices, velocities
+        return push_mask, velocities
 
     def sample_latency(self):
         """
@@ -365,10 +363,10 @@ class QuadrupedRandomizer:
             The number of physics steps the next action is delayed by, per environment.
 
         """
-        if torch.any(self._mixed):
+        if self._any_redraws_delay:
             redrawn = torch.randint(0, self._params["max_delay_steps"] + 1, (self._n_envs, ),
                                     device=TorchUtils.get_device())
-            self._n_delay_steps = torch.where(self._mixed, redrawn, self._n_delay_steps)
+            self._n_delay_steps = torch.where(self._redraws_delay_per_action, redrawn, self._n_delay_steps)
 
         return self._n_delay_steps
 
@@ -632,7 +630,8 @@ class QuadrupedRandomizer:
         device = TorchUtils.get_device()
         n_envs = env_indices.shape[0]
 
-        self._mixed[env_indices] = self._bernoulli(self._params["mixed_chance"], n_envs)
+        self._redraws_delay_per_action[env_indices] = self._bernoulli(self._params["mixed_chance"], n_envs)
+        self._any_redraws_delay = bool(self._redraws_delay_per_action.any())
         self._n_delay_steps[env_indices] = torch.randint(0, self._params["max_delay_steps"] + 1, (n_envs, ),
                                                          device=device)
 

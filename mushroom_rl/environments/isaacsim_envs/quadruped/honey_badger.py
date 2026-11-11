@@ -81,7 +81,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
         obs = super()._create_observation(obs)
 
         base_pos_indices = self._observation_helper.obs_idx_map["base_pos"]
-        obs[:, base_pos_indices[:2]] = 0
+        obs.index_fill_(1, base_pos_indices[:2], 0.)
 
         return obs
 

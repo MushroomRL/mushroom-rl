@@ -113,7 +113,7 @@ class Go2Isaac(QuadrupedIsaac):
 
         # only the height of the trunk means anything: where in the world the robot walks does not
         base_pos_indices = self._observation_helper.obs_idx_map["base_pos"]
-        obs[:, base_pos_indices[:2]] = 0
+        obs.index_fill_(1, base_pos_indices[:2], 0.)
 
         return obs
 

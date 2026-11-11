@@ -30,24 +30,24 @@ class CommandGenerator:
         self._n_envs = n_envs
         self._dt = dt
 
-    def reset(self, env_ids, observation_helper):
+    def reset(self, env_mask, observation_helper):
         """
         Draws the command of the given environments for the episode they start.
 
         Args:
-            env_ids (torch.tensor): The environments being reset.
+            env_mask (torch.tensor): A boolean mask of the environments being reset.
             observation_helper (ObservationHelper): The observation helper of the environment, to read the
                 state of the simulation from.
 
         """
         raise NotImplementedError
 
-    def step(self, env_ids, observation_helper):
+    def step(self, env_mask, observation_helper):
         """
         Updates the command of the given environments after a control step.
 
         Args:
-            env_ids (torch.tensor): The environments that took the step.
+            env_mask (torch.tensor): A boolean mask of the environments that took the step.
             observation_helper (ObservationHelper): The observation helper of the environment, to read the
                 state of the simulation from.
 
@@ -148,15 +148,17 @@ class VelocityCommandGenerator(CommandGenerator):
         self._steps = torch.zeros((n_envs, ), dtype=int, device=device)
         self._forward_vec = torch.tensor([1., 0., 0.], device=device).repeat((n_envs, 1))
 
-    def reset(self, env_ids, observation_helper):
-        self._steps[env_ids] = 0
-        self._resample(env_ids)
-        self._track_heading(env_ids, observation_helper)
+        self._update_sampling_parameters()
 
-    def step(self, env_ids, observation_helper):
-        self._steps[env_ids] += 1
-        self._resample(self._environments_to_resample(env_ids))
-        self._track_heading(env_ids, observation_helper)
+    def reset(self, env_mask, observation_helper):
+        self._steps.masked_fill_(env_mask, 0)
+        self._resample(env_mask)
+        self._track_heading(env_mask, observation_helper)
+
+    def step(self, env_mask, observation_helper):
+        self._steps += env_mask
+        self._resample(self._environments_to_resample(env_mask))
+        self._track_heading(env_mask, observation_helper)
 
     @property
     def commands(self):
@@ -187,41 +189,39 @@ class VelocityCommandGenerator(CommandGenerator):
         self._check_command_ranges(updated)
 
         self._command_ranges = updated
+        self._update_sampling_parameters()
 
-    def _resample(self, env_ids):
+    def _resample(self, env_mask):
         """
         Draws a new command for the given environments.
 
         """
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
-
-        self._sample(env_ids)
-        self._bias_commands(env_ids)
+        self._sample(env_mask)
+        self._bias_commands(env_mask)
 
         # set small commands to zero
-        self._commands[env_ids, :2] *= \
-            (torch.norm(self._commands[env_ids, :2], dim=1) > self._command_dead_zone).unsqueeze(1)
+        small = env_mask & (torch.norm(self._commands[:, :2], dim=1) <= self._command_dead_zone)
+        self._commands[:, :2].masked_fill_(small.unsqueeze(1), 0.)
 
         if self._command_resampling_time_range is not None:
-            self._time_to_resample[env_ids] = torch_rand_float(*self._command_resampling_time_range, (n_envs, 1),
-                                                               device=device).squeeze(1)
+            time_to_resample = self._draw_uniform(*self._command_resampling_time_range)
+            self._time_to_resample = time_to_resample.where(env_mask, self._time_to_resample)
 
-    def _track_heading(self, env_ids, observation_helper):
+    def _track_heading(self, env_mask, observation_helper):
         """
         Turns the error on the heading target of the given environments tracking one into their yaw rate
-        command, and zeroes the command of the given environments standing still.
+        command, and zeroes the command of the environments standing still.
 
         """
-        base_quat = observation_helper.read_data("body_rot", env_ids)
-        forward = quat_apply(base_quat, self._forward_vec[env_ids])
+        base_quat = observation_helper.read_data("body_rot")
+        forward = quat_apply(base_quat, self._forward_vec)
         heading = torch.atan2(forward[:, 1], forward[:, 0])
-        yaw_rate = torch.clip(self._heading_control_stiffness * wrap_to_pi(self._commands[env_ids, 3] - heading),
+        yaw_rate = torch.clip(self._heading_control_stiffness * wrap_to_pi(self._commands[:, 3] - heading),
                               *self._command_ranges["ang_vel_z"])
-        self._commands[env_ids, 2] = torch.where(self._is_heading_env[env_ids], yaw_rate, self._commands[env_ids, 2])
-        self._commands[env_ids[self._is_standing_env[env_ids]], :3] = 0.
+        self._commands[:, 2] = yaw_rate.where(env_mask & self._is_heading_env, self._commands[:, 2])
+        self._commands[:, :3].masked_fill_(self._is_standing_env.unsqueeze(1), 0.)
 
-    def _sample(self, env_ids):
+    def _sample(self, env_mask):
         """
         Draws the linear velocity, yaw rate and heading target of the given environments from the current
         ranges, and which of them track the heading target.
@@ -229,46 +229,31 @@ class VelocityCommandGenerator(CommandGenerator):
         """
         raise NotImplementedError
 
-    def _bias_commands(self, env_ids):
+    def _bias_commands(self, env_mask):
         """
         Skews the freshly drawn commands towards standing still, turning on the spot, and walking slowly in an
         arbitrary direction, according to ``rel_standing_envs``, ``frac_rotating_envs`` and ``frac_low_speed_envs``.
 
         """
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
-
         if self._rel_standing_envs > 0.:
-            self._is_standing_env[env_ids] = torch_rand_float(0., 1., (n_envs, 1), device=device).squeeze(1) \
-                <= self._rel_standing_envs
+            is_standing = self._draw_uniform(0., 1.) <= self._rel_standing_envs
+            self._is_standing_env = is_standing.where(env_mask, self._is_standing_env)
 
-        moving = env_ids[torch.logical_not(self._is_standing_env[env_ids])]
-        n_moving = len(moving)
+        moving = env_mask & ~self._is_standing_env
 
         if self._frac_low_speed_envs > 0.:
-            is_low_speed = torch_rand_float(0., 1., (n_moving, 1), device=device).squeeze(1) \
-                <= self._frac_low_speed_envs
-            low_speed = moving[is_low_speed]
-
-            direction = torch.randn(len(low_speed), 3, device=device)
-            direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
-            magnitude = torch_rand_float(0., self._low_speed_threshold, (len(low_speed), 1), device=device)
-            self._commands[low_speed, :3] = direction * magnitude
+            low_speed = moving & (self._draw_uniform(0., 1.) <= self._frac_low_speed_envs)
+            command = self._draw_direction() * self._draw_uniform(0., self._low_speed_threshold).unsqueeze(1)
+            self._commands[:, :3] = command.where(low_speed.unsqueeze(1), self._commands[:, :3])
 
         self._bias_moving_commands(moving)
 
         if self._frac_rotating_envs > 0.:
-            is_rotating = torch_rand_float(0., 1., (n_moving, 1), device=device).squeeze(1) \
-                <= self._frac_rotating_envs
-            rotating = moving[is_rotating]
-
-            is_slow_turn = torch_rand_float(0., 1., (len(rotating), 1), device=device).squeeze(1) <= 0.5
-            slow_turn = rotating[is_slow_turn]
-            self._commands[slow_turn, 2] = torch_rand_float(
-                -self._low_speed_threshold, self._low_speed_threshold, (len(slow_turn), 1), device=device
-            ).squeeze(1)
-
-            self._commands[rotating, :2] = 0.
+            rotating = moving & (self._draw_uniform(0., 1.) <= self._frac_rotating_envs)
+            slow_turn = rotating & (self._draw_uniform(0., 1.) <= 0.5)
+            yaw_rate = self._draw_uniform(-self._low_speed_threshold, self._low_speed_threshold)
+            self._commands[:, 2] = yaw_rate.where(slow_turn, self._commands[:, 2])
+            self._commands[:, :2].masked_fill_(rotating.unsqueeze(1), 0.)
 
     def _bias_moving_commands(self, moving):
         """
@@ -276,22 +261,46 @@ class VelocityCommandGenerator(CommandGenerator):
         bias. Does nothing by default.
 
         """
+        pass
 
-    def _environments_to_resample(self, env_ids):
+    def _draw_uniform(self, low, high):
         """
         Returns:
-            The environments whose velocity command is due to be drawn again, either because their timer ran
-            out or, when no resampling time range is set, because the per-step draw came up for them.
+            One value per environment, drawn uniformly between ``low`` and ``high``.
+
+        """
+        return torch_rand_float(low, high, (self._n_envs, 1), device=TorchUtils.get_device()).squeeze(1)
+
+    def _draw_direction(self):
+        """
+        Returns:
+            One unit vector per environment, drawn uniformly over the directions in the space of the three
+            commands.
+
+        """
+        direction = torch.randn(self._n_envs, 3, device=TorchUtils.get_device())
+        return direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
+
+    def _update_sampling_parameters(self):
+        """
+        Updates what a subclass derives from the command ranges, once the generator is initialized and whenever
+        the ranges are set. Does nothing by default.
+
+        """
+        pass
+
+    def _environments_to_resample(self, env_mask):
+        """
+        Returns:
+            The mask of the environments whose velocity command is due to be drawn again, either because their
+            timer ran out or, when no resampling time range is set, because the per-step draw came up for them.
 
         """
         if self._command_resampling_time_range is None:
-            do_resample = torch_rand_float(0., 1., (len(env_ids), 1),
-                                           device=TorchUtils.get_device()).squeeze(-1) < (1. / 500.)
-            do_resample *= self._steps[env_ids] > 50
-            return env_ids[do_resample]
+            return env_mask & (self._draw_uniform(0., 1.) < 1. / 500.) & (self._steps > 50)
 
-        self._time_to_resample[env_ids] -= self._dt
-        return env_ids[self._time_to_resample[env_ids] <= 0.]
+        self._time_to_resample -= self._dt * env_mask
+        return env_mask & (self._time_to_resample <= 0.)
 
     def _check_command_ranges(self, ranges):
         """
@@ -318,20 +327,18 @@ class UniformVelocityCommands(VelocityCommandGenerator):
     uniformly from their range, independently of one another.
 
     """
-    def _sample(self, env_ids):
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
+    def _sample(self, env_mask):
         ranges = self._command_ranges
 
-        self._commands[env_ids, 0] = torch_rand_float(*ranges["lin_vel_x"], (n_envs, 1), device=device).squeeze(1)
-        self._commands[env_ids, 1] = torch_rand_float(*ranges["lin_vel_y"], (n_envs, 1), device=device).squeeze(1)
-        self._commands[env_ids, 3] = torch_rand_float(*ranges["heading"], (n_envs, 1), device=device).squeeze(1)
+        self._commands[:, 0] = self._draw_uniform(*ranges["lin_vel_x"]).where(env_mask, self._commands[:, 0])
+        self._commands[:, 1] = self._draw_uniform(*ranges["lin_vel_y"]).where(env_mask, self._commands[:, 1])
+        self._commands[:, 3] = self._draw_uniform(*ranges["heading"]).where(env_mask, self._commands[:, 3])
 
         if self._rel_heading_envs < 1.:
-            self._commands[env_ids, 2] = torch_rand_float(*ranges["ang_vel_z"], (n_envs, 1),
-                                                          device=device).squeeze(1)
-            self._is_heading_env[env_ids] = torch_rand_float(0., 1., (n_envs, 1), device=device).squeeze(1) \
-                <= self._rel_heading_envs
+            self._commands[:, 2] = self._draw_uniform(*ranges["ang_vel_z"]).where(env_mask, self._commands[:, 2])
+
+            is_heading_env = self._draw_uniform(0., 1.) <= self._rel_heading_envs
+            self._is_heading_env = is_heading_env.where(env_mask, self._is_heading_env)
 
 
 class EllipticVelocityCommands(VelocityCommandGenerator):
@@ -355,42 +362,35 @@ class EllipticVelocityCommands(VelocityCommandGenerator):
 
         self._frac_max_speed_envs = frac_max_speed_envs
 
-    def _sample(self, env_ids):
-        device = TorchUtils.get_device()
-        n_envs = len(env_ids)
-        center, half_width = self._ellipsoid_parameters()
+        self._center = None
+        self._half_width = None
 
-        direction = torch.randn(n_envs, 3, device=device)
-        direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
-        radius = torch_rand_float(0., 1., (n_envs, 1), device=device).pow(1. / 3.)
-        self._commands[env_ids, :3] = center + radius * half_width * direction
+    def _sample(self, env_mask):
+        direction = self._draw_direction()
+        radius = self._draw_uniform(0., 1.).pow(1. / 3.).unsqueeze(1)
+        command = self._center + radius * self._half_width * direction
+        self._commands[:, :3] = command.where(env_mask.unsqueeze(1), self._commands[:, :3])
 
-        self._commands[env_ids, 3] = torch_rand_float(*self._command_ranges["heading"], (n_envs, 1),
-                                                      device=device).squeeze(1)
+        heading = self._draw_uniform(*self._command_ranges["heading"])
+        self._commands[:, 3] = heading.where(env_mask, self._commands[:, 3])
+
         if self._rel_heading_envs < 1.:
-            self._is_heading_env[env_ids] = torch_rand_float(0., 1., (n_envs, 1), device=device).squeeze(1) \
-                <= self._rel_heading_envs
+            is_heading_env = self._draw_uniform(0., 1.) <= self._rel_heading_envs
+            self._is_heading_env = is_heading_env.where(env_mask, self._is_heading_env)
 
     def _bias_moving_commands(self, moving):
         if self._frac_max_speed_envs > 0.:
-            device = TorchUtils.get_device()
-            center, half_width = self._ellipsoid_parameters()
+            max_speed = moving & (self._draw_uniform(0., 1.) <= self._frac_max_speed_envs)
+            command = self._center + self._half_width * self._draw_direction()
+            self._commands[:, :3] = command.where(max_speed.unsqueeze(1), self._commands[:, :3])
 
-            is_max_speed = torch_rand_float(0., 1., (len(moving), 1), device=device).squeeze(1) \
-                <= self._frac_max_speed_envs
-            max_speed = moving[is_max_speed]
-
-            direction = torch.randn(len(max_speed), 3, device=device)
-            direction = direction / direction.norm(dim=1, keepdim=True).clamp_min(1e-6)
-            self._commands[max_speed, :3] = center + half_width * direction
-
-    def _ellipsoid_parameters(self):
+    def _update_sampling_parameters(self):
         """
-        Returns:
-            The center and the half-widths of the ellipsoid the linear velocity along x and y and the yaw rate
-            are drawn from.
+        Stores the center and the half-widths of the ellipsoid the linear velocity along x and y and the yaw rate
+        are drawn from.
 
         """
         bounds = torch.tensor([self._command_ranges[name] for name in ("lin_vel_x", "lin_vel_y", "ang_vel_z")],
                               device=TorchUtils.get_device())
-        return bounds.mean(dim=1), (bounds[:, 1] - bounds[:, 0]) / 2.
+        self._center = bounds.mean(dim=1)
+        self._half_width = (bounds[:, 1] - bounds[:, 0]) / 2.

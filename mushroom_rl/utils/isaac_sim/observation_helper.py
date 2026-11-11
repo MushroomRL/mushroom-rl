@@ -168,7 +168,7 @@ class ObservationHelper:
         self._obs_low = None
         self._obs_high = None
 
-        self.obs_idx_map = self._compute_obs_idx_map()
+        self.obs_idx_map, self._obs_length = self._compute_obs_idx_map()
         self.obs_types_idx_map = self._compute_type_idx_map()
 
     def initialize(self, physics_view):
@@ -292,8 +292,9 @@ class ObservationHelper:
             max_value (float, torch.tensor): The upper bound for the observation.
 
         """
-        idx = self.obs_length
+        idx = self._obs_length
         self.obs_idx_map[name] = torch.tensor(list(range(idx, idx + length)), device=TorchUtils.get_device())
+        self._obs_length += length
 
         self._obs_low = torch.concatenate([self._obs_low, self._as_bound(min_value, length)])
         self._obs_high = torch.concatenate([self._obs_high, self._as_bound(max_value, length)])
@@ -373,7 +374,7 @@ class ObservationHelper:
             The number of entries of the observation vector.
 
         """
-        return max(map(lambda x: x[-1].item(), self.obs_idx_map.values())) + 1
+        return self._obs_length
 
     def _create_observer_tuple(self, spec):
         """
@@ -560,7 +561,8 @@ class ObservationHelper:
         Computes a mapping from observation names to index ranges.
 
         Returns:
-            A dictionary mapping observation names to lists of index values.
+            A dictionary mapping observation names to lists of index values, and the number of entries of the
+            observation vector.
 
         """
         index = 0
@@ -570,7 +572,7 @@ class ObservationHelper:
             end_index = index + obs_type.length * n_elements
             mapping[name] = torch.tensor(list(range(index, end_index)), device=TorchUtils.get_device())
             index = end_index
-        return mapping
+        return mapping, index
 
     def _compute_type_idx_map(self):
         """

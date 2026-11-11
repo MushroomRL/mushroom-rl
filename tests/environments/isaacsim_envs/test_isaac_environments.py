@@ -308,18 +308,19 @@ def test_reset_commands():
     obs, _ = mdp.reset_all(reset_mask)
     commands = obs[:4][:, mdp.observation_indices('commands')]
 
-    base_quat = mdp._observation_helper.read_data("body_rot", torch.arange(2, 4, device='cuda:0'))
-    forward = quat_apply(base_quat, torch.tensor([[1., 0., 0.]], device='cuda:0').repeat(2, 1))
+    moving = torch.tensor([0, 2, 3], device='cuda:0')
+    base_quat = mdp._observation_helper.read_data("body_rot", moving)
+    forward = quat_apply(base_quat, torch.tensor([[1., 0., 0.]], device='cuda:0').repeat(3, 1))
     heading = torch.atan2(forward[:, 1], forward[:, 0])
-    yaw_rate = torch.clip(0.5 * wrap_to_pi(generator._commands[2:4, 3] - heading), -1., 1.)
+    yaw_rate = torch.clip(0.5 * wrap_to_pi(generator._commands[moving, 3] - heading), -1., 1.)
 
     commands_test = torch.tensor(np.load('tests/environments/isaacsim_envs/data/test_reset_commands.npy'),
                                  device='cuda:0')
 
-    assert torch.equal(commands[:2], torch.zeros(2, 3, device='cuda:0'))
-    assert torch.equal(commands[2:, 2], yaw_rate)
+    assert torch.equal(commands[1], torch.zeros(3, device='cuda:0'))
+    assert torch.equal(commands[moving, 2], yaw_rate)
     assert torch.allclose(commands, commands_test)
-    assert torch.equal(generator._is_standing_env[:4], torch.tensor([True, True, False, False], device='cuda:0'))
+    assert torch.equal(generator._is_standing_env[:4], torch.tensor([False, True, False, False], device='cuda:0'))
     mdp.stop()
 
 
@@ -363,7 +364,7 @@ def test_termination_penalty():
     reward = mdp.reward(obs, torch.zeros(2, 12, device='cuda:0'), next_obs, absorbing)
 
     assert torch.allclose(mdp._extra_info_rewards['termination'], torch.tensor([-20., 0.], device='cuda:0'))
-    assert torch.allclose(reward, torch.tensor([-20.7310867, -0.7314733], device='cuda:0'))
+    assert torch.allclose(reward, torch.tensor([-20.7386818, -0.7288309], device='cuda:0'))
     mdp.stop()
 
 

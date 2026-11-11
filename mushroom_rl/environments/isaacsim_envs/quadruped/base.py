@@ -9,6 +9,7 @@ from mushroom_rl.environments.isaacsim_envs.quadruped.randomizer import Quadrupe
     QuadrupedRandomizer
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ActuationType, ObservationType, IsaacGpuParams
+from mushroom_rl.utils.torch_utils import TorchRingBuffer
 
 
 class QuadrupedIsaac(IsaacSim):
@@ -96,6 +97,7 @@ class QuadrupedIsaac(IsaacSim):
             joint_acc=-2.5e-7, feet_air_time=1.0, collision=-1.0, action_rate=-0.01, joint_pos_limits=-10.0,
             termination=-500.
         )
+        self._base_reward_terms = tuple(name for name in self._reward_weights if name != "termination")
         self._optional_reward_terms = (
             "flat_orientation", "joint_vel_limits", "power_draw", "similar_to_default",
             "stand_still_deviation", "base_height", "feet_air_time_high", "feet_air_time_low",
@@ -169,29 +171,33 @@ class QuadrupedIsaac(IsaacSim):
         self._episode_length = torch.zeros((num_envs, ), dtype=int, device=device)
         self._gravity = torch.tensor([0., 0., -1.], device=device).repeat((num_envs, 1))
         self._max_delay_steps_limit = self._randomization_params["max_delay_steps"]
-        self._action_history = torch.zeros((self._max_delay_steps_limit + 1, num_envs, len(action_spec)),
-                                           device=device)
-        self._env_indices = torch.arange(0, num_envs, 1, device=device)
+        self._action_history = TorchRingBuffer(self._max_delay_steps_limit + 1, num_envs, (len(action_spec), ),
+                                               device=device)
 
         self._extra_info_rewards = None
         self._setup_env_indices = None
         self._setup_joint_vel = None
         self._setup_joint_pos = None
 
+        self._active_optional_terms = None
+        self._term_names = None
+        self._term_weights = None
+        self._update_term_weights()
+
     def setup(self, env_indices, obs):
         if obs is not None:
             raise ValueError("a quadruped cannot be reset to a given state: its observation does not determine "
                              "the state of the simulation")
 
-        self._feet_air_time[env_indices] = 0.
-        self._episode_length[env_indices] = 0
-        self._action_history[:, env_indices, :] = 0
+        self._feet_air_time.index_fill_(0, env_indices, 0.)
+        self._episode_length.index_fill_(0, env_indices, 0)
+        self._action_history.clear(env_indices)
 
-        self._foot_air_time[env_indices] = 0.
-        self._foot_last_air_time[env_indices] = 0.
-        self._foot_contact_time[env_indices] = 0.
-        self._foot_first_contact[env_indices] = False
-        self._foot_contact[env_indices] = False
+        self._foot_air_time.index_fill_(0, env_indices, 0.)
+        self._foot_last_air_time.index_fill_(0, env_indices, 0.)
+        self._foot_contact_time.index_fill_(0, env_indices, 0.)
+        self._foot_first_contact.index_fill_(0, env_indices, False)
+        self._foot_contact.index_fill_(0, env_indices, False)
 
         joint_pos = self._sample_setup_joint_pos(env_indices)
         joint_vel = torch.zeros((len(env_indices), len(self._action_spec)), device=TorchUtils.get_device())
@@ -208,7 +214,8 @@ class QuadrupedIsaac(IsaacSim):
         self._last_joint_vel[env_indices] = joint_vel
 
         self._resample_domain_randomization(env_indices)
-        self._command_generator.reset(env_indices, self._observation_helper)
+        reset_mask = torch.zeros(self.number, dtype=torch.bool, device=TorchUtils.get_device())
+        self._command_generator.reset(reset_mask.index_fill_(0, env_indices, True), self._observation_helper)
 
         zero = torch.zeros(self.number, device=TorchUtils.get_device())
         self._extra_info_rewards = {
@@ -230,36 +237,28 @@ class QuadrupedIsaac(IsaacSim):
         joint_vel = self._observation_helper.get_from_obs(next_obs, "joint_vel")
         joint_pos = self._observation_helper.get_from_obs(next_obs, "joint_pos")
 
-        # ---------------------------------------------------------------------------
+        if self._tracks_foot_state:
+            self._update_foot_state()
 
-        w = self._reward_weights
-        r_tracking_lin_vel = self._reward_tracking_lin_vel(base_lin_vel_xy) * w["tracking_lin_vel"] * self.dt
-        r_tracking_ang_vel = self._reward_tracking_ang_vel(base_ang_vel_z) * w["tracking_ang_vel"] * self.dt
-        r_lin_vel_z = self._reward_lin_vel_z(base_lin_vel_z) * w["lin_vel_z"] * self.dt
-        r_ang_vel_xy = self._reward_ang_vel_xy(base_ang_vel_xy) * w["ang_vel_xy"] * self.dt
-        r_torques = self._reward_torques(self._torques) * w["torques"] * self.dt
-        r_joint_acc = self._reward_joint_acc(joint_vel) * w["joint_acc"] * self.dt
-        r_feet_air_time = self._reward_feet_air_time() * w["feet_air_time"] * self.dt
-        r_collision = self._reward_collision() * w["collision"] * self.dt
-        r_action_rate = self._reward_action_rate(action) * w["action_rate"] * self.dt
-        r_joint_pos_limits = self._reward_joint_pos_limits(joint_pos) * w["joint_pos_limits"] * self.dt
+        terms = dict(
+            tracking_lin_vel=self._reward_tracking_lin_vel(base_lin_vel_xy),
+            tracking_ang_vel=self._reward_tracking_ang_vel(base_ang_vel_z),
+            lin_vel_z=self._reward_lin_vel_z(base_lin_vel_z),
+            ang_vel_xy=self._reward_ang_vel_xy(base_ang_vel_xy),
+            torques=self._reward_torques(self._torques),
+            joint_acc=self._reward_joint_acc(joint_vel),
+            feet_air_time=self._reward_feet_air_time(),
+            collision=self._reward_collision(),
+            action_rate=self._reward_action_rate(action),
+            joint_pos_limits=self._reward_joint_pos_limits(joint_pos),
+            termination=absorbing
+        )
+        optional_terms = {name: term(next_obs) for name, term in self._active_optional_terms.items()}
+        terms.update(optional_terms)
 
-        self._extra_info_rewards = {
-            "tracking_lin_vel": r_tracking_lin_vel, "tracking_ang_vel": r_tracking_ang_vel,
-            "lin_vel_z": r_lin_vel_z, "ang_vel_xy": r_ang_vel_xy,
-            "torques": r_torques, "joint_acc": r_joint_acc,
-            "feet_air_time": r_feet_air_time, "collision": r_collision,
-            "action_rate": r_action_rate, "joint_pos_limits": r_joint_pos_limits
-        }
-
-        reward = r_tracking_lin_vel + r_tracking_ang_vel + r_lin_vel_z + r_ang_vel_xy + r_torques \
-            + r_joint_acc + r_feet_air_time + r_collision + r_action_rate + r_joint_pos_limits
-        reward = reward + self._extra_reward_terms(next_obs)
-        reward = reward + self._optional_reward_terms_value(next_obs)
-
-        r_termination = absorbing * w["termination"] * self.dt
-        self._extra_info_rewards["termination"] = r_termination
-        reward = reward + r_termination
+        weighted = torch.stack([terms[name] for name in self._term_names], dim=1) * self._term_weights
+        self._extra_info_rewards = dict(zip(self._term_names, weighted.unbind(1)))
+        reward = weighted.sum(dim=1) + self._extra_reward_terms(next_obs)
 
         self._last_actions = action.clone().detach()
         self._last_joint_vel = joint_vel.clone().detach()
@@ -337,6 +336,7 @@ class QuadrupedIsaac(IsaacSim):
                                  f"constructing it, since the data they read has to be declared by then")
 
         self._reward_weights.update(weights)
+        self._update_term_weights()
 
     @property
     def max_delay_steps(self):
@@ -530,22 +530,21 @@ class QuadrupedIsaac(IsaacSim):
                                      device=TorchUtils.get_device())
         return self._default_joint_angles * r_factors
 
-    def _step_finalize(self, env_indices):
+    def _step_finalize(self, env_mask):
         self._episode_length += 1
 
-        self._command_generator.step(env_indices, self._observation_helper)
+        self._command_generator.step(env_mask, self._observation_helper)
 
-        self._push_domain_randomization(env_indices)
+        self._push_domain_randomization(env_mask)
 
-    def _push_domain_randomization(self, env_indices):
+    def _push_domain_randomization(self, env_mask):
         """
         Applies the random push to the given environments when the domain randomization is enabled.
 
         """
         if self._domain_randomization:
-            push_indices, push_velocities = self._randomizer.sample_disturbance(env_indices,
-                                                                                self._episode_length, self.dt)
-            self._push_robots(push_indices, push_velocities)
+            push_mask, push_velocities = self._randomizer.sample_disturbance(env_mask, self._episode_length, self.dt)
+            self._push_robots(push_mask, push_velocities)
 
     def _resample_domain_randomization(self, env_indices):
         """
@@ -641,10 +640,9 @@ class QuadrupedIsaac(IsaacSim):
         if self._domain_randomization:
             n_delay_steps = self._randomizer.sample_latency()
 
-            self._action_history = torch.roll(self._action_history, -1, dims=0)
-            self._action_history[-1] = action
+            self._action_history.push(action)
 
-            return self._action_history[self._max_delay_steps_limit - n_delay_steps, self._env_indices]
+            return self._action_history.get(n_delay_steps)
 
         return action
 
@@ -767,10 +765,10 @@ class QuadrupedIsaac(IsaacSim):
 
     # optional reward terms ---------------------------------------------------------------------------------
 
-    def _optional_reward_terms_value(self, next_obs):
+    def _update_term_weights(self):
         """
-        Computes the optional reward terms with non-zero weight and adds each to the info dictionary under its own
-        name.
+        Stores the optional reward terms with a non-zero weight, the names of the computed terms in the order they are
+        reported, and their weights in the same order, scaled by the duration of a control step.
 
         The optional terms are a foot timing and clearance subsystem (``feet_air_time_high``, ``feet_air_time_low``,
         ``feet_air_time_symmetry``, ``feet_clearance``, ``feet_clearance_lateral``, ``feet_slide``, ``feet_slide_low``,
@@ -778,26 +776,14 @@ class QuadrupedIsaac(IsaacSim):
         ``stand_still_short_contact``, ``similar_to_default``), and ``flat_orientation``, ``joint_vel_limits``,
         ``power_draw`` and ``base_height``.
 
-        Returns:
-            The weighted sum of the active terms, or ``0.`` when none of them is.
-
         """
         weights = self._reward_weights
-        active = [name for name in self._optional_reward_terms if weights[name] != 0.]
+        self._active_optional_terms = {name: getattr(self, f"_reward_{name}") for name in self._optional_reward_terms
+                                       if weights[name] != 0.}
 
-        if not active:
-            return 0.
-
-        if self._tracks_foot_state:
-            self._update_foot_state()
-
-        total = 0.
-        for name in active:
-            value = getattr(self, f"_reward_{name}")(next_obs) * weights[name] * self.dt
-            self._extra_info_rewards[name] = value
-            total = total + value
-
-        return total
+        self._term_names = [*self._base_reward_terms, *self._active_optional_terms, "termination"]
+        self._term_weights = torch.tensor([weights[name] for name in self._term_names],
+                                          device=TorchUtils.get_device()) * self.dt
 
     def _reward_flat_orientation(self, next_obs):
         # Penalize a trunk that is not level
@@ -1026,9 +1012,11 @@ class QuadrupedIsaac(IsaacSim):
         """
         return self._command_norm() < self._reward_params["command_threshold"]
 
-    def _push_robots(self, env_indices, velocities):
+    def _push_robots(self, push_mask, velocities):
+        env_indices = torch.where(push_mask)[0]
+
         extended_vels = self._observation_helper.read_data("body_vel", env_indices)
-        extended_vels[:, :2] += velocities
+        extended_vels[:, :2] += velocities[env_indices]
         self._observation_helper.write_data("body_vel", extended_vels, env_indices)
 
     @staticmethod

@@ -129,7 +129,6 @@ class IsaacSim(VectorizedEnvironment):
         """
         action = self._preprocess_action(action)
 
-        env_indices = torch.where(env_mask)[0]
         self._teleport_away(env_mask == 0)
 
         ctrl_action = None
@@ -140,7 +139,7 @@ class IsaacSim(VectorizedEnvironment):
 
             self._simulation_pre_step()
 
-            self._actuation_helper.apply(ctrl_action[env_indices], env_indices)
+            self._actuation_helper.apply(ctrl_action.masked_fill(~env_mask.unsqueeze(1), 0.))
             SimulationManager.step(steps=1)
 
             self._simulation_post_step()
@@ -148,7 +147,7 @@ class IsaacSim(VectorizedEnvironment):
         cur_obs = self._observation_helper.observe()
         cur_obs = self._create_observation(cur_obs)
 
-        self._step_finalize(env_indices)
+        self._step_finalize(env_mask)
 
         absorbing = self.is_absorbing(cur_obs)
         reward = self.reward(self._obs, action, cur_obs, absorbing)
@@ -537,9 +536,12 @@ class IsaacSim(VectorizedEnvironment):
         """
         pass
 
-    def _step_finalize(self, env_indices):
+    def _step_finalize(self, env_mask):
         """
         Allows information to be accessed at the end of a step.
+
+        Args:
+            env_mask (torch.tensor): A boolean mask indicating which environments took the step.
 
         """
         pass
