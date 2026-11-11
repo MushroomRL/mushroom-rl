@@ -1,4 +1,4 @@
-from .quadruped import QuadrupedIsaac
+from .base import QuadrupedIsaac
 from .a1 import A1Isaac
 from .go2 import Go2Isaac
 from .honey_badger import HoneyBadgerIsaac

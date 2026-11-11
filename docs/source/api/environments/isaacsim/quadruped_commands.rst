@@ -7,5 +7,5 @@ involved and its observation helper, and observes and rewards the body-frame lin
 commands. ``UniformVelocityCommands`` draws each velocity uniformly from its range, and is the default;
 ``EllipticVelocityCommands`` draws them from the ellipsoid inscribed in the box of the ranges.
 
-.. automodule:: mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_commands
+.. automodule:: mushroom_rl.environments.isaacsim_envs.quadruped.commands
     :private-members:

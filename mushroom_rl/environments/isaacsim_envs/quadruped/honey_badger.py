@@ -2,8 +2,8 @@ import torch
 
 from mushroom_rl.core import register_env
 from mushroom_rl.environments.assets import asset_path
-from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped import QuadrupedIsaac
-from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_randomizer import QuadrupedRandomizationParams
+from mushroom_rl.environments.isaacsim_envs.quadruped.base import QuadrupedIsaac
+from mushroom_rl.environments.isaacsim_envs.quadruped.randomizer import QuadrupedRandomizationParams
 from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.isaac_sim import ObservationType
 

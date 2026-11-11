@@ -33,7 +33,7 @@ IsaacLauncher.launch(headless=True)
 logging.getLogger("isaacsim.asset.transformer.rules.utils").setLevel(logging.WARNING)
 
 from mushroom_rl.environments.isaacsim_envs import Go2Isaac
-from mushroom_rl.environments.isaacsim_envs.quadruped.quadruped_commands import UniformVelocityCommands
+from mushroom_rl.environments.isaacsim_envs.quadruped.commands import UniformVelocityCommands
 
 
 class PolicyNetwork(ActorNetwork):
