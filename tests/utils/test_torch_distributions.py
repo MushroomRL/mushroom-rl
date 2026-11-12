@@ -129,6 +129,20 @@ def test_dist_helper():
     assert torch.allclose(selected.covariance_matrix, covariance[idx], atol=1e-6)
     assert torch.allclose(selected.log_prob(action[idx]), dist.log_prob(action)[idx], atol=1e-6)
 
+    loc = torch.tensor([[0., 1.], [2., 3.], [4., 5.], [6., 7.]])
+    idx = torch.tensor([3, 1])
+    action = torch.tensor([[1., 1.], [-1., 2.], [0., 0.], [3., -3.]])
+    for scale, target_scale in [(torch.tensor([.5, 2.]), torch.tensor([[.5, 2.], [.5, 2.]])),
+                                (torch.arange(1., 9.).reshape(4, 2), torch.tensor([[7., 8.], [3., 4.]]))]:
+        dist = torch.distributions.Independent(torch.distributions.Normal(loc, scale), 1)
+
+        selected = DistHelperWrapper(dist)[idx]
+
+        assert type(selected) is torch.distributions.Independent and selected.reinterpreted_batch_ndims == 1
+        assert torch.equal(selected.base_dist.loc, loc[idx])
+        assert torch.equal(selected.base_dist.scale, target_scale)
+        assert torch.allclose(selected.log_prob(action[idx]), dist.log_prob(action)[idx], atol=1e-6)
+
     dist = CategoricalWrapper(torch.tensor([[0.1, 0.9, 0.], [0.8, 0.2, 1.], [0., 0., 0.], [2., -1., .5]]))
     idx = torch.tensor([1, 3])
     action = torch.tensor([[1], [2], [0], [0]])

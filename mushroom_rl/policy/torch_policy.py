@@ -189,12 +189,9 @@ class GaussianTorchPolicy(TorchPolicy):
                + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
-        mu, chol_sigma = self.get_mean_and_chol(state, action_history=action_history)
-        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=chol_sigma, validate_args=False)
-
-    def get_mean_and_chol(self, state, action_history=None):
-        mean = self._mu(state, action_history=action_history, **self._predict_params)
-        return mean, torch.diag(torch.exp(self._log_sigma))
+        mu = self._mu(state, action_history=action_history, **self._predict_params)
+        normal = torch.distributions.Normal(loc=mu, scale=torch.exp(self._log_sigma), validate_args=False)
+        return torch.distributions.Independent(normal, 1, validate_args=False)
 
     def set_weights(self, weights):
         log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
@@ -210,6 +207,54 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return chain(self._mu.parameters(), [self._log_sigma])
+
+
+class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
+    """
+    Torch policy implementing a Gaussian policy with trainable full covariance, parameterized by its Cholesky factor.
+    The covariance is not state-dependent. The weights are the mean network weights, the logarithm of the diagonal
+    of the Cholesky factor and its strictly lower triangular entries, in row-major order.
+
+    """
+    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, **params):
+        """
+        Constructor.
+
+        Args:
+            network (object): the network class used to implement the mean approximator;
+            input_shape (tuple): the shape of the state space;
+            output_shape (tuple): the shape of the action space;
+            std_0 (float, 1.): initial standard deviation of every action component, with zero initial correlation;
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
+            **params: parameters used by the network constructor.
+
+        """
+        super().__init__(network, input_shape, output_shape, std_0=std_0, device=device, **params)
+
+        n_off_diagonal = self._action_dim * (self._action_dim - 1) // 2
+        self._chol_off_diagonal = nn.Parameter(torch.zeros(n_off_diagonal, device=self._device))
+
+        self._add_save_attr(_chol_off_diagonal='torch')
+
+    def distribution(self, state, action_history=None):
+        mu = self._mu(state, action_history=action_history, **self._predict_params)
+        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma(), validate_args=False)
+
+    def set_weights(self, weights):
+        n_policy_weights = len(weights) - len(self._chol_off_diagonal)
+        self._chol_off_diagonal.data = TorchUtils.to_float_tensor(weights[n_policy_weights:], self._device)
+
+        super().set_weights(weights[:n_policy_weights])
+
+    def get_weights(self):
+        return torch.concatenate([super().get_weights(), self._chol_off_diagonal.data.detach()])
+
+    def parameters(self):
+        return chain(super().parameters(), [self._chol_off_diagonal])
+
+    def _chol_sigma(self):
+        rows, cols = torch.tril_indices(self._action_dim, self._action_dim, -1, device=self._log_sigma.device)
+        return torch.diag(torch.exp(self._log_sigma)).index_put((rows, cols), self._chol_off_diagonal)
 
 
 class BoltzmannTorchPolicy(TorchPolicy):

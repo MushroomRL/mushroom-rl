@@ -115,8 +115,9 @@ class DistHelperWrapper:
     """
     Wrapper of a batched torch distribution providing tensor operations on its first batch dimension.
 
-    Currently, the supported distributions are ``torch.distributions.MultivariateNormal``, :class:`CategoricalWrapper`
-    and :class:`SquashedGaussian`.
+    Currently, the supported distributions are ``torch.distributions.MultivariateNormal``, the diagonal Gaussian
+    ``torch.distributions.Independent`` of a ``torch.distributions.Normal``, :class:`CategoricalWrapper` and
+    :class:`SquashedGaussian`.
 
     """
     def __init__(self, distribution):
@@ -180,6 +181,12 @@ class DistHelperWrapper:
             if shared_scale_tril:
                 return (distribution.loc,), (scale_tril[0],)
             return (distribution.loc, scale_tril), ()
+        elif self._is_diagonal_gaussian(distribution):
+            normal = distribution.base_dist
+            shared_scale = normal.scale.stride(0) == 0
+            if shared_scale:
+                return (normal.loc,), (normal.scale[0],)
+            return (normal.loc, normal.scale), ()
         elif type(distribution) is CategoricalWrapper:
             return (distribution.logits,), ()
         elif type(distribution) is SquashedGaussian:
@@ -194,9 +201,18 @@ class DistHelperWrapper:
         if type(distribution) is torch.distributions.MultivariateNormal:
             loc, scale_tril = parameters
             return torch.distributions.MultivariateNormal(loc=loc, scale_tril=scale_tril, validate_args=False)
+        elif self._is_diagonal_gaussian(distribution):
+            loc, scale = parameters
+            normal = torch.distributions.Normal(loc=loc, scale=scale, validate_args=False)
+            return torch.distributions.Independent(normal, distribution.reinterpreted_batch_ndims, validate_args=False)
         elif type(distribution) is CategoricalWrapper:
             logits, = parameters
             return CategoricalWrapper(logits)
         else:
             loc, scale = parameters
             return SquashedGaussian(loc, scale, distribution.low, distribution.high, eps=distribution.eps)
+
+    @staticmethod
+    def _is_diagonal_gaussian(distribution):
+        return type(distribution) is torch.distributions.Independent \
+            and type(distribution.base_dist) is torch.distributions.Normal

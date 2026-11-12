@@ -6,9 +6,10 @@ import numpy as np
 import pytest
 
 from helper.cases import needs_cuda
+from helper.utils import TestUtils as tu
 
-from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy, BoltzmannTorchPolicy, \
-    SquashedGaussianTorchPolicy
+from mushroom_rl.policy.torch_policy import TorchPolicy, GaussianTorchPolicy, CholeskyGaussianTorchPolicy, \
+    BoltzmannTorchPolicy, SquashedGaussianTorchPolicy
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.parameters import Parameter, LinearParameter
 
@@ -89,6 +90,44 @@ def test_gaussian():
     assert not action.requires_grad
     assert torch.allclose(action, pi.distribution(state).mean)
     assert torch.allclose(action, pi.draw_action_greedy(state))
+
+
+def test_cholesky_gaussian(tmpdir):
+    torch.manual_seed(42)
+    pi = CholeskyGaussianTorchPolicy(Network, (3,), (3,), std_0=.5, n_features=50)
+    state = torch.rand(4, 3)
+
+    assert torch.allclose(pi.distribution(state).scale_tril, (torch.eye(3) * .5).expand(4, 3, 3))
+
+    n_weights = len(pi.get_weights())
+    weights = torch.arange(n_weights, dtype=torch.float32) / n_weights
+    pi.set_weights(weights)
+    log_diagonal, off_diagonal = weights[-6:-3], weights[-3:]
+    target = torch.tensor([[log_diagonal[0].exp(), 0., 0.],
+                           [off_diagonal[0], log_diagonal[1].exp(), 0.],
+                           [off_diagonal[1], off_diagonal[2], log_diagonal[2].exp()]])
+    dist = pi.distribution(state)
+    action, log_prob = pi.draw_with_log_prob(state)
+    log_prob.sum().backward()
+
+    assert n_weights == len(pi._mu.get_weights()) + 6
+    assert torch.equal(pi.get_weights(), weights)
+    assert type(dist) is torch.distributions.MultivariateNormal
+    assert torch.allclose(dist.scale_tril, target.expand(4, 3, 3))
+    assert torch.isclose(pi.entropy(), dist.entropy()[0])
+    assert torch.allclose(log_prob, pi.log_prob(state, action.detach()))
+    assert len(list(pi.parameters())) == len(list(pi._mu.parameters())) + 2
+    assert torch.all(pi._chol_off_diagonal.grad != 0)
+
+    tu.assert_save_load(pi, tmpdir / 'policy.msh')
+
+    pi = CholeskyGaussianTorchPolicy(Network, (3,), (1,), n_features=50)
+    weights = torch.ones(len(pi.get_weights()))
+    pi.set_weights(weights)
+
+    assert len(weights) == len(pi._mu.get_weights()) + 1
+    assert torch.equal(pi.get_weights(), weights)
+    assert torch.allclose(pi.distribution(state).scale_tril, torch.tensor([[torch.e]]).expand(4, 1, 1))
 
 
 def test_boltzmann():

@@ -109,6 +109,10 @@ def test_distribution():
     assert entropy.shape == ()
     assert torch.isclose(entropy, torch.tensor(2.837877), atol=1e-5)
 
+    policy._log_sigma.data = torch.tensor([-25., 3.])
+
+    assert torch.isclose(policy.entropy(), torch.tensor(2.837877 - 18.), atol=1e-5)
+
     n_state, n_action, n_hidden = 4, 2, 8
     policy = make_policy(n_state, n_action, n_hidden)
 
@@ -119,8 +123,9 @@ def test_distribution():
 
     dist, new_ps = policy.distribution_and_policy_state(state, policy_state, lengths)
 
-    assert isinstance(dist, torch.distributions.MultivariateNormal)
-    assert dist.loc.shape == (batch, n_action)
+    assert isinstance(dist, torch.distributions.Independent)
+    assert isinstance(dist.base_dist, torch.distributions.Normal)
+    assert dist.mean.shape == (batch, n_action)
     assert new_ps.shape == (batch, 1, n_hidden)
     assert not torch.all(new_ps == 0.0)
 
@@ -154,7 +159,7 @@ def test_distribution():
     action, log_prob, next_policy_state = policy.draw_with_log_prob(state, policy_state, lengths)
 
     action_test = torch.tensor(np.load('tests/policy/data/test_distribution.npy'))
-    log_prob_test = torch.tensor([-1.9028531, -1.8918899, -2.4856393])
+    log_prob_test = torch.tensor([-1.9028533, -1.89189, -2.4856393])
 
     assert action.shape == (batch, n_action)
     assert log_prob.shape == (batch,)
@@ -173,8 +178,9 @@ def test_distribution():
 
     dist = policy.distribution(state, policy_state, lengths)
 
-    assert isinstance(dist, torch.distributions.MultivariateNormal)
-    assert dist.loc.shape == (batch, n_action)
+    assert isinstance(dist, torch.distributions.Independent)
+    assert isinstance(dist.base_dist, torch.distributions.Normal)
+    assert dist.mean.shape == (batch, n_action)
 
 
 def test_weights():

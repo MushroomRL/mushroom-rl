@@ -129,23 +129,20 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return self.distribution(state, policy_state, lengths, **kwargs).log_prob(action)
 
     def entropy(self, state=None, action_history=None):
-        return self._action_dim / 2 * torch.log(torch.tensor(2 * torch.pi * torch.e)) + torch.sum(self._log_sigma)
+        log_sigma = torch.clamp(self._log_sigma, self._log_std_min.get_value(), self._log_std_max.get_value())
+        return self._action_dim / 2 * torch.log(torch.tensor(2 * torch.pi * torch.e)) + torch.sum(log_sigma)
 
     def distribution(self, state, policy_state, lengths=None, **kwargs):
-        mu, sigma, _ = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths, **kwargs)
-        return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma)
+        dist, _ = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
+        return dist
 
     def distribution_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
-        mu, sigma, policy_state = self.get_mean_and_covariance_and_policy_state(state, policy_state, lengths, **kwargs)
-        return torch.distributions.MultivariateNormal(loc=mu, covariance_matrix=sigma), policy_state
-
-    def get_mean_and_covariance_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
-        mu, next_hidden_state = self._mu(state, policy_state, lengths=lengths, **kwargs, **self._predict_params)
+        mu, next_policy_state = self._mu(state, policy_state, lengths=lengths, **kwargs, **self._predict_params)
 
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())
 
-        covariance = torch.diag(torch.exp(2 * log_sigma))
-        return mu, covariance, next_hidden_state
+        normal = torch.distributions.Normal(loc=mu, scale=torch.exp(log_sigma), validate_args=False)
+        return torch.distributions.Independent(normal, 1, validate_args=False), next_policy_state
 
     def set_weights(self, weights):
         log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
