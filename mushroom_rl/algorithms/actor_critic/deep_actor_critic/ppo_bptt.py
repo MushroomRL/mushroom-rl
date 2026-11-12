@@ -100,8 +100,10 @@ class PPO_BPTT(OnPolicyDeepAC):
                                          next_action_history=act_seq if self._history_manager.uses_action else None)
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
-        old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
-                                                action_history=prev_action_seq)
+        with torch.no_grad():
+            old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
+                                                    action_history=prev_action_seq)
+
         old_log_p = old_pol_dist.log_prob(action).detach()
 
         self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
