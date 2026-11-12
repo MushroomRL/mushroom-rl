@@ -187,7 +187,7 @@ class TorchApproximator(Approximator):
             loss_batch = self._fit_batch(batch, use_weights, network_kwargs)
             loss_current.append(loss_batch)
 
-        return torch.stack(loss_current).mean().item()
+        return torch.stack(loss_current).mean()
 
     def _fit_batch(self, batch, use_weights, network_kwargs):
         loss = self._compute_batch_loss(batch, use_weights, network_kwargs)
@@ -246,7 +246,7 @@ class TorchApproximator(Approximator):
             The average loss of the last epoch of the last fit call.
 
         """
-        return self._last_loss
+        return float(self._last_loss) if self._last_loss is not None else None
 
     def set_learning_rate(self, lr):
         """
@@ -532,7 +532,7 @@ class TorchEnsemble(Ensemble):
         for batch in batches:
             loss_current.append(self._fit_batch(batch, use_weights, network_kwargs))
 
-        return torch.stack(loss_current).mean(dim=0).tolist()
+        return torch.stack(loss_current).mean(dim=0)
 
     def _fit_batch(self, stacked_batch, use_weights, network_kwargs):
         self._sync_params()
@@ -611,7 +611,7 @@ class TorchEnsemble(Ensemble):
 
     def _store_loss(self, losses):
         for m, ml in zip(self._models, losses):
-            m._last_loss = float(ml)
+            m._last_loss = ml
 
     def _log(self):
         for m in self._models:

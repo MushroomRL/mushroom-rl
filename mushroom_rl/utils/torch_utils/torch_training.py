@@ -115,7 +115,7 @@ class TorchTrainer(MushroomObject):
                     if len(val_args[0]):
                         loss = self._compute_val_loss_fn(val_args, use_weights, network_kwargs)
                     else:
-                        loss = float(np.mean(loss_current))
+                        loss = loss_current.mean().item()
 
                     if not self.quiet:
                         t_epochs.set_postfix(loss=loss)
@@ -135,6 +135,6 @@ class TorchTrainer(MushroomObject):
                     loss_current = self._fit_epoch_fn(train_args, use_weights, network_kwargs)
 
                     if not self.quiet:
-                        t_epochs.set_postfix(loss=float(np.mean(loss_current)))
+                        t_epochs.set_postfix(loss=loss_current.mean().item())
 
                     self._store_loss_fn(loss_current)

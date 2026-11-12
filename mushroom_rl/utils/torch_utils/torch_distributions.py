@@ -132,7 +132,7 @@ class DistHelperWrapper:
 
         """
         self._distribution = distribution
-        self._parameters = self._split()
+        self._parameters, self._shared_parameters = self._split()
 
     def __len__(self):
         """
@@ -151,7 +151,7 @@ class DistHelperWrapper:
             A distribution of the same type as the wrapped one, restricted to the selected samples.
 
         """
-        return self._merge([parameter[index] for parameter in self._parameters])
+        return self._merge([parameter[index] for parameter in self._parameters] + list(self._shared_parameters))
 
     @property
     def distribution(self):
@@ -175,12 +175,16 @@ class DistHelperWrapper:
         distribution = self._distribution
 
         if type(distribution) is torch.distributions.MultivariateNormal:
-            return distribution.loc, distribution.scale_tril
+            scale_tril = distribution.scale_tril
+            shared_scale_tril = scale_tril.stride(0) == 0
+            if shared_scale_tril:
+                return (distribution.loc,), (scale_tril[0],)
+            return (distribution.loc, scale_tril), ()
         elif type(distribution) is CategoricalWrapper:
-            return distribution.logits,
+            return (distribution.logits,), ()
         elif type(distribution) is SquashedGaussian:
             normal = distribution.base_dist.base_dist
-            return normal.loc, normal.scale
+            return (normal.loc, normal.scale), ()
 
         raise NotImplementedError(f'The {type(distribution).__name__} distribution is not supported')
 

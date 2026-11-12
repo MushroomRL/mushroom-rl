@@ -92,7 +92,7 @@ def make_trainer(train_losses, val_losses=None, quiet=True, loss=F.mse_loss):
 
     def fit_epoch(args, use_weights, network_kwargs):
         calls['train'].append((len(args[0]), use_weights, network_kwargs))
-        return [next(train_losses)]
+        return torch.tensor([next(train_losses)], dtype=torch.float64)
 
     def val_loss(args, use_weights, network_kwargs):
         calls['val'].append(len(args[0]))
@@ -109,7 +109,8 @@ def test_fit(quiet):
     trainer, calls = make_trainer([5., 4., 3.99, 3.95, 0.], quiet=quiet)
     trainer.fit(x, None, None, 0.1, 2, 1., dict(a=1))
 
-    assert calls['stored'] == [[5.], [4.], [3.99], [3.95]]
+    target = torch.tensor([[5.], [4.], [3.99], [3.95]], dtype=torch.float64)
+    assert torch.equal(torch.stack(calls['stored']), target)
     assert calls['train'][0] == (4, False, dict(a=1))
     assert calls['val'] == []
 
@@ -123,12 +124,14 @@ def test_fit(quiet):
     trainer, calls = make_trainer([3., 2., 1.])
     trainer.fit(x, 2, None, 0.1, 5, 1., dict())
 
-    assert calls['stored'] == [[3.], [2.]]
+    target = torch.tensor([[3.], [2.]], dtype=torch.float64)
+    assert torch.equal(torch.stack(calls['stored']), target)
 
     trainer, calls = make_trainer([3., 2., 1.], quiet=quiet)
     trainer.fit(x, None, None, None, 5, 1., dict())
 
-    assert calls['stored'] == [[3.]]
+    target = torch.tensor([[3.]], dtype=torch.float64)
+    assert torch.equal(torch.stack(calls['stored']), target)
 
     for split in (0., 1.5):
         with pytest.raises(ValueError):
