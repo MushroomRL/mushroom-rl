@@ -39,7 +39,7 @@ class QuadrupedIsaac(IsaacSim):
             default_joint_angles (torch.tensor): The nominal joint configuration the actions are expressed
                 relative to.
             trunk_body (str): The name of the trunk body, whose inertial properties are randomized.
-            foot_bodies (list): The prim paths of the feet.
+            foot_bodies (list): The names of the feet.
             sub_bodies (list): The names of every body of the robot, the trunk first.
             observation_spec (list): The observation specification, forwarded to :class:`IsaacSim`.
             additional_data_spec (list): The additional data specification, forwarded to :class:`IsaacSim`.
@@ -977,13 +977,8 @@ class QuadrupedIsaac(IsaacSim):
                                               torch.zeros_like(self._foot_contact_time))
         self._foot_contact = contact
 
-        n_feet = len(self._foot_bodies)
-        self._foot_positions = torch.stack(
-            [self._observation_helper.read_data(f"foot_pos_{i}") for i in range(n_feet)], dim=1
-        )
-        self._foot_velocities = torch.stack(
-            [self._observation_helper.read_data(f"foot_lin_vel_{i}") for i in range(n_feet)], dim=1
-        )
+        self._foot_positions = self._observation_helper.read_data("foot_pos")
+        self._foot_velocities = self._observation_helper.read_data("foot_lin_vel")
 
     def _foot_clearance_value(self, target, std):
         """
@@ -1046,11 +1041,9 @@ class QuadrupedIsaac(IsaacSim):
     @staticmethod
     def _get_foot_state_data_spec(foot_bodies):
         """
-        Builds the additional data specification the optional foot reward terms read the world pose and
+        Builds the additional data specification the optional foot reward terms read the position and linear
         velocity of every foot from.
 
         """
-        return [entry
-                for i, path in enumerate(foot_bodies)
-                for entry in ((f"foot_pos_{i}", path, ObservationType.BODY_POS, None),
-                              (f"foot_lin_vel_{i}", path, ObservationType.BODY_LIN_VEL, None))]
+        return [("foot_pos", "", ObservationType.SUB_BODY_POS, foot_bodies),
+                ("foot_lin_vel", "", ObservationType.SUB_BODY_LIN_VEL, foot_bodies)]

@@ -134,7 +134,7 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
         ], device=device)
         default_joint_max_vel = torch.tensor([25.] * 12, device=device)
         trunk_body = "base_link"
-        foot_bodies = ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]
+        foot_bodies = ["fl_foot", "fr_foot", "rl_foot", "rr_foot"]
         sub_bodies = [
             "base_link",
             "fl_l0", "fr_l0", "rl_l0", "rr_l0",
@@ -143,9 +143,9 @@ class HoneyBadgerIsaac(QuadrupedIsaac):
             "fl_foot", "fr_foot", "rl_foot", "rr_foot"
         ]
         collision_groups = [
-            ("feet", ["/fl_foot", "/fr_foot", "/rl_foot", "/rr_foot"]),
-            ("body", ["/base_link", "/fl_l1", "/fr_l1", "/rl_l1", "/rr_l1"]),
-            ("lower_body", ["/fl_l2", "/fr_l2", "/rl_l2", "/rr_l2"])
+            ("feet", ["fl_foot", "fr_foot", "rl_foot", "rr_foot"]),
+            ("body", ["base_link", "fl_l1", "fr_l1", "rl_l1", "rr_l1"]),
+            ("lower_body", ["fl_l2", "fr_l2", "rl_l2", "rr_l2"])
         ]
         return usd_path, action_spec, default_joint_angles, default_joint_max_vel, trunk_body, foot_bodies, \
             sub_bodies, collision_groups

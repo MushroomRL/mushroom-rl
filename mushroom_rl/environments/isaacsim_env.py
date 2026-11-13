@@ -37,8 +37,9 @@ class IsaacSim(VectorizedEnvironment):
             usd_path (str): Path to usd file of the robot.
             actuation_spec (list): A list specifying the names of the joints  which should be controllable by the agent.
             observation_spec (list): A list containing the names of data that should be made available to the agent as
-               an observation and their type (ObservationType). They are combined with a path, which is used to access
-               the prim, and a list or a single string with name of the sub elements of prim which should be accessed.
+               an observation and their type (ObservationType). They are combined with a body name or path, which is
+               used to access the prim, and a list or a single string with name of the sub elements of prim which should
+               be accessed.
                For example a sub body or a joint of an Articulation. An entry in the list is given by:
                (key, name, type, element). The name can later be used to retrieve specific observations.
             num_envs (int): Number of parallel environments.
@@ -49,11 +50,11 @@ class IsaacSim(VectorizedEnvironment):
                 of Isaac Sim is used
             n_intermediate_steps (int): Number of intermediate control steps. Defaults to 1.
             additional_data_spec (list, None): A list containing the data fields of interest, which should be read from
-               or written to during simulation. The entries are given as the following tuples: (key, path, type) key
+               or written to during simulation. The entries are given as the following tuples: (key, body, type) key
                is a string for later referencing in the "read_data" and "write_data" methods.
             collision_groups (dict, None): A list containing groups of prims for which collisions should be checked
-                during simulation. The entries are given as ``(key, prim_paths)``, where key is a string for later
-                reference and prim_paths is a list of paths to the prims.
+                during simulation. The entries are given as ``(key, bodies)``, where key is a string for later
+                reference and bodies is a list of body names or paths.
             actuation_type (ActuationType): Control type of the joints (effort, position, velocity).
             gpu_params (IsaacGpuParams, None): The GPU configuration parameters of the physics scene,
                 defaulting to the Isaac Sim ones.
@@ -76,13 +77,14 @@ class IsaacSim(VectorizedEnvironment):
         scene_params = {} if scene_params is None else scene_params
         self._scene_builder = SceneBuilder(usd_path, num_envs, **scene_params)
 
-        self._collision_helper = CollisionHelper(collision_groups, self._scene_builder.zero_env_robot_path,
+        self._collision_helper = CollisionHelper(self._scene_builder.zero_env_robot_path,
                                                  self._scene_builder.robot_glob, num_envs, n_intermediate_steps)
 
         self._setup_simulation(timestep, gpu_params)
 
         specifications = observation_spec + additional_data_spec
-        self._robots, views, self._env_pos = self._scene_builder.build(specifications, self._collision_helper)
+        self._robots, views, self._env_pos = self._scene_builder.build(specifications, collision_groups,
+                                                                       self._collision_helper)
 
         viewer_params = {k: v for k, v in ({} if viewer_params is None else viewer_params).items() if v is not None}
         env0 = tuple(self._env_pos[0].tolist())

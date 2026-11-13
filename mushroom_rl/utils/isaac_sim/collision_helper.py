@@ -17,15 +17,11 @@ class CollisionHelper:
     Class for computing the contact forces between groups of bodies, in every parallel environment.
 
     """
-    def __init__(self, collision_groups, zero_env_robot_path, robot_glob, num_envs,
-                 n_intermediate_steps=1):
+    def __init__(self, zero_env_robot_path, robot_glob, num_envs, n_intermediate_steps=1):
         """
         Constructor.
 
         Args:
-            collision_groups (list, None): A list containing groups of prims for which collisions should be
-                checked during simulation. The entries are given as ``(key, prim_paths)``, where key is a
-                string for later reference and prim_paths is a list of paths to the prims.
             zero_env_robot_path (str): Path of the robot of the first environment, which the collision groups
                 are relative to.
             robot_glob (str): Wildcard matching the robot of every environment.
@@ -36,22 +32,26 @@ class CollisionHelper:
         self._views = None
         self._collision_groups_indices = None
         self._collision_group_contains_world = None
+        self._collision_groups = None
 
         self._zero_env_robot_path = zero_env_robot_path
         self._robot_glob = robot_glob
         self._num_envs = num_envs
-        self.collision_groups = {key: group for key, group in collision_groups} if collision_groups is not None else {}
         self._n_intermediate_steps = n_intermediate_steps
 
-    def prepare_env(self, stage):
+    def prepare_env(self, stage, collision_groups):
         """
-        Ensures that all objects in the collision groups possess the necessary APIs.
+        Stores the collision groups and ensures that all their objects possess the necessary APIs.
 
         Args:
             stage: The current stage of the Isaac Sim simulation.
+            collision_groups (list): A list containing groups of prims for which collisions should be checked
+                during simulation. The entries are given as ``(key, prim_paths)``, where key is a string for later
+                reference and prim_paths is a list of paths to the prims.
 
         """
-        for group_name, group in self.collision_groups.items():
+        self._collision_groups = dict(collision_groups)
+        for group_name, group in self._collision_groups.items():
             for path in group:
                 if path.startswith("/World/"):
                     continue
@@ -70,21 +70,21 @@ class CollisionHelper:
 
         self._views = {}
         self._collision_groups_indices = {}
-        self._collision_group_contains_world = {key: False for key in self.collision_groups}
+        self._collision_group_contains_world = {key: False for key in self._collision_groups}
 
-        for group_name, group in self.collision_groups.items():
+        for group_name, group in self._collision_groups.items():
             self._collision_group_contains_world[group_name] = any([path.startswith("/World/") for path in group])
             if self._collision_group_contains_world[group_name]:
                 continue
 
-            other_groups = [value for key, value in self.collision_groups.items() if key != group_name]
+            other_groups = [value for key, value in self._collision_groups.items() if key != group_name]
             possible_partners = reduce(
                 lambda acc, val: acc + val if val not in acc else acc, other_groups, []
             )
             self._collision_groups_indices[group_name] = {
-                key: torch.tensor([possible_partners.index(value) for value in self.collision_groups[key]],
+                key: torch.tensor([possible_partners.index(value) for value in self._collision_groups[key]],
                                   device=TorchUtils.get_device())
-                for key in self.collision_groups if key != group_name
+                for key in self._collision_groups if key != group_name
             }
             possible_partners = [self._env_pattern(partner) for partner in possible_partners]
 
@@ -123,7 +123,7 @@ class CollisionHelper:
         else:
             group = group2
             indices_prims = self._collision_groups_indices[group2][group1]
-        n_bodies = len(self.collision_groups[group])
+        n_bodies = len(self._collision_groups[group])
 
         forces = wp.to_torch(self._views[group].get_contact_force_matrix(dt))
         # transform to (num_envs, n_bodies, n_possible_partners, 3)
@@ -196,7 +196,7 @@ class CollisionHelper:
         """
         forces = wp.to_torch(self._views[group].get_net_contact_forces(dt))
 
-        return self._to_env_major(forces, len(self.collision_groups[group]))
+        return self._to_env_major(forces, len(self._collision_groups[group]))
 
     def _env_pattern(self, path):
         """

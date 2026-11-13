@@ -48,7 +48,7 @@ class A1Isaac(QuadrupedIsaac):
             -0.1, 1., -1.5
         ], device=device)
         trunk_body = "base_link"
-        foot_bodies = ["/FL_foot", "/FR_foot", "/RL_foot", "/RR_foot"]
+        foot_bodies = ["FL_foot", "FR_foot", "RL_foot", "RR_foot"]
         sub_bodies = [
             "base_link",
             "FL_hip", "FR_hip", "RL_hip", "RR_hip",
@@ -69,10 +69,10 @@ class A1Isaac(QuadrupedIsaac):
         ]
 
         collision_groups = [
-            ("feet", ["/FL_foot", "/FR_foot", "/RL_foot", "/RR_foot"]),
-            ("body", ["/base_link"]),
-            ("lower_body", ["/FL_thigh", "/FR_thigh", "/RL_thigh", "/RR_thigh",
-                            "/FL_calf", "/FR_calf", "/RL_calf", "/RR_calf"])
+            ("feet", ["FL_foot", "FR_foot", "RL_foot", "RR_foot"]),
+            ("body", ["base_link"]),
+            ("lower_body", ["FL_thigh", "FR_thigh", "RL_thigh", "RR_thigh",
+                            "FL_calf", "FR_calf", "RL_calf", "RR_calf"])
         ]
 
         quadruped_params.setdefault("randomization_params",

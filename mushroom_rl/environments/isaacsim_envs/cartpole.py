@@ -37,9 +37,9 @@ class CartPoleIsaac(IsaacSim):
             ("cartJointVel", "", ObservationType.JOINT_VEL, "rail_cart_joint")
         ]
         additional_data_spec = [
-            ("cartPos", "/cart", ObservationType.BODY_POS, None),
-            ("polePos", "/pole", ObservationType.BODY_POS, None),
-            ("poleAngVel", "/pole", ObservationType.BODY_ANG_VEL, None)
+            ("cartPos", "cart", ObservationType.BODY_POS, None),
+            ("polePos", "pole", ObservationType.BODY_POS, None),
+            ("poleAngVel", "pole", ObservationType.BODY_ANG_VEL, None)
         ]
         scene_params = dict(env_spacing=2.5)
         viewer_params = dict(camera_position=camera_pos, camera_target=camera_target)

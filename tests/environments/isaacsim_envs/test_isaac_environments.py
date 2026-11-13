@@ -119,6 +119,44 @@ def test_rollout(name, n_joints, domain_randomization):
         assert np.all(np.isfinite(obs))
 
 
+@pytest.mark.parametrize('name', ['a1', 'go2', 'honey_badger', 'silver_badger'])
+def test_foot_state(name):
+    envs = dict(a1=A1Isaac, go2=Go2Isaac, honey_badger=HoneyBadgerIsaac, silver_badger=SilverBadgerIsaac)
+    mdp = envs[name](2, 1000, domain_randomization=False, reward_weights=dict(feet_slide=-1.))
+    mask = torch.ones(2, dtype=torch.bool, device='cuda:0')
+    mdp.reset_all(mask)
+    mdp.step_all(mask, torch.zeros(2, len(mdp.info.action_space.low), device='cuda:0'))
+    helper = mdp._observation_helper
+
+    foot_pos = helper.read_data("foot_pos")
+    foot_vel = helper.read_data("foot_lin_vel")
+    base_pos = helper.read_data("body_pos")
+
+    assert foot_pos.shape == (2, 4, 3) and foot_vel.shape == (2, 4, 3)
+    assert torch.all(foot_pos[..., 2] < base_pos[:, 2:3])
+    assert torch.all((foot_pos[..., :2] - base_pos[:, None, :2]).norm(dim=-1) < 1.)
+    assert torch.equal(helper.read_data("foot_pos", torch.tensor([1], device='cuda:0')), foot_pos[1:])
+    assert torch.equal(helper.read_data("foot_lin_vel", torch.tensor([1], device='cuda:0')), foot_vel[1:])
+    with pytest.raises(NotImplementedError):
+        helper.write_data("foot_pos", foot_pos)
+
+    mdp.stop()
+
+
+def test_body_names():
+    mdp = Go2Isaac(2, 1000, domain_randomization=False)
+    scene_builder = mdp._scene_builder
+
+    assert scene_builder.find_body_path("FL_foot") == "/Geometry/FL_foot"
+    assert scene_builder.find_body_path("/Geometry/FL_foot") == "/Geometry/FL_foot"
+    assert scene_builder.find_body_path("") == ""
+    assert mdp._collision_helper._collision_groups["body"] == ["/Geometry/base_link"]
+    with pytest.raises(AssertionError):
+        scene_builder.find_body_path("FL_wing")
+
+    mdp.stop()
+
+
 def test_initial_states():
     np.random.seed(1)
     torch.manual_seed(1)

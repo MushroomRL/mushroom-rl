@@ -11,7 +11,7 @@ from isaacsim.core.experimental.materials import RigidBodyMaterial
 from isaacsim.core.experimental.objects import DistantLight, GroundPlane
 from isaacsim.core.experimental.prims import Articulation, RigidPrim
 from isaacsim.core.simulation_manager import SimulationManager
-from pxr import PhysxSchema
+from pxr import PhysxSchema, Usd, UsdPhysics
 
 from mushroom_rl.utils import TorchUtils
 
@@ -65,7 +65,7 @@ class SceneBuilder:
         self._material_properties = None
         self._nominal_material_properties = None
 
-    def build(self, specifications, collision_helper):
+    def build(self, specifications, collision_groups, collision_helper):
         """
         Adds the robot specified by the usd path to the stage and clones it ``num_envs`` times, then creates
         the views used to read and write data.
@@ -73,12 +73,14 @@ class SceneBuilder:
         Args:
             specifications (list): The observation and additional data specifications, whose paths determine
                 which views have to be created.
+            collision_groups (list, None): The groups of bodies whose contacts are tracked, given as
+                ``(key, bodies)`` with ``bodies`` a list of body names or paths.
             collision_helper (CollisionHelper): The helper tracking the contacts, prepared on the robot of
-                environment 0 before it is cloned.
+                environment 0 before it is cloned, with the bodies of the collision groups given as paths.
 
         Returns:
-            The articulation of the robots, the views to read and write with, indexed by the path they cover,
-            and the origin of each environment.
+            The articulation of the robots, the views to read and write with, indexed by the body they cover as
+            the specifications give it, and the origin of each environment.
 
         """
         stage = stage_utils.get_current_stage()
@@ -88,7 +90,9 @@ class SceneBuilder:
         # Define env_0
         stage_utils.add_reference_to_stage(self._usd_path, self._zero_env_robot_path)
 
-        collision_helper.prepare_env(stage)
+        collision_groups = [(key, [self.find_body_path(body) for body in bodies])
+                            for key, bodies in collision_groups or []]
+        collision_helper.prepare_env(stage, collision_groups)
 
         env_pos = self._clone_envs(stage)
 
@@ -131,6 +135,29 @@ class SceneBuilder:
         self._material_properties[env_indices, :, 0] = static_friction
         self._material_properties[env_indices, :, 1] = dynamic_friction
         self._physics_view.set_material_properties(self._material_buffer, wp.from_torch(env_indices))
+
+    def find_body_path(self, body):
+        """
+        Finds the path of a body of the robot, relative to the robot. Has to be called once the robot is on the stage.
+
+        Args:
+            body (str): The name of a rigid body of the robot, or a path starting with ``/``, returned unchanged.
+                The empty string refers to the robot itself.
+
+        Returns:
+            The path of the body, relative to the robot.
+
+        """
+        if body == "" or body.startswith("/"):
+            return body
+
+        stage = stage_utils.get_current_stage()
+        robot_path = self._zero_env_robot_path
+        paths = [str(prim.GetPath()) for prim in Usd.PrimRange(stage.GetPrimAtPath(robot_path))
+                 if prim.GetName() == body and prim.HasAPI(UsdPhysics.RigidBodyAPI)]
+        assert len(paths) == 1, f"the robot has {len(paths)} rigid bodies named {body}, instead of one"
+
+        return paths[0][len(robot_path):]
 
     def reset_robot_friction(self):
         """
@@ -211,7 +238,7 @@ class SceneBuilder:
 
     def _create_views(self, stage, specifications, robots):
         """
-        Creates one view per distinct path appearing in the specifications: an ``Articulation`` for prims with the
+        Creates one view per distinct body appearing in the specifications: an ``Articulation`` for prims with the
         PhysX articulation API, a ``RigidPrim`` otherwise.
 
         Args:
@@ -220,18 +247,20 @@ class SceneBuilder:
             robots (Articulation): The articulation of the robots, serving the specifications with no path.
 
         Returns:
-            A dictionary mapping each path to the view covering it in every environment.
+            A dictionary mapping each body, as the specifications give it, to the view covering it in every
+            environment.
 
         """
         views = {"": robots}
 
         for name, path, obs_type, element_names in specifications:
             if path not in views:
-                prim = stage.GetPrimAtPath(self._zero_env_robot_path + path)
+                body_path = self.find_body_path(path)
+                prim = stage.GetPrimAtPath(self._zero_env_robot_path + body_path)
                 if prim.HasAPI(PhysxSchema.PhysxArticulationAPI):
-                    view = Articulation(self._robot_regex + path, reset_xform_op_properties=False)
+                    view = Articulation(self._robot_regex + body_path, reset_xform_op_properties=False)
                 else:
-                    view = RigidPrim(self._robot_regex + path, reset_xform_op_properties=False)
+                    view = RigidPrim(self._robot_regex + body_path, reset_xform_op_properties=False)
                 views[path] = view
 
         return views

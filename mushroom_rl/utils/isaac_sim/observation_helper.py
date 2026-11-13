@@ -43,6 +43,8 @@ class ObservationType(Enum):
     SUB_BODY_COM = ('sub_body', 7, 'link_coms')  # center of mass
     SUB_BODY_COM_POS = ('sub_body', 3, 'link_coms', 0, 'positions')
     SUB_BODY_COM_ROT = ('sub_body', 4, 'link_coms', 1, 'orientations')
+    SUB_BODY_POS = ('sub_body', 3, 'link_transforms')
+    SUB_BODY_LIN_VEL = ('sub_body', 3, 'link_velocities')
 
     def __init__(self, category, length, accessor, component=None, keyword=None):
         """
@@ -107,6 +109,17 @@ class ObservationType(Enum):
         """
         # the members from JOINT_GAIN to JOINT_MAX_POS, which are declared next to each other
         return ObservationType.JOINT_GAIN.value <= self.value <= ObservationType.JOINT_MAX_POS.value
+
+    def is_link_state(self):
+        """
+        Checks whether the observation type is the state of rigid bodies within the articulation of the robots, read
+        from its physics view.
+
+        Returns:
+            bool: True if the observation type is a link state, False otherwise.
+
+        """
+        return self in (ObservationType.SUB_BODY_POS, ObservationType.SUB_BODY_LIN_VEL)
 
     @property
     def physics_accessor(self):
@@ -396,7 +409,9 @@ class ObservationHelper:
             element_idx = None
 
             accessor = f'get_{obs_type.accessor}'
-            assert hasattr(view, accessor), f'{type(view).__name__} has no {accessor}, required by {obs_type}.'
+            source = self._physics_view if obs_type.is_link_state() else view
+            assert hasattr(source, accessor), f'{type(source).__name__} has no {accessor}, required by {obs_type}.'
+            assert not obs_type.is_link_state() or view is self._robots, f'{obs_type} is served for the robots only.'
 
             # Find indices of joints or bodies
             if obs_type.is_joint() or obs_type.is_sub_body():
@@ -438,6 +453,9 @@ class ObservationHelper:
             The requested property as a torch tensor.
 
         """
+        if obs_type.is_link_state():
+            return self._read_link_state(obs_type, element_idx, env_indices)
+
         indices = None if env_indices is None else wp.from_torch(env_indices.to(torch.int32))
 
         if obs_type == ObservationType.JOINT_MAX_POS:
@@ -474,8 +492,8 @@ class ObservationHelper:
             env_indices (torch.Tensor, None): The environment indices to apply the update.
 
         """
-        if obs_type == ObservationType.JOINT_MEASURED_EFFORT:
-            raise NotImplementedError("Set function for measured effort doesn't exist in isaacsim.core.")
+        if obs_type == ObservationType.JOINT_MEASURED_EFFORT or obs_type.is_link_state():
+            raise NotImplementedError(f"Isaac Sim has no setter for {obs_type}.")
 
         if obs_type.is_joint_parameter() and view is self._robots:
             self._set_physics_joint_property(obs_type, value, element_idx, env_indices)
@@ -503,6 +521,32 @@ class ObservationHelper:
             setter(wp.from_torch(value), **selection)
         else:
             setter(**{obs_type.keyword: wp.from_torch(value)}, **selection)
+
+    def _read_link_state(self, obs_type, element_idx, env_indices):
+        """
+        Reads the state of rigid bodies within the articulation of the robots from its physics view.
+
+        Args:
+            obs_type (ObservationType): The link state to read, one for which ``is_link_state`` holds.
+            element_idx (warp.array): The bodies to read, in the form Isaac Sim returns them from
+                ``get_link_indices``.
+            env_indices (torch.Tensor, None): The environments to read, None for all of them.
+
+        Returns:
+            A tensor of shape (n_envs, n_bodies, 3), the positions relative to each environment's origin or the
+            linear velocities.
+
+        """
+        data = wp.to_torch(getattr(self._physics_view, f'get_{obs_type.accessor}')())
+        env_pos = self._env_pos
+        if env_indices is not None:
+            data = data[env_indices]
+            env_pos = env_pos[env_indices]
+        data = data[:, wp.to_torch(element_idx).to(device=data.device, dtype=torch.long)]
+
+        if obs_type == ObservationType.SUB_BODY_POS:
+            return data[..., :3] - env_pos.unsqueeze(1)
+        return data[..., :3]
 
     def _set_physics_joint_property(self, obs_type, value, element_idx, env_indices):
         """
