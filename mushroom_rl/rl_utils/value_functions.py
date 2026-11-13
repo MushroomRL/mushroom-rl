@@ -1,5 +1,5 @@
 import torch
-from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
+from mushroom_rl.utils.episodes import episode_ends, split_episodes, unsplit_episodes
 
 
 def _next_action_history(action_history, action, last):
@@ -55,12 +55,11 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
 
         next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
             else None
-        arrays = (r, absorbing, ss) if next_action_history is None else (r, absorbing, ss, next_action_history)
-        last_ep, r_ep, absorbing_ep, ss_ep, *rest = split_episodes(last, *arrays)
-        next_ah_ep = rest[0] if rest else None
+        last_ep, r_ep, absorbing_ep = split_episodes(last, r, absorbing)
         q_ep = torch.zeros_like(r_ep, dtype=torch.float32)
-        next_ah = next_ah_ep[last_ep] if next_ah_ep is not None else None
-        q_end = V(ss_ep[last_ep], action_history=next_ah)
+        ends = episode_ends(last, r_ep.shape[0] if r_ep.ndim > 1 else 1)
+        next_ah = next_action_history[ends] if next_action_history is not None else None
+        q_end = V(ss[ends], action_history=next_ah)
         q_next_ep = torch.zeros_like(q_end)
 
         not_absorbing_ep = ~absorbing_ep
@@ -120,7 +119,9 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
     Args:
         V (Approximator): the current value function approximator;
         s (torch.tensor): the set of states in which we want to evaluate the advantage;
-        ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
+        ss (torch.tensor): the set of next states in which we want to evaluate the advantage. They come from
+            trajectories: the next state of every step that does not end an episode is the state of the following
+            step;
         r (torch.tensor): the reward obtained in each transition from state s to state ss;
         absorbing (torch.tensor): an array of boolean flags indicating if the reached state is absorbing;
         last (torch.tensor): an array of boolean flags indicating if the reached state is the last of the trajectory;
@@ -139,9 +140,15 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
             else None
         v = V(s, action_history=action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
-        v_next = V(ss, action_history=next_action_history)
 
-        _, v_ep, v_next_ep, r_ep, absorbing_ep = split_episodes(last, v, v_next, r, absorbing)
+        last_ep, v_ep, r_ep, absorbing_ep = split_episodes(last, v, r, absorbing)
+        ends = episode_ends(last, v_ep.shape[0] if v_ep.ndim > 1 else 1)
+        next_ah = next_action_history[ends] if next_action_history is not None else None
+        v_end = V(ss[ends], action_history=next_ah)
+
+        v_next_ep = torch.zeros_like(v_ep)
+        v_next_ep[..., :-1] = v_ep[..., 1:]
+        v_next_ep = torch.where(last_ep, v_end.reshape(-1, *(1,) * (v_ep.ndim - 1)), v_next_ep)
         delta_ep = r_ep - v_ep + ~absorbing_ep * gamma * v_next_ep
 
         gen_adv_ep = torch.zeros_like(v_ep)

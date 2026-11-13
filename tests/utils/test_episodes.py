@@ -10,7 +10,7 @@ from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.environments import Segway
 
-from mushroom_rl.utils.episodes import split_episodes, unsplit_episodes
+from mushroom_rl.utils.episodes import episode_ends, split_episodes, unsplit_episodes
 
 
 def get_episodes(mdp, n_episodes=100, to='numpy'):
@@ -58,3 +58,20 @@ def test_split(backend, device):
     assert_equal(last_flags.sum(-1), [1, 1], backend, device)
     assert_equal(unsplit_episodes(last, last_flags), [False, False, True, False, True], backend, device)
     assert_equal(unsplit_episodes(last, reward_ep), reward, backend, device)
+
+
+@pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))
+def test_episode_ends(backend, device):
+    last = make_array(backend, [False, False, True, False, False, True, False], device)
+
+    assert_equal(episode_ends(last, 3), [2, 5, 6], backend, device)
+
+    last = make_array(backend, [False, True, False, True], device)
+
+    assert_equal(episode_ends(last, 2), [1, 3], backend, device)
+
+    last = make_array(backend, [False, False, False], device)
+
+    assert_equal(episode_ends(last, 1), [2], backend, device)
+
+    assert_equal(episode_ends(make_array(backend, [], device), 0), [], backend, device)

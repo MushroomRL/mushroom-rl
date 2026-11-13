@@ -1,3 +1,5 @@
+import torch
+
 from mushroom_rl.core.array_backend import ArrayBackend
 
 
@@ -61,6 +63,33 @@ def unsplit_episodes(last, *episodes_arrays):
         arrays.append(array)
 
     return arrays if len(arrays) > 1 else arrays[0]
+
+
+def episode_ends(last, n_episodes):
+    """
+    Find the final step of every episode, the last step of the arrays included. With the torch backend, it does not
+    synchronize with the host.
+
+    Args:
+        last: the episode-end flags;
+        n_episodes (int): the number of episodes.
+
+    Returns:
+        The indices of the final steps, in order.
+
+    """
+    backend = ArrayBackend.get_array_backend_from(last)
+
+    if backend.get_backend_name() == 'torch':
+        ends = torch.logical_or(last, torch.arange(len(last), device=last.device) == len(last) - 1)
+        indices = torch.nonzero_static(ends, size=n_episodes).squeeze(1)
+    else:
+        ends = backend.copy(last)
+        if len(ends) > 0:
+            ends[-1] = True
+        indices = backend.nonzero(ends)
+
+    return indices
 
 
 def _get_episode_idx(last, backend=None):

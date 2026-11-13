@@ -114,12 +114,19 @@ def _get_episodes(mdp, n_episodes=100):
     return dataset.parse(to='torch')
 
 
-def _edge_case_setup(n_steps):
+def _edge_case_setup(last):
     V = TorchApproximator(input_shape=(3,), output_shape=(), network=LinearNetwork, use_bias=True,
                           loss=torch.nn.MSELoss(),
                           optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
-    return V, torch.randn(n_steps, 3), torch.randn(n_steps, 3), torch.randn(n_steps)
+    n_steps = len(last)
+    state = torch.randn(n_steps, 3)
+    next_state = torch.cat([state[1:], torch.randn(1, 3)])
+    ends = last.clone()
+    ends[-1] = True
+    next_state[ends] = torch.randn(int(ends.sum()), 3)
+
+    return V, state, next_state, torch.randn(n_steps)
 
 
 def edge_cases():
@@ -135,9 +142,9 @@ def edge_cases():
 def test_edge_cases(case, last, absorbing):
     torch.manual_seed(42)
 
-    V, state, next_state, reward = _edge_case_setup(8)
     last = torch.tensor(last, dtype=torch.bool)
     absorbing = torch.tensor(absorbing, dtype=torch.bool)
+    V, state, next_state, reward = _edge_case_setup(last)
 
     q, adv = compute_advantage_montecarlo(V, state, next_state, reward, absorbing, last, 0.99)
     v_target, gen_adv = compute_gae(V, state, next_state, reward, absorbing, last, 0.99, 0.95)
@@ -153,8 +160,8 @@ def test_edge_cases(case, last, absorbing):
 
 def test_advantage():
     torch.manual_seed(42)
-    V, state, next_state, reward = _edge_case_setup(5)
     absorbing = torch.tensor([0, 0, 1, 0, 1], dtype=torch.bool)
+    V, state, next_state, reward = _edge_case_setup(absorbing)
 
     q, adv = compute_advantage(V, state, next_state, reward, absorbing, absorbing.clone(), .9)
 
