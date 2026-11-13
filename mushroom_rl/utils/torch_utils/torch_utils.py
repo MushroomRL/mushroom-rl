@@ -19,17 +19,15 @@ class TorchUtils(object):
     def get_device(cls, device=None):
         return cls._default_device if device is None else device
 
-    @classmethod
-    def set_weights(cls, parameters, weights, device=None):
+    @staticmethod
+    def set_weights(parameters, weights):
         """
-        Function used to set the value of a set of torch parameters given a
-        vector of values.
+        Function used to set the value of a set of torch parameters given a vector of values. The values are written
+        in place, converted to the dtype and device of each parameter.
 
         Args:
             parameters (list): list of parameters to be considered;
-            weights (numpy.ndarray): array of the new values for
-                the parameters;
-            device (str, None): device to use to store the tensor.
+            weights (numpy.ndarray): array of the new values for the parameters.
 
         """
         idx = 0
@@ -42,9 +40,7 @@ class TorchUtils(object):
 
             w = weights[idx:idx + c].reshape(shape)
 
-            w_tensor = torch.as_tensor(w, device=cls.get_device(device)).type(p.data.dtype)
-
-            p.data = w_tensor
+            p.data.copy_(torch.as_tensor(w))
             idx += c
 
         # assert idx == weights.size # TODO check if you can put another guard here

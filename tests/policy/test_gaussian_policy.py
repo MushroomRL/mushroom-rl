@@ -149,8 +149,23 @@ def test_multivariate():
                              output_shape=(n_outs,))
 
     pi = DiagonalGaussianPolicy(approximator, std)
+    expected = pi.get_weights()
+    std += 1.
+
+    assert np.array_equal(pi.get_weights(), expected)
+
+    pi.set_std(std)
+    expected = pi.get_weights()
+    std += 1.
+
+    assert np.array_equal(pi.get_weights(), expected)
+
     mu_weights = np.random.rand(pi.weights_size)
     pi.set_weights(mu_weights)
+    expected = mu_weights.copy()
+    mu_weights += 1.
+
+    assert np.array_equal(pi.get_weights(), expected)
 
     x = np.random.randn(20, n_dims)
 

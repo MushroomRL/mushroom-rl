@@ -45,8 +45,12 @@ def test_linear():
     approximator.set_weights(random_weights)
     random_weight_new = approximator.get_weights()
 
-    assert np.array_equal(random_weights, random_weight_new)
+    assert np.array_equal(random_weights, random_weight_new) and random_weight_new.dtype == np.float64
     assert not np.any(np.equal(random_weights, old_weights))
+
+    random_weights += 1.
+
+    assert np.array_equal(approximator.get_weights(), random_weight_new)
 
     np.random.seed(1)
 

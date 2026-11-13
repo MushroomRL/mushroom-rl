@@ -158,6 +158,26 @@ def test_logging():
     assert np.allclose(dist.get_parameters(), np.array([1., 2., 1., 1.]))
 
 
+def test_parameters_copy():
+    for cls, scale in [(GaussianDistribution, np.eye(2)), (GaussianDiagonalDistribution, np.ones(2)),
+                       (GaussianCholeskyDistribution, np.eye(2))]:
+        mu = np.array([1., 2.])
+        dist = cls(mu, scale)
+        expected, entropy = dist.get_parameters().copy(), dist.entropy()
+        mu += 1.
+        scale += 1.
+
+        assert np.array_equal(dist.get_parameters(), expected) and dist.entropy() == entropy
+
+        rho = expected + .5
+        dist.set_parameters(rho)
+        expected = rho.copy()
+        rho += 1.
+        dist.get_parameters()[:] = 0.
+
+        assert np.array_equal(dist.get_parameters(), expected)
+
+
 def test_mean_copy():
     mu = np.array([1., 2.])
 

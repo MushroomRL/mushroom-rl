@@ -6,7 +6,7 @@ from itertools import chain
 from mushroom_rl.policy.policy import StatefulPolicy
 from mushroom_rl.policy.torch_policy import TorchPolicy
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
+from mushroom_rl.utils.torch_utils import TorchUtils, DiagonalGaussian
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
@@ -126,7 +126,10 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return action, dist.log_prob(action), next_policy_state
 
     def log_prob(self, state, action, policy_state, lengths=None, **kwargs):
-        return self.distribution(state, policy_state, lengths, **kwargs).log_prob(action)
+        dist = self.distribution(state, policy_state, lengths, **kwargs)
+        assert action.shape == dist.batch_shape + dist.event_shape
+
+        return dist.log_prob(action)
 
     def entropy(self, state=None, action_history=None):
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min.get_value(), self._log_std_max.get_value())
@@ -137,17 +140,14 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         return dist
 
     def distribution_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
-        mu, next_policy_state = self._mu(state, policy_state, lengths=lengths, **kwargs, **self._predict_params)
+        mu, next_policy_state = self._mean_and_policy_state(state, policy_state, lengths, **kwargs)
 
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())
 
-        normal = torch.distributions.Normal(loc=mu, scale=torch.exp(log_sigma), validate_args=False)
-        return torch.distributions.Independent(normal, 1, validate_args=False), next_policy_state
+        return DiagonalGaussian(mu, torch.exp(log_sigma)), next_policy_state
 
     def set_weights(self, weights):
-        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
-        self._log_sigma.data = log_sigma_data
-
+        TorchUtils.set_weights([self._log_sigma], weights[-self._action_dim:])
         self._mu.set_weights(weights[:-self._action_dim])
 
     def get_weights(self):
@@ -175,14 +175,16 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         with torch.no_grad():
             dist, next_policy_state = self.distribution_and_policy_state(state, policy_state,
                                                                          action_history=action_history)
-            action = dist.sample()
+            action = dist.rsample()
 
             return action, next_policy_state
 
     def _draw_action_greedy(self, state, policy_state, action_history=None):
         with torch.no_grad():
-            dist, next_policy_state = self.distribution_and_policy_state(state, policy_state,
-                                                                         action_history=action_history)
-            action = dist.mean
+            return self._mean_and_policy_state(state, policy_state, action_history=action_history)
 
-            return action, next_policy_state
+    def _mean_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
+        mu, next_policy_state = self._mu(state, policy_state, lengths=lengths, **kwargs, **self._predict_params)
+        assert mu.shape[-1] == self._action_dim
+
+        return mu, next_policy_state

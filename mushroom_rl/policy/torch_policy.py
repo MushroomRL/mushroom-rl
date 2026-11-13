@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from mushroom_rl.policy import Policy
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian
+from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian, DiagonalGaussian
 from mushroom_rl.rl_utils.parameters import Parameter
 
 from itertools import chain
@@ -169,11 +169,11 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def draw_action(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state, action_history=action_history).sample()
+            return self.distribution(state, action_history=action_history).rsample()
 
     def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state, action_history=action_history).mean
+            return self._mean(state, action_history)
 
     def draw_with_log_prob(self, state, action_history=None):
         dist = self.distribution(state, action_history=action_history)
@@ -182,31 +182,39 @@ class GaussianTorchPolicy(TorchPolicy):
         return a, dist.log_prob(a)
 
     def log_prob(self, state, action, action_history=None):
-        return self.distribution(state, action_history=action_history).log_prob(action)
+        dist = self.distribution(state, action_history=action_history)
+        assert action.shape == dist.batch_shape + dist.event_shape
+
+        return dist.log_prob(action)
 
     def entropy(self, state=None, action_history=None):
         return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e, self._device))\
                + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
-        mu = self._mu(state, action_history=action_history, **self._predict_params)
-        normal = torch.distributions.Normal(loc=mu, scale=torch.exp(self._log_sigma), validate_args=False)
-        return torch.distributions.Independent(normal, 1, validate_args=False)
+        return DiagonalGaussian(self._mean(state, action_history), torch.exp(self._log_sigma))
 
     def set_weights(self, weights):
-        log_sigma_data = TorchUtils.to_float_tensor(weights[-self._action_dim:], self._device)
-        self._log_sigma.data = log_sigma_data
+        own_parameters = list(self._own_parameters())
+        n_mu_weights = len(weights) - sum(p.numel() for p in own_parameters)
 
-        self._mu.set_weights(weights[:-self._action_dim])
+        TorchUtils.set_weights(own_parameters, weights[n_mu_weights:])
+        self._mu.set_weights(weights[:n_mu_weights])
 
     def get_weights(self):
-        mu_weights = self._mu.get_weights()
-        sigma_weights = self._log_sigma.data.detach()
-
-        return torch.concatenate([mu_weights, sigma_weights])
+        return torch.concatenate([self._mu.get_weights(), TorchUtils.get_weights(self._own_parameters())])
 
     def parameters(self):
-        return chain(self._mu.parameters(), [self._log_sigma])
+        return chain(self._mu.parameters(), self._own_parameters())
+
+    def _mean(self, state, action_history):
+        mu = self._mu(state, action_history=action_history, **self._predict_params)
+        assert mu.shape[-1] == self._action_dim
+
+        return mu
+
+    def _own_parameters(self):
+        return [self._log_sigma]
 
 
 class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
@@ -233,28 +241,25 @@ class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
 
         n_off_diagonal = self._action_dim * (self._action_dim - 1) // 2
         self._chol_off_diagonal = nn.Parameter(torch.zeros(n_off_diagonal, device=self._device))
+        self._tril_indices = torch.tril_indices(self._action_dim, self._action_dim, -1, device=self._device)
 
-        self._add_save_attr(_chol_off_diagonal='torch')
+        self._add_save_attr(_chol_off_diagonal='torch', _tril_indices='none')
 
     def distribution(self, state, action_history=None):
-        mu = self._mu(state, action_history=action_history, **self._predict_params)
-        return torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._chol_sigma(), validate_args=False)
+        return torch.distributions.MultivariateNormal(loc=self._mean(state, action_history),
+                                                      scale_tril=self._chol_sigma(), validate_args=False)
 
-    def set_weights(self, weights):
-        n_policy_weights = len(weights) - len(self._chol_off_diagonal)
-        self._chol_off_diagonal.data = TorchUtils.to_float_tensor(weights[n_policy_weights:], self._device)
-
-        super().set_weights(weights[:n_policy_weights])
-
-    def get_weights(self):
-        return torch.concatenate([super().get_weights(), self._chol_off_diagonal.data.detach()])
-
-    def parameters(self):
-        return chain(super().parameters(), [self._chol_off_diagonal])
+    def _own_parameters(self):
+        return super()._own_parameters() + [self._chol_off_diagonal]
 
     def _chol_sigma(self):
-        rows, cols = torch.tril_indices(self._action_dim, self._action_dim, -1, device=self._log_sigma.device)
-        return torch.diag(torch.exp(self._log_sigma)).index_put((rows, cols), self._chol_off_diagonal)
+        chol_sigma = torch.diag(torch.exp(self._log_sigma))
+        chol_sigma[self._tril_indices[0], self._tril_indices[1]] = self._chol_off_diagonal
+
+        return chol_sigma
+
+    def _post_load(self, device):
+        self._tril_indices = torch.tril_indices(self._action_dim, self._action_dim, -1, device=self._device)
 
 
 class BoltzmannTorchPolicy(TorchPolicy):

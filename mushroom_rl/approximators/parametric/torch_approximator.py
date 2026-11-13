@@ -268,7 +268,7 @@ class TorchApproximator(Approximator):
             weights (np.ndarray): the set of weights to set.
 
         """
-        TorchUtils.set_weights(self.network.parameters(), weights, device=self._device)
+        TorchUtils.set_weights(self.network.parameters(), weights)
         self._dirty = True
 
     def get_weights(self):

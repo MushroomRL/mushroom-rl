@@ -86,6 +86,23 @@ def test_lookups():
             call()
 
 
+def test_weights():
+    params = [nn.Parameter(torch.zeros(2, 2)), nn.Parameter(torch.zeros(3))]
+    weights = torch.arange(7, dtype=torch.float32)
+
+    TorchUtils.set_weights(params, weights)
+    weights.zero_()
+
+    assert torch.equal(params[0].data, torch.tensor([[0., 1.], [2., 3.]]))
+    assert torch.equal(params[1].data, torch.tensor([4., 5., 6.]))
+    assert torch.equal(TorchUtils.get_weights(params), torch.arange(7, dtype=torch.float32))
+
+    TorchUtils.set_weights(params, np.arange(7.) + .5)
+
+    assert params[0].dtype == torch.float32
+    assert torch.equal(TorchUtils.get_weights(params), torch.arange(7, dtype=torch.float32) + .5)
+
+
 def make_trainer(train_losses, val_losses=None, quiet=True, loss=F.mse_loss):
     calls = dict(train=list(), val=list(), stored=list())
     train_losses, val_losses = iter(train_losses), iter(val_losses or [])

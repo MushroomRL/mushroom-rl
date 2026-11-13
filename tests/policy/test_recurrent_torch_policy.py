@@ -3,6 +3,8 @@ import pytest
 import torch
 import torch.nn as nn
 
+from helper.cases import needs_cuda
+
 from mushroom_rl.policy import RecurrentGaussianTorchPolicy
 from mushroom_rl.policy.stateful_torch_policy import StatefulTorchPolicy
 from mushroom_rl.approximators.parametric.networks import RecurrentNetwork
@@ -23,6 +25,13 @@ class SimpleGRUNetwork(RecurrentNetwork):
         out, next_hidden = self._rnn(state.float(), hidden_state)
 
         return self._fc(self._select_by_length(out, lengths)), self._merge_policy_state(next_hidden)
+
+
+class FlatGRUNetwork(SimpleGRUNetwork):
+    def forward(self, state, policy_state, lengths, **kwargs):
+        mu, next_policy_state = super().forward(state, policy_state, lengths)
+
+        return mu[..., 0], next_policy_state
 
 
 def make_policy(n_state=4, n_action=2, n_hidden=8):
@@ -98,6 +107,24 @@ def test_draw_action():
     assert new_policy_state.shape == (1, n_hidden)
     assert torch.allclose(action, action_test, atol=1e-5)
     assert torch.allclose(new_policy_state, new_ps_test, atol=1e-5)
+
+
+@needs_cuda()
+def test_draw_action_cuda():
+    torch.manual_seed(42)
+    policy = RecurrentGaussianTorchPolicy(network=SimpleGRUNetwork, input_shape=(4,), output_shape=(2,),
+                                          rnn_type='gru', n_hidden_features=8, device='cuda')
+    state = torch.tensor([0.1, -0.2, 0.3, -0.4], device='cuda')
+    policy.reset()
+    policy.draw_action(state)
+
+    torch.cuda.set_sync_debug_mode('error')
+    try:
+        action = policy.draw_action(state)
+    finally:
+        torch.cuda.set_sync_debug_mode('default')
+
+    assert action.device.type == 'cuda'
 
 
 def test_distribution():
@@ -182,6 +209,14 @@ def test_distribution():
     assert isinstance(dist.base_dist, torch.distributions.Normal)
     assert dist.mean.shape == (batch, n_action)
 
+    with pytest.raises(AssertionError):
+        policy.log_prob(state, torch.zeros(batch), policy_state, lengths)
+
+    flat_policy = RecurrentGaussianTorchPolicy(network=FlatGRUNetwork, input_shape=(n_state,), output_shape=(1,),
+                                               rnn_type='gru', n_hidden_features=n_hidden)
+    with pytest.raises(AssertionError):
+        flat_policy.distribution(state, policy_state, lengths)
+
 
 def test_weights():
     torch.manual_seed(1)
@@ -190,6 +225,11 @@ def test_weights():
     policy.set_weights(weights)
 
     assert torch.equal(policy.get_weights(), weights)
+
+    expected = weights.clone()
+    weights += 1.
+
+    assert torch.equal(policy.get_weights(), expected)
 
     for call in (lambda: StatefulTorchPolicy.draw_with_log_prob(policy, None, None),
                  lambda: StatefulTorchPolicy.log_prob(policy, None, None, None),

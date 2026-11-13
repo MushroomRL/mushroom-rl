@@ -129,7 +129,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
 
         self._approximator = mu
         self._predict_params = dict()
-        self._std = std
+        self._std = std.copy()
 
         self._add_save_attr(
             _approximator='mushroom',
@@ -146,7 +146,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
                 positive definite matrix.
 
         """
-        self._std = std
+        self._std[:] = std
 
     def diff_log(self, state, action, policy_state=None):
         mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
@@ -169,7 +169,7 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
     def set_weights(self, weights):
         self._approximator.set_weights(
             weights[0:self._approximator.weights_size])
-        self._std = weights[self._approximator.weights_size:]
+        self._std[:] = weights[self._approximator.weights_size:]
 
     def get_weights(self):
         return np.concatenate((self._approximator.get_weights(), self._std),

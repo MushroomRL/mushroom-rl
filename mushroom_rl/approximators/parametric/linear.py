@@ -67,7 +67,7 @@ class LinearApproximator(Approximator):
             w (np.ndarray): the set of weights to set.
 
         """
-        self._w = w.reshape(self._w.shape)
+        self._w[:] = w.reshape(self._w.shape)
 
     def phi(self, x):
         if self._phi is not None:
