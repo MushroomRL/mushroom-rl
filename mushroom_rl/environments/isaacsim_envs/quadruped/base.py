@@ -987,7 +987,7 @@ class QuadrupedIsaac(IsaacSim):
             the feet.
 
         """
-        height = self._foot_positions[:, :, 2] - self._env_pos[:, 2].unsqueeze(1)
+        height = self._foot_positions[:, :, 2]
         airborne = torch.logical_not(self._foot_contact)
         return torch.sum(torch.exp(-torch.square(height - target) / std**2) * airborne, dim=1)
 
