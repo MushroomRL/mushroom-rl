@@ -23,9 +23,9 @@ class RecurrentTorchApproximator(TorchApproximator):
         else:
             return MushroomObject.__new__(cls)
 
-    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
-                 batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 action_history_shape=None, device=None, **params):
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0, n_fit_targets=1,
+                 reinitialize=False, dropout=False, quiet=True, n_models=None, action_history_shape=None, device=None,
+                 **params):
         """
         Constructor.
 
@@ -121,9 +121,9 @@ class RecurrentTorchEnsemble(Ensemble):
 
     """
 
-    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None,
-                 batch_size=0, n_fit_targets=1, reinitialize=False, dropout=False, quiet=True, n_models=None,
-                 prediction='mean', action_history_shape=None, device=None, **params):
+    def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0, n_fit_targets=1,
+                 reinitialize=False, dropout=False, quiet=True, n_models=None, prediction='mean',
+                 action_history_shape=None, device=None, **params):
         """
         Constructor.
 

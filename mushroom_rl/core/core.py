@@ -46,8 +46,8 @@ class Core(object):
         if logger is not None:
             self.set_logger(logger)
 
-    def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None,
-              render=False, record=False, quiet=False):
+    def learn(self, n_steps=None, n_episodes=None, n_steps_per_fit=None, n_episodes_per_fit=None, render=False,
+              record=False, quiet=False):
         """
         This function moves the agent in the environment and fits the policy using the collected samples.
         The agent can be moved for a given number of steps or a given number of episodes and, independently of this

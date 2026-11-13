@@ -16,8 +16,8 @@ class InvertedPendulum(Environment):
     "Deterministic Policy Gradient Algorithms". Silver D. et al. 2014.
 
     """
-    def __init__(self, random_start=False, pole_mass=1., pole_length=1., gravity=9.8, friction=1e-2,
-                 max_u=5., horizon=5000, gamma=.99):
+    def __init__(self, random_start=False, pole_mass=1., pole_length=1., gravity=9.8, friction=1e-2, max_u=5.,
+                 horizon=5000, gamma=.99):
         """
         Constructor.
 

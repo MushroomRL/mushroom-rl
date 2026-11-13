@@ -9,8 +9,7 @@ class DuelingNetwork(MushroomNetwork):
     stream that are recombined into the Q-values.
 
     """
-    def __init__(self, input_shape, output_shape, features_network, n_features,
-                 avg_advantage, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_features, avg_advantage, **kwargs):
         """
         Constructor.
 

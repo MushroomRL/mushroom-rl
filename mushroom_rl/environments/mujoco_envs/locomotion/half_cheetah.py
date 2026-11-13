@@ -18,17 +18,8 @@ class HalfCheetah(MuJoCo):
 
     """
 
-    def __init__(
-        self,
-        gamma=0.99,
-        horizon=1000,
-        forward_reward_weight=1.0,
-        ctrl_cost_weight=0.1,
-        reset_noise_scale=0.1,
-        n_substeps=5,
-        exclude_current_positions_from_observation=True,
-        **viewer_params,
-    ):
+    def __init__(self, gamma=0.99, horizon=1000, forward_reward_weight=1.0, ctrl_cost_weight=0.1, reset_noise_scale=0.1,
+                 n_substeps=5, exclude_current_positions_from_observation=True, **viewer_params):
         """
         Constructor.
 

@@ -26,7 +26,7 @@ class LQR(Environment):
     Parisi S., Pirotta M., Smacchia N., Bascetta L., Restelli M. 2014
 
     """
-    def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf,  random_init=False, episodic=False, gamma=0.9,
+    def __init__(self, A, B, Q, R, max_pos=np.inf, max_action=np.inf, random_init=False, episodic=False, gamma=0.9,
                  horizon=50, initial_state=None, dt=0.1):
         """
         Constructor.
@@ -73,9 +73,8 @@ class LQR(Environment):
         super().__init__(mdp_info)
 
     @staticmethod
-    def generate(dimensions=None, s_dim=None, a_dim=None, max_pos=np.inf, max_action=np.inf, eps=.1,
-                 index=0, scale=1.0, random_init=False, episodic=False,
-                 gamma=.9, horizon=50, initial_state=None):
+    def generate(dimensions=None, s_dim=None, a_dim=None, max_pos=np.inf, max_action=np.inf, eps=.1, index=0, scale=1.0,
+                 random_init=False, episodic=False, gamma=.9, horizon=50, initial_state=None):
         """
         Factory method that generates an LQR with identity dynamics and symmetric reward matrices.
 

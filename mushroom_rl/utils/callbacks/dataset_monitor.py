@@ -12,8 +12,8 @@ class DatasetMonitor(Callback):
     reward per step, reward per episode, episode length only for the training.
 
     """
-    def __init__(self, mdp_info, obs_normalized=False, title="Experiment Monitor", window_size=1000,
-                 update_freq=10, show=True):
+    def __init__(self, mdp_info, obs_normalized=False, title="Experiment Monitor", window_size=1000, update_freq=10,
+                 show=True):
 
         """
         Constructor.

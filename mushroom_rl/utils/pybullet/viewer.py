@@ -4,8 +4,8 @@ from mushroom_rl.utils.viewer import ImageViewer
 
 
 class PyBulletViewer(ImageViewer):
-    def __init__(self, client, dt, size=(500, 500), distance=4, origin=(0, 0, 1), angles=(0, -45, 60),
-                 fov=60, aspect=1, near_val=0.01, far_val=100):
+    def __init__(self, client, dt, size=(500, 500), distance=4, origin=(0, 0, 1), angles=(0, -45, 60), fov=60, aspect=1,
+                 near_val=0.01, far_val=100):
         self._client = client
         self._size = size
         self._distance = distance

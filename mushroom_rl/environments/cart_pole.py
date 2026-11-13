@@ -14,8 +14,8 @@ class CartPole(Environment):
     "Least-Squares Policy Iteration". Lagoudakis M. G. and Parr R.. 2003.
 
     """
-    def __init__(self, pole_mass=2., cart_mass=8., pole_length=.5, gravity=9.8, friction=1e-2, max_u=50.,
-                 noise_u=10., horizon=200, gamma=.95):
+    def __init__(self, pole_mass=2., cart_mass=8., pole_length=.5, gravity=9.8, friction=1e-2, max_u=50., noise_u=10.,
+                 horizon=200, gamma=.95):
         """
         Constructor.
 

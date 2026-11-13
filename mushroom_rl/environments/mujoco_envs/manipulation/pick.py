@@ -15,19 +15,9 @@ class Pick(Panda):
     Pick task with a Panda Robot.
 
     """
-    def __init__(
-        self,
-        gamma=0.99,
-        horizon=200,
-        gripper_cube_distance_reward_weight=1.0,
-        cube_goal_distance_reward_weight=20.0,
-        cube_goal_rotation_reward_weight=10.0,
-        ctrl_cost_weight=-1e-4,
-        contact_cost_weight=-1e-4,
-        n_substeps=5,
-        contact_force_range=(-1.0, 1.0),
-        **viewer_params,
-    ):
+    def __init__(self, gamma=0.99, horizon=200, gripper_cube_distance_reward_weight=1.0,
+                 cube_goal_distance_reward_weight=20.0, cube_goal_rotation_reward_weight=10.0, ctrl_cost_weight=-1e-4,
+                 contact_cost_weight=-1e-4, n_substeps=5, contact_force_range=(-1.0, 1.0), **viewer_params):
         xml_path = asset_path('panda', 'pick.xml')
 
         additional_data_spec = [

@@ -12,9 +12,8 @@ class CriticNetwork(MushroomNetwork):
     Simple critic network taking ``state`` and ``action`` as two separate inputs.
 
     """
-    def __init__(self, input_shape, output_shape, n_features, n_layers=2,
-                 activation='relu', gain_scale=1.0, weights_init='xavier',
-                 bias_init=None, action_history_shape=None, **kwargs):
+    def __init__(self, input_shape, output_shape, n_features, n_layers=2, activation='relu', gain_scale=1.0,
+                 weights_init='xavier', bias_init=None, action_history_shape=None, **kwargs):
         """
         Constructor.
 

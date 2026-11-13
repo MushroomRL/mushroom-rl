@@ -11,8 +11,7 @@ class WeightedQLearning(TD):
     D'Eramo C. et al. 2016.
 
     """
-    def __init__(self, mdp_info, policy, learning_rate, sampling=True,
-                 precision=1000):
+    def __init__(self, mdp_info, policy, learning_rate, sampling=True, precision=1000):
         """
         Constructor.
 

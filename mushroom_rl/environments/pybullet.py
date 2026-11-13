@@ -12,9 +12,8 @@ class PyBullet(Environment):
     Class to create a Mushroom environment using the PyBullet simulator.
 
     """
-    def __init__(self, files, actuation_spec, observation_spec, gamma,
-                 horizon, timestep=1/240, n_intermediate_steps=1, enforce_joint_velocity_limits=False,
-                 debug_gui=False, **viewer_params):
+    def __init__(self, files, actuation_spec, observation_spec, gamma, horizon, timestep=1/240, n_intermediate_steps=1,
+                 enforce_joint_velocity_limits=False, debug_gui=False, **viewer_params):
         """
         Constructor.
 

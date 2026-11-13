@@ -102,8 +102,7 @@ class GaussianDistribution(Distribution):
         return mu_new
 
     @staticmethod
-    def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new,
-                       n_dims):
+    def _kl_constraint(mu, mu_new, sigma, sigma_new, sigma_inv, sigma_new_inv, logdet_sigma, logdet_sigma_new, n_dims):
 
         return 0.5 * (np.trace(sigma_new_inv @ sigma) - n_dims + logdet_sigma_new - logdet_sigma
                       + (mu_new - mu).T @ sigma_new_inv @ (mu_new - mu))

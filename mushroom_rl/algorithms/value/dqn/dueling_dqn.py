@@ -12,8 +12,7 @@ class DuelingDQN(DQN):
     Wang Z. et al. 2016.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params,
-                 avg_advantage=True, **params):
+    def __init__(self, mdp_info, policy, approximator_params, avg_advantage=True, **params):
         """
         Constructor.
 

@@ -9,8 +9,8 @@ class VarianceDrivenParameter(VariableParameter):
     parameter is expected.
 
     """
-    def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False,
-                 backend='numpy', device=None):
+    def __init__(self, value, exponential=False, min_value=None, tol=1., shape=None, log_full=False, backend='numpy',
+                 device=None):
         """
         Constructor.
 

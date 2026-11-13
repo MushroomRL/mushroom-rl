@@ -15,21 +15,10 @@ class Walker2D(MuJoCo):
 
     """
 
-    def __init__(
-        self,
-        gamma=0.99,
-        horizon=1000,
-        forward_reward_weight=1.0,
-        ctrl_cost_weight=1e-3,
-        healthy_reward=1.0,
-        terminate_when_unhealthy=True,
-        healthy_z_range=(0.8, 2.0),
-        healthy_angle_range=(-1.0, 1.0),
-        reset_noise_scale=5e-3,
-        exclude_current_positions_from_observation=True,
-        n_substeps=4,
-        **viewer_params,
-    ):
+    def __init__(self, gamma=0.99, horizon=1000, forward_reward_weight=1.0, ctrl_cost_weight=1e-3, healthy_reward=1.0,
+                 terminate_when_unhealthy=True, healthy_z_range=(0.8, 2.0), healthy_angle_range=(-1.0, 1.0),
+                 reset_noise_scale=5e-3, exclude_current_positions_from_observation=True, n_substeps=4,
+                 **viewer_params):
         """
         Constructor.
 

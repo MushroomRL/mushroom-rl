@@ -11,10 +11,9 @@ class TD3(DDPG):
     Fujimoto S. et al. 2018.
 
     """
-    def __init__(self, mdp_info, policy_class, policy_params, actor_params,
-                 actor_optimizer, critic_params, batch_size,
-                 initial_replay_size, max_replay_size, tau, policy_delay=2,
-                 noise_std=.2, noise_clip=.5, critic_fit_params=None, history_length=1, device=None):
+    def __init__(self, mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, tau, policy_delay=2, noise_std=.2, noise_clip=.5,
+                 critic_fit_params=None, history_length=1, device=None):
         """
         Constructor.
 

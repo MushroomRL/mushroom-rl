@@ -20,8 +20,8 @@ from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 
-def learn(alg, approximator_class=LinearApproximator, distribution_class=GaussianDiagonalDistribution,
-          sigma=1e-3, n_episodes=5, logger=None, **alg_params):
+def learn(alg, approximator_class=LinearApproximator, distribution_class=GaussianDiagonalDistribution, sigma=1e-3,
+          n_episodes=5, logger=None, **alg_params):
     np.random.seed(1)
     torch.manual_seed(1)
 

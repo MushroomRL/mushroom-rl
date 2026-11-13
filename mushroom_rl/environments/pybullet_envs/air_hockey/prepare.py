@@ -11,9 +11,9 @@ class AirHockeyPrepareBullet(AirHockeySingleBullet):
     The agent tries to improve the puck position to y = 0.
     If the agent looses control of the puck, it will get a punishment.
     """
-    def __init__(self, gamma=0.99, horizon=500, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, sub_problem="side"):
+    def __init__(self, gamma=0.99, horizon=500, obs_noise=False, torque_control=True, step_action_function=None,
+                 timestep=1 / 240., n_intermediate_steps=1, debug_gui=False, random_init=False, action_penalty=1e-3,
+                 table_boundary_terminate=False, sub_problem="side"):
         """
         Constructor
 

@@ -6,8 +6,8 @@ from mushroom_rl.utils.torch_utils.torch_utils import TorchUtils
 
 
 class TorchTrainer(MushroomObject):
-    def __init__(self, loss_fn, batch_size, n_fit_targets, reinitialize, dropout,
-                 fit_epoch_fn, compute_val_loss_fn, store_loss_fn, quiet, device=None):
+    def __init__(self, loss_fn, batch_size, n_fit_targets, reinitialize, dropout, fit_epoch_fn, compute_val_loss_fn,
+                 store_loss_fn, quiet, device=None):
         self._loss_fn = loss_fn
         self.quiet = quiet
         self.batch_size = batch_size
@@ -100,8 +100,7 @@ class TorchTrainer(MushroomObject):
 
         return check_loss, n_epochs, use_weights, train_args, val_args
 
-    def _run_loop(self, n_epochs, check_loss, epsilon, patience,
-                  train_args, val_args, use_weights, network_kwargs):
+    def _run_loop(self, n_epochs, check_loss, epsilon, patience, train_args, val_args, use_weights, network_kwargs):
         patience_count = 0
         best_loss = np.inf
         epochs_count = 0

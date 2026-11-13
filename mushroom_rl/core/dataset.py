@@ -520,10 +520,9 @@ class Dataset(MushroomObject):
         return new_dataset
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
-                   policy_state=None, policy_next_state=None, extras=None,
-                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None,
-                   continuing=False):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_state=None,
+                   policy_next_state=None, extras=None, horizon=None, gamma=0.99, backend='numpy', policy_backend=None,
+                   device=None, agent_device=None, continuing=False):
         """
         Creates a dataset of transitions from the provided arrays.
 
@@ -799,9 +798,9 @@ class Dataset(MushroomObject):
         return cls
 
     @classmethod
-    def _from_components(cls, states, actions, rewards, next_states, absorbings, lasts, layout,
-                         policy_state=None, policy_next_state=None, extras=None, horizon=None, gamma=0.99,
-                         backend='numpy', policy_backend=None, device=None, agent_device=None, history_state=None):
+    def _from_components(cls, states, actions, rewards, next_states, absorbings, lasts, layout, policy_state=None,
+                         policy_next_state=None, extras=None, horizon=None, gamma=0.99, backend='numpy',
+                         policy_backend=None, device=None, agent_device=None, history_state=None):
         assert len(states) == len(actions) == len(rewards) == len(next_states) == len(absorbings) == len(lasts)
 
         if policy_state is not None:

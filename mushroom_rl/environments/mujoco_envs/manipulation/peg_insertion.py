@@ -15,19 +15,9 @@ class PegInsertion(Panda):
     Peg insertion task with a Panda Robot.
 
     """
-    def __init__(
-        self,
-        gamma=0.99,
-        horizon=300,
-        alignment_reward_weight=1.0,
-        insertion_reward_weight=15.0,
-        rotation_reward_weight=2.0,
-        ctrl_cost_weight=-1e-4,
-        contact_cost_weight=0,
-        n_substeps=5,
-        contact_force_range=(-1.0, 1.0),
-        **viewer_params,
-    ):
+    def __init__(self, gamma=0.99, horizon=300, alignment_reward_weight=1.0, insertion_reward_weight=15.0,
+                 rotation_reward_weight=2.0, ctrl_cost_weight=-1e-4, contact_cost_weight=0, n_substeps=5,
+                 contact_force_range=(-1.0, 1.0), **viewer_params):
         xml_path = asset_path('panda', 'peg_insertion.xml')
 
         actuation_spec = [

@@ -20,27 +20,10 @@ class MuJoCoWarp(VectorizedEnvironment):
 
     """
 
-    def __init__(
-        self,
-        xml_file,
-        actuation_spec,
-        observation_spec,
-        gamma,
-        horizon,
-        num_envs,
-        timestep=None,
-        n_substeps=1,
-        n_intermediate_steps=1,
-        additional_data_spec=None,
-        collision_groups=None,
-        max_joint_vel=None,
-        nconmax=None,
-        njmax=None,
-        use_graph_capture=False,
-        device=None,
-        warp_log_level=wp.LOG_WARNING,
-        **viewer_params,
-    ):
+    def __init__(self, xml_file, actuation_spec, observation_spec, gamma, horizon, num_envs, timestep=None,
+                 n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None,
+                 max_joint_vel=None, nconmax=None, njmax=None, use_graph_capture=False, device=None,
+                 warp_log_level=wp.LOG_WARNING, **viewer_params):
         """
         Constructor.
 

@@ -10,8 +10,7 @@ class QuantileNetwork(MushroomNetwork):
     action with ``n_quantiles`` quantiles whose mean gives the Q-value.
 
     """
-    def __init__(self, input_shape, output_shape, features_network, n_quantiles,
-                 n_features, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_quantiles, n_features, **kwargs):
         """
         Constructor.
 

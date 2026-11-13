@@ -12,9 +12,9 @@ class AirHockeyRepelBullet(AirHockeySingleBullet):
     The agent tries repel the puck to the opponent.
     If the puck get into the goal, it will get a punishment.
     """
-    def __init__(self, gamma=0.99, horizon=500, obs_noise=False, torque_control=True,
-                 step_action_function=None, timestep=1 / 240., n_intermediate_steps=1, debug_gui=False,
-                 random_init=False, action_penalty=1e-3, table_boundary_terminate=False, init_velocity_range=(1, 2.2)):
+    def __init__(self, gamma=0.99, horizon=500, obs_noise=False, torque_control=True, step_action_function=None,
+                 timestep=1 / 240., n_intermediate_steps=1, debug_gui=False, random_init=False, action_penalty=1e-3,
+                 table_boundary_terminate=False, init_velocity_range=(1, 2.2)):
         """
         Constructor
 

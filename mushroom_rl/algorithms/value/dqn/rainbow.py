@@ -14,9 +14,8 @@ class Rainbow(AbstractCategoricalDQN):
     Hessel M. et al. 2018.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
-                 v_max, n_steps_return, alpha_coeff, beta, sigma_coeff=.5,
-                 **params):
+    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min, v_max, n_steps_return, alpha_coeff, beta,
+                 sigma_coeff=.5, **params):
         """
         Constructor.
 

@@ -191,8 +191,7 @@ class PlotItemBufferLimited(PlotItemBuffer):
     This class represents the plots with limits on the variables.
 
     """
-    def __init__(self, title, plot_buffers, maxs=None, mins=None,
-                 dotted_limits=None, **kwargs):
+    def __init__(self, title, plot_buffers, maxs=None, mins=None, dotted_limits=None, **kwargs):
         """
         Constructor.
 

@@ -24,12 +24,10 @@ class QuadrupedIsaac(IsaacSim):
 
     """
     def __init__(self, usd_path, action_spec, default_joint_angles, trunk_body, foot_bodies, sub_bodies,
-                 observation_spec, additional_data_spec, collision_groups, num_envs, horizon,
-                 domain_randomization, camera_position, camera_target,
-                 default_joint_max_vel=None,
-                 nominal_p_gain=20., nominal_d_gain=0.5, nominal_scaling_factor=0.25, reward_weights=None,
-                 randomization_params=None, observed_randomization=(), command_generator=None,
-                 reward_params=None, tracking_stds=None, gpu_params=None):
+                 observation_spec, additional_data_spec, collision_groups, num_envs, horizon, domain_randomization,
+                 camera_position, camera_target, default_joint_max_vel=None, nominal_p_gain=20., nominal_d_gain=0.5,
+                 nominal_scaling_factor=0.25, reward_weights=None, randomization_params=None, observed_randomization=(),
+                 command_generator=None, reward_params=None, tracking_stds=None, gpu_params=None):
         """
         Constructor.
 

@@ -19,10 +19,9 @@ class MujocoViewer:
 
     """
 
-    def __init__(self, model, dt, width=640, height=480, start_paused=False,
-                 record=False, camera_params=None, default_camera_mode="static",
-                 hide_menu_on_startup=True, hide_overlay_on_startup=False, geom_group_visualization_on_startup=None,
-                 headless=False, reference_frame_visualization_on_startup=0):
+    def __init__(self, model, dt, width=640, height=480, start_paused=False, record=False, camera_params=None,
+                 default_camera_mode="static", hide_menu_on_startup=True, hide_overlay_on_startup=False,
+                 geom_group_visualization_on_startup=None, headless=False, reference_frame_visualization_on_startup=0):
         """
         Constructor.
 
@@ -388,8 +387,7 @@ class MujocoViewer:
         return width, height
 
     @staticmethod
-    def _init_scene_option(scene_option, geom_group_visualization_on_startup,
-                           reference_frame_visualization_on_startup):
+    def _init_scene_option(scene_option, geom_group_visualization_on_startup, reference_frame_visualization_on_startup):
         """
         Applies the startup geom-group and reference-frame visualization settings to the given
         MjvOption (either the owned offscreen one, or the live mujoco.viewer.Handle.opt).

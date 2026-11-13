@@ -15,8 +15,8 @@ class RainbowNetwork(MushroomNetwork):
     a dueling architecture built from noisy linear layers.
 
     """
-    def __init__(self, input_shape, output_shape, features_network, n_atoms,
-                 v_min, v_max, n_features, sigma_coeff, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_atoms, v_min, v_max, n_features, sigma_coeff,
+                 **kwargs):
         """
         Constructor.
 

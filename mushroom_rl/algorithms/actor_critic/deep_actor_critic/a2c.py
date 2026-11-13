@@ -17,9 +17,8 @@ class A2C(DeepAC):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 ent_coeff, max_grad_norm=None, critic_fit_params=None, history_length=1, action_history_length=0,
-                 device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, ent_coeff, max_grad_norm=None,
+                 critic_fit_params=None, history_length=1, action_history_length=0, device=None):
         """
         Constructor.
 

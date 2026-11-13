@@ -14,8 +14,7 @@ class CategoricalNetwork(MushroomNetwork):
     categorical distribution over a fixed support of ``n_atoms`` between ``v_min`` and ``v_max``.
 
     """
-    def __init__(self, input_shape, output_shape, features_network, n_atoms,
-                 v_min, v_max, n_features, **kwargs):
+    def __init__(self, input_shape, output_shape, features_network, n_atoms, v_min, v_max, n_features, **kwargs):
         """
         Constructor.
 

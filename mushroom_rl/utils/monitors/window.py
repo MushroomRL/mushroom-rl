@@ -22,8 +22,7 @@ class Window(QSplitter):
     """
     _SPLITTER_STYLE = "QSplitter::handle { background: #dddddd; }"
 
-    def __init__(self, plot_list, track_if_deactivated=False,
-                 title="None", size=(800, 600), fullscreen=False,
+    def __init__(self, plot_list, track_if_deactivated=False, title="None", size=(800, 600), fullscreen=False,
                  update_freq=10, layout=None):
         """
         Constructor.

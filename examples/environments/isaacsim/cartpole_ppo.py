@@ -24,8 +24,8 @@ IsaacLauncher.launch(headless=True)
 from mushroom_rl.environments.isaacsim_envs import CartPoleIsaac
 
 
-def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params,
-               n_envs=64, render=True, seed=None):
+def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, n_envs=64,
+               render=True, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)

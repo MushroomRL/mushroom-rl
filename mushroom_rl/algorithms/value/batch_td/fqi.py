@@ -12,8 +12,8 @@ class FQI(BatchTD):
     Ernst D. et al. 2005.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
+    def __init__(self, mdp_info, policy, approximator, n_iterations, approximator_params=None, fit_params=None,
+                 quiet=False, history_length=1):
         """
         Constructor.
 

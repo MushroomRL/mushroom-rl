@@ -9,8 +9,8 @@ class ReplayMemory(MushroomObject):
     "Human-Level Control Through Deep Reinforcement Learning" by Mnih V. et al..
 
     """
-    def __init__(self, mdp_info, agent_info, initial_size, max_size,
-                 history_manager=None, n_steps_return=1, store_policy_state=False, return_extra=False):
+    def __init__(self, mdp_info, agent_info, initial_size, max_size, history_manager=None, n_steps_return=1,
+                 store_policy_state=False, return_extra=False):
         """
         Constructor.
 

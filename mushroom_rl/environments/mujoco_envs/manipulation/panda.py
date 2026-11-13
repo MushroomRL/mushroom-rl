@@ -13,18 +13,8 @@ class Panda(MuJoCo):
 
     """
 
-    def __init__(
-        self,
-        xml_path,
-        gamma,
-        horizon,
-        n_substeps,
-        additional_data_spec=None,
-        collision_groups=None,
-        actuation_spec=None,
-        keyframe="home",
-        **viewer_params,
-    ):
+    def __init__(self, xml_path, gamma, horizon, n_substeps, additional_data_spec=None, collision_groups=None,
+                 actuation_spec=None, keyframe="home", **viewer_params):
         actuation_spec = actuation_spec or [
             "actuator1",
             "actuator2",

@@ -21,8 +21,8 @@ class GridWorldVanHasselt(GridWorld):
     gives the true optimal value function.
 
     """
-    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0), gamma=.95, horizon=np.inf, dt=1e-1,
-                 grid_map=None, **viewer_params):
+    def __init__(self, height=3, width=3, goal=(0, 2), start=(2, 0), gamma=.95, horizon=np.inf, dt=1e-1, grid_map=None,
+                 **viewer_params):
         """
         Constructor.
 

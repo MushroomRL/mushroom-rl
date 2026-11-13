@@ -150,8 +150,8 @@ class RecurrentActorNetwork(RecurrentNetwork):
     """
     returns_policy_state = True
 
-    def __init__(self, input_shape, output_shape, n_features, rnn_type,
-                 n_hidden_features, num_hidden_layers=1, action_history_shape=None, **kwargs):
+    def __init__(self, input_shape, output_shape, n_features, rnn_type, n_hidden_features, num_hidden_layers=1,
+                 action_history_shape=None, **kwargs):
         """
         Constructor.
 
@@ -228,8 +228,7 @@ class RecurrentCriticNetwork(RecurrentNetwork):
     Recurrent critic network, returning the value function of the input sequence.
 
     """
-    def __init__(self, input_shape, output_shape, rnn_type,
-                 n_hidden_features=128, n_features=128, num_hidden_layers=1,
+    def __init__(self, input_shape, output_shape, rnn_type, n_hidden_features=128, n_features=128, num_hidden_layers=1,
                  hidden_state_treatment='zero_initial', action_history_shape=None, **kwargs):
         """
         Constructor.

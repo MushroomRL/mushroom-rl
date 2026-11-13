@@ -75,8 +75,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
     methods together with the sequence ``lengths``.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1.,
-                 log_std_min=-20, log_std_max=2, device=None, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., log_std_min=-20, log_std_max=2, device=None,
+                 **params):
         """
         Constructor.
 

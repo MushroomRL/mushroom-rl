@@ -102,8 +102,7 @@ class CategoricalDQN(AbstractCategoricalDQN):
     Bellemare M. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min,
-                 v_max, **params):
+    def __init__(self, mdp_info, policy, approximator_params, n_atoms, v_min, v_max, **params):
         """
         Constructor.
 

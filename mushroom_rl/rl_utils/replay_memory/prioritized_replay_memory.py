@@ -10,8 +10,8 @@ class PrioritizedReplayMemory(ReplayMemory):
     one used in "Prioritized Experience Replay" by Schaul et al., 2015.
 
     """
-    def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01,
-                 history_manager=None, n_steps_return=1, store_policy_state=False, return_extra=False):
+    def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01, history_manager=None,
+                 n_steps_return=1, store_policy_state=False, return_extra=False):
         """
         Constructor.
 

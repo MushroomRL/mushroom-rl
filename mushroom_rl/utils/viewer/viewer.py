@@ -12,8 +12,8 @@ class Viewer(PygameWindow):
     easily build rendering of environments with a few lines of code.
 
     """
-    def __init__(self, env_width, env_height, min_width=500, min_height=100, max_width=1920,
-                 max_height=1080, ideal_scale=None, min_scale=1, background=(0, 0, 0)):
+    def __init__(self, env_width, env_height, min_width=500, min_height=100, max_width=1920, max_height=1080,
+                 ideal_scale=None, min_scale=1, background=(0, 0, 0)):
         """
         Constructor.
 
@@ -190,8 +190,7 @@ class Viewer(PygameWindow):
 
         self.polygon(center, angle, points, color)
 
-    def force_arrow(self, center, direction, force, max_force,
-                    max_length, color=(255, 255, 255), width=1):
+    def force_arrow(self, center, direction, force, max_force, max_length, color=(255, 255, 255), width=1):
         """
         Draw a force arrow, i.e. an arrow representing a force. The
         length of the arrow is directly proportional to the force value.
@@ -222,8 +221,7 @@ class Viewer(PygameWindow):
         else:
             self.screen
 
-    def torque_arrow(self, center, torque, max_torque,
-                     max_radius, color=(255, 255, 255), width=1):
+    def torque_arrow(self, center, torque, max_torque, max_radius, color=(255, 255, 255), width=1):
         """
         Draw a torque arrow, i.e. a circular arrow representing a torque. The
         radius of the arrow is directly proportional to the torque value.

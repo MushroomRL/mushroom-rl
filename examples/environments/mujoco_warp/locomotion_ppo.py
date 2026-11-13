@@ -34,16 +34,7 @@ def get_environments():
     return [AntWarp, HalfCheetahWarp, HopperWarp, Walker2DWarp]
 
 
-def experiment(
-    env,
-    n_epochs,
-    n_steps,
-    n_steps_per_fit,
-    n_episodes_test,
-    n_envs,
-    use_graph_capture=True,
-    seed=None,
-):
+def experiment(env, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, n_envs, use_graph_capture=True, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)

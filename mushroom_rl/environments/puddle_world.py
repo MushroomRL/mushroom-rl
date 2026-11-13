@@ -13,9 +13,8 @@ class PuddleWorld(Environment):
     "Off-Policy Actor-Critic". Degris T. et al.. 2012.
 
     """
-    def __init__(self, start=None, goal=None, goal_threshold=.1, noise_step=.025,
-                 noise_reward=0, reward_goal=0., thrust=.05, puddle_center=None,
-                 puddle_width=None, gamma=.99, horizon=5000):
+    def __init__(self, start=None, goal=None, goal_threshold=.1, noise_step=.025, noise_reward=0, reward_goal=0.,
+                 thrust=.05, puddle_center=None, puddle_width=None, gamma=.99, horizon=5000):
         """
         Constructor.
 

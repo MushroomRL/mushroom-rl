@@ -38,8 +38,7 @@ class QApproximatorSimple(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape, output_shape, n_models=1,
-                 **params):
+    def __init__(self, approximator, n_actions, input_shape, output_shape, n_models=1, **params):
         """
         Constructor.
 
@@ -161,8 +160,7 @@ class QApproximatorAction(QApproximator):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape, output_shape=(), n_models=1,
-                 **params):
+    def __init__(self, approximator, n_actions, input_shape, output_shape=(), n_models=1, **params):
         """
         Constructor.
 
@@ -307,8 +305,7 @@ class QApproximatorEnsemble(QApproximator, Ensemble):
 
     """
 
-    def __init__(self, approximator, n_actions, input_shape, output_shape=(), n_models=1,
-                 prediction='mean', **params):
+    def __init__(self, approximator, n_actions, input_shape, output_shape=(), n_models=1, prediction='mean', **params):
         """
         Constructor.
 

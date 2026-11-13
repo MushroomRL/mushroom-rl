@@ -11,8 +11,8 @@ class DoubleFQI(FQI):
     D'Eramo C. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
+    def __init__(self, mdp_info, policy, approximator, n_iterations, approximator_params=None, fit_params=None,
+                 quiet=False, history_length=1):
         approximator_params['n_models'] = 2
 
         super().__init__(mdp_info, policy, approximator, n_iterations,

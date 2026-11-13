@@ -70,8 +70,7 @@ class Curriculum:
     tracking tolerance is interpolated linearly.
 
     """
-    def __init__(self, mdp, command_steps, command_ranges, delay_steps, max_delays, tracking_steps,
-                 tracking_stds):
+    def __init__(self, mdp, command_steps, command_ranges, delay_steps, max_delays, tracking_steps, tracking_stds):
         """
         Constructor.
 

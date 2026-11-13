@@ -23,9 +23,7 @@ class ConsoleLogger(object):
     log text into the console and optionally save a log file.
 
     """
-    def __init__(self, log_name, log_dir=None, suffix='',
-                 log_file_name=None,
-                 console_log_level=logging.INFO,
+    def __init__(self, log_name, log_dir=None, suffix='', log_file_name=None, console_log_level=logging.INFO,
                  file_log_level=logging.DEBUG):
         """
         Constructor.

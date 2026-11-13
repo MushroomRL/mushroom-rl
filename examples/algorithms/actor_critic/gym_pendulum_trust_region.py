@@ -27,8 +27,8 @@ def get_algorithms():
     return [PPO, TRPO]
 
 
-def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_episodes_test,
-               alg_params, policy_params, debug=True, render=True, use_cuda=False, seed=None):
+def experiment(alg, env_id, horizon, gamma, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params,
+               policy_params, debug=True, render=True, use_cuda=False, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)

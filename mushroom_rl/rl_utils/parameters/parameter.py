@@ -223,8 +223,7 @@ class VariableParameter(Parameter):
     visit counter on top of :class:`Parameter`, used by the formula implemented by subclasses.
 
     """
-    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False, backend='numpy',
-                 device=None):
+    def __init__(self, value, min_value=None, max_value=None, shape=None, log_full=False, backend='numpy', device=None):
         super().__init__(value, shape=shape, log_full=log_full, backend=backend, device=device)
 
         self._min_value = self._to_backend(min_value)

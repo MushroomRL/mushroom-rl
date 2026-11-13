@@ -24,8 +24,8 @@ class SceneBuilder:
 
     """
 
-    def __init__(self, usd_path, num_envs, env_spacing=3., collisions_between_envs=False,
-                 solver_pos_it_count=None, solver_vel_it_count=None, ground_plane_friction=(1., 1., 0.)):
+    def __init__(self, usd_path, num_envs, env_spacing=3., collisions_between_envs=False, solver_pos_it_count=None,
+                 solver_vel_it_count=None, ground_plane_friction=(1., 1., 0.)):
         """
         Constructor.
 

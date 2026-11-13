@@ -19,15 +19,8 @@ class Atari(Environment):
     2015.
 
     """
-    def __init__(self,
-                 name,
-                 width=84,
-                 height=84,
-                 full_action_space=False,
-                 repeat_action_probability=0.25,
-                 frameskip=4,
-                 headless=False
-                 ):
+    def __init__(self, name, width=84, height=84, full_action_space=False, repeat_action_probability=0.25, frameskip=4,
+                 headless=False):
         """
         Constructor.
 

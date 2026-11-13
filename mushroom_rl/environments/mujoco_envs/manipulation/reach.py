@@ -16,16 +16,8 @@ class Reach(Panda):
     Reach task with a Panda Robot.
 
     """
-    def __init__(
-        self,
-        gamma=0.99,
-        horizon=200,
-        gripper_goal_distance_reward_weight=-2.0,
-        gripper_goal_rotation_reward_weight=-1.0,
-        ctrl_cost_weight=-1e-4,
-        n_substeps=5,
-        **viewer_params,
-    ):
+    def __init__(self, gamma=0.99, horizon=200, gripper_goal_distance_reward_weight=-2.0,
+                 gripper_goal_rotation_reward_weight=-1.0, ctrl_cost_weight=-1e-4, n_substeps=5, **viewer_params):
 
         xml_path = asset_path('panda', 'reach.xml')
 

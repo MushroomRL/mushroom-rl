@@ -10,9 +10,8 @@ class QNetwork(MushroomNetwork):
     Q-value of a specific ``action`` when one is provided.
 
     """
-    def __init__(self, input_shape, output_shape, n_features, n_layers=2,
-                 activation='relu', gain_scale=1.0, weights_init='xavier',
-                 bias_init=None, **kwargs):
+    def __init__(self, input_shape, output_shape, n_features, n_layers=2, activation='relu', gain_scale=1.0,
+                 weights_init='xavier', bias_init=None, **kwargs):
         """
         Constructor.
 

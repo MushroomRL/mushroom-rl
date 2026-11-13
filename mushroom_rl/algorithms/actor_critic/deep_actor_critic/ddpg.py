@@ -14,11 +14,9 @@ class DDPG(DeepAC):
 
     """
 
-    def __init__(self, mdp_info, policy_class, policy_params,
-                 actor_params, actor_optimizer, critic_params, batch_size,
-                 initial_replay_size, max_replay_size, tau, policy_delay=1,
-                 critic_fit_params=None, actor_predict_params=None, critic_predict_params=None,
-                 history_length=1, device=None):
+    def __init__(self, mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,
+                 initial_replay_size, max_replay_size, tau, policy_delay=1, critic_fit_params=None,
+                 actor_predict_params=None, critic_predict_params=None, history_length=1, device=None):
         """
         Constructor.
 

@@ -19,26 +19,11 @@ class HopperWarp(MuJoCoWarp):
     "Infinite-Horizon Model Predictive Control for Periodic Tasks with Contacts". Tom Erez et al. 2012.
     """
 
-    def __init__(
-        self,
-        num_envs,
-        gamma=0.99,
-        horizon=1000,
-        forward_reward_weight=1.0,
-        ctrl_cost_weight=1e-3,
-        healthy_reward=1.0,
-        terminate_when_unhealthy=True,
-        healthy_state_range=(-100.0, 100.0),
-        healthy_z_range=(0.7, float("inf")),
-        healthy_angle_range=(-0.2, 0.2),
-        reset_noise_scale=5e-3,
-        n_substeps=4,
-        exclude_current_positions_from_observation=True,
-        use_graph_capture=False,
-        nconmax=200,
-        njmax=200,
-        **viewer_params,
-    ):
+    def __init__(self, num_envs, gamma=0.99, horizon=1000, forward_reward_weight=1.0, ctrl_cost_weight=1e-3,
+                 healthy_reward=1.0, terminate_when_unhealthy=True, healthy_state_range=(-100.0, 100.0),
+                 healthy_z_range=(0.7, float("inf")), healthy_angle_range=(-0.2, 0.2), reset_noise_scale=5e-3,
+                 n_substeps=4, exclude_current_positions_from_observation=True, use_graph_capture=False, nconmax=200,
+                 njmax=200, **viewer_params):
         xml_path = asset_path('hopper', 'model.xml')
 
         actuation_spec = ["thigh_joint", "leg_joint", "foot_joint"]

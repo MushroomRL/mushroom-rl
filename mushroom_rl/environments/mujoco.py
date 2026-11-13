@@ -551,9 +551,9 @@ class MultiMuJoCo(MuJoCo):
 
     """
 
-    def __init__(self, xml_files, actuation_spec, observation_spec, gamma, horizon, timestep=None,
-                 n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None,
-                 max_joint_vel=None, random_env_reset=True, **viewer_params):
+    def __init__(self, xml_files, actuation_spec, observation_spec, gamma, horizon, timestep=None, n_substeps=1,
+                 n_intermediate_steps=1, additional_data_spec=None, collision_groups=None, max_joint_vel=None,
+                 random_env_reset=True, **viewer_params):
         """
         Constructor.
 

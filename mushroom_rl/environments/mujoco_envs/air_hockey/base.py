@@ -11,9 +11,8 @@ class AirHockeyBase(MuJoCo):
     Abstract class for all AirHockey Environments.
 
     """
-    def __init__(self, n_agents=1, env_noise=False, obs_noise=False, gamma=0.99, horizon=500,
-                 timestep=1 / 240., n_substeps=1, n_intermediate_steps=1, default_camera_mode="top_static",
-                 **viewer_params):
+    def __init__(self, n_agents=1, env_noise=False, obs_noise=False, gamma=0.99, horizon=500, timestep=1 / 240.,
+                 n_substeps=1, n_intermediate_steps=1, default_camera_mode="top_static", **viewer_params):
         """
         Constructor.
 

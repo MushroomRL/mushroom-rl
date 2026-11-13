@@ -26,10 +26,9 @@ class IsaacSim(VectorizedEnvironment):
 
     """
 
-    def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon,
-                 timestep=None, n_substeps=1, n_intermediate_steps=1, additional_data_spec=None,
-                 collision_groups=None, actuation_type=ActuationType.EFFORT, gpu_params=None, scene_params=None,
-                 viewer_params=None):
+    def __init__(self, usd_path, actuation_spec, observation_spec, num_envs, gamma, horizon, timestep=None,
+                 n_substeps=1, n_intermediate_steps=1, additional_data_spec=None, collision_groups=None,
+                 actuation_type=ActuationType.EFFORT, gpu_params=None, scene_params=None, viewer_params=None):
         """
         Constructor.
 

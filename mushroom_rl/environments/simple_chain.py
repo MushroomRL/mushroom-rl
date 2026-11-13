@@ -20,8 +20,8 @@ class SimpleChain(FiniteMDP):
     rows, reading like text.
 
     """
-    def __init__(self, n_states=5, goal_states=(2,), prob=.8, goal_reward=1., iota=None, gamma=.9, horizon=100,
-                 dt=1e-1, **viewer_params):
+    def __init__(self, n_states=5, goal_states=(2,), prob=.8, goal_reward=1., iota=None, gamma=.9, horizon=100, dt=1e-1,
+                 **viewer_params):
         """
         Constructor.
 

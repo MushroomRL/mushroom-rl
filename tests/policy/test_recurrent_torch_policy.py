@@ -13,8 +13,7 @@ from mushroom_rl.approximators.parametric.networks import RecurrentNetwork
 class SimpleGRUNetwork(RecurrentNetwork):
     returns_policy_state = True
 
-    def __init__(self, input_shape, output_shape, rnn_type='gru', n_hidden_features=8,
-                 num_hidden_layers=1, **kwargs):
+    def __init__(self, input_shape, output_shape, rnn_type='gru', n_hidden_features=8, num_hidden_layers=1, **kwargs):
         super().__init__()
         assert isinstance(output_shape, list) and len(output_shape) == 2
         self._rnn = nn.GRU(input_shape[0], n_hidden_features, batch_first=True)

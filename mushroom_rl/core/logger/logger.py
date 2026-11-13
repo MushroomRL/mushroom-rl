@@ -15,9 +15,8 @@ class Logger(DataLogger, ConsoleLogger, VideoLogger, WandbLogger):
     installed and a set of init arguments is provided.
 
     """
-    def __init__(self, log_name='', results_dir='./logs', log_console=False,
-                 use_timestamp=False, append=False, seed=None, wandb_kwargs=None,
-                 force_numpy=False, recorder_class=None, fps=None, recorder_kwargs=None,
+    def __init__(self, log_name='', results_dir='./logs', log_console=False, use_timestamp=False, append=False,
+                 seed=None, wandb_kwargs=None, force_numpy=False, recorder_class=None, fps=None, recorder_kwargs=None,
                  **kwargs):
         """
         Constructor.

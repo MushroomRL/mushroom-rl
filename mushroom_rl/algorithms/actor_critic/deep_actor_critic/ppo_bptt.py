@@ -14,10 +14,9 @@ class PPO_BPTT(OnPolicyDeepAC):
     Schulman J. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, actor_optimizer, critic_params,
-                 n_epochs_policy, batch_size, eps_ppo, lam, dim_env_state, ent_coeff=0.0,
-                 critic_fit_params=None, truncation_length=5, history_length=1, action_history_length=0,
-                 device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
+                 dim_env_state, ent_coeff=0.0, critic_fit_params=None, truncation_length=5, history_length=1,
+                 action_history_length=0, device=None):
         """
         Constructor.
 
@@ -115,8 +114,8 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._log_info(dataset, kl, entropy)
 
     @staticmethod
-    def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam,
-                    action_history=None, next_action_history=None):
+    def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam, action_history=None,
+                    next_action_history=None):
         """
         Function to compute Generalized Advantage Estimation (GAE)
         and new value function target over a dataset.

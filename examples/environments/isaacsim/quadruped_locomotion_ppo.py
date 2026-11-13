@@ -44,8 +44,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params,
-               n_envs=4096, horizon=1000, render=True, seed=None):
+def experiment(alg, robot, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, alg_params, policy_params, n_envs=4096,
+               horizon=1000, render=True, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)

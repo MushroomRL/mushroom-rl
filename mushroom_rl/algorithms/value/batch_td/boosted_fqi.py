@@ -11,8 +11,8 @@ class BoostedFQI(FQI):
     Tosatto S. et al. 2017.
 
     """
-    def __init__(self, mdp_info, policy, approximator, n_iterations,
-                 approximator_params=None, fit_params=None, quiet=False, history_length=1):
+    def __init__(self, mdp_info, policy, approximator, n_iterations, approximator_params=None, fit_params=None,
+                 quiet=False, history_length=1):
         self._prediction = 0.
         self._next_q = 0.
         self._idx = 0

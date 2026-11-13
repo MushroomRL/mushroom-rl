@@ -297,10 +297,9 @@ class CircularDataset(Dataset):
         return cls(DatasetInfo.create_dataset_info(mdp_info, agent_info), max_size)
 
     @classmethod
-    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts,
-                   policy_state=None, policy_next_state=None, extras=None,
-                   horizon=None, gamma=0.99, backend='numpy', policy_backend=None, device=None, agent_device=None,
-                   continuing=False, max_size=None):
+    def from_array(cls, states, actions, rewards, next_states, absorbings, lasts, policy_state=None,
+                   policy_next_state=None, extras=None, horizon=None, gamma=0.99, backend='numpy', policy_backend=None,
+                   device=None, agent_device=None, continuing=False, max_size=None):
         """
         Creates a circular dataset of transitions from the provided arrays, written in order from the start of the
         buffer.

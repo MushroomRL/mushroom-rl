@@ -22,11 +22,10 @@ from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.experiments import get_log_dir
 
 
-def experiment(env, horizon, gamma, n_epochs, n_steps_per_epoch, n_steps_per_fit, n_episodes_test,
-               lr_actor=5e-5, lr_critic=5e-5, batch_size_actor=32, batch_size_critic=32,
-               n_epochs_policy=10, clip_eps_ppo=0.2, gae_lambda=0.95, std_0=0.5, rnn_type='gru',
-               n_hidden_features=128, num_hidden_layers=1, truncation_length=5, use_prev_action=True,
-               use_cuda=False, seed=None):
+def experiment(env, horizon, gamma, n_epochs, n_steps_per_epoch, n_steps_per_fit, n_episodes_test, lr_actor=5e-5,
+               lr_critic=5e-5, batch_size_actor=32, batch_size_critic=32, n_epochs_policy=10, clip_eps_ppo=0.2,
+               gae_lambda=0.95, std_0=0.5, rnn_type='gru', n_hidden_features=128, num_hidden_layers=1,
+               truncation_length=5, use_prev_action=True, use_cuda=False, seed=None):
     np.random.seed(seed)
     if seed is not None:
         torch.manual_seed(seed)

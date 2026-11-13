@@ -25,8 +25,7 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNe
 from mushroom_rl.utils.experiments import get_log_dir
 
 
-def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha,
-                n_features):
+def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha, n_features):
     """
     Build the SAC agent, with a Gaussian actor and a pair of critics.
 
