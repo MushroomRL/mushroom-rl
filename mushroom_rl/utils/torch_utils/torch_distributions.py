@@ -1,13 +1,11 @@
 import torch
-from torch.distributions import Normal, Independent, TransformedDistribution, TanhTransform, AffineTransform
+from torch.distributions import Categorical, Normal, Independent, TransformedDistribution, TanhTransform, \
+    AffineTransform
 
 
-class CategoricalWrapper(torch.distributions.Categorical):
+class CategoricalWrapper(Independent):
     """
-    Wrapper for the Torch Categorical distribution.
-
-    Needed to convert a vector of mushroom discrete action in an input with the proper shape of the original
-    distribution implemented in torch
+    Categorical distribution over discrete actions, each action being a vector with a single component.
 
     """
     def __init__(self, logits, validate_args=False):
@@ -15,14 +13,38 @@ class CategoricalWrapper(torch.distributions.Categorical):
         Constructor.
 
         Args:
-            logits (torch.Tensor): unnormalized log probability of each category;
+            logits (torch.Tensor): unnormalized log probability of each category, along the last dimension;
             validate_args (bool, False): whether to validate the logits and the values passed to ``log_prob``.
 
         """
-        super().__init__(logits=logits, validate_args=validate_args)
+        super().__init__(Categorical(logits=logits.unsqueeze(-2), validate_args=validate_args), 1,
+                         validate_args=validate_args)
 
     def log_prob(self, value):
-        return super().log_prob(value.squeeze(-1))
+        assert value.shape[-1:] == self.event_shape
+        return super().log_prob(value)
+
+    def expand(self, batch_shape, _instance=None):
+        new = self._get_checked_instance(CategoricalWrapper, _instance)
+        return super().expand(batch_shape, _instance=new)
+
+    @property
+    def logits(self):
+        """
+        Returns:
+            The normalized log probability of each category.
+
+        """
+        return self.base_dist.logits.squeeze(-2)
+
+    @property
+    def probs(self):
+        """
+        Returns:
+            The probability of each category.
+
+        """
+        return self.base_dist.probs.squeeze(-2)
 
 
 class SquashedGaussian(TransformedDistribution):

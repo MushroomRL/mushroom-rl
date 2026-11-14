@@ -179,7 +179,7 @@ def test_boltzmann():
 
     action = pi.draw_action_greedy(state)
     assert action.shape == (3, 1)
-    assert torch.equal(action, pi.distribution(state).mode.unsqueeze(-1))
+    assert torch.equal(action, pi.distribution(state).mode)
     assert torch.equal(action, pi.draw_action_greedy(state))
 
     np.random.seed(42)

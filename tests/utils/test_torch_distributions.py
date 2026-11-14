@@ -96,13 +96,20 @@ def test_squashed_gaussian_log_prob():
 def test_categorical():
     wrapper = CategoricalWrapper(torch.tensor([[0.1, 0.9], [0.8, 0.2]]))
 
-    assert torch.equal(wrapper.mode, torch.tensor([1, 0]))
+    assert torch.equal(wrapper.mode, torch.tensor([[1], [0]]))
+    assert wrapper.sample().shape == (2, 1) and wrapper.entropy().shape == (2,)
+    assert torch.allclose(wrapper.probs, torch.softmax(torch.tensor([[0.1, 0.9], [0.8, 0.2]]), -1))
+    assert torch.allclose(wrapper.logits, torch.log(wrapper.probs))
+    assert type(wrapper.expand((3, 2))) is CategoricalWrapper and wrapper.expand((3, 2)).batch_shape == (3, 2)
 
     wrapper = CategoricalWrapper(torch.tensor([[0.1, 0.9], [0.8, 0.2]]))
     log_prob = wrapper.log_prob(torch.tensor([[1], [0]]))
 
     assert log_prob.shape == (2,)
     assert torch.allclose(log_prob, torch.tensor([-0.37110078, -0.43748802]), atol=1e-6)
+
+    with pytest.raises(AssertionError):
+        wrapper.log_prob(torch.tensor([1, 0]))
 
 
 def test_diagonal_gaussian():

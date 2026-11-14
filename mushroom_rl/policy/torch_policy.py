@@ -316,11 +316,11 @@ class BoltzmannTorchPolicy(TorchPolicy):
         with torch.no_grad():
             self._beta.update(state)
 
-            return self.distribution(state, action_history=action_history).sample().unsqueeze(-1)
+            return self.distribution(state, action_history=action_history).sample()
 
     def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state, action_history=action_history).mode.unsqueeze(-1)
+            return self.distribution(state, action_history=action_history).mode
 
     def draw_with_log_prob(self, state, action_history=None):
         raise NotImplementedError("The Boltzmann policy cannot be sampled with the reparametrization trick.")
