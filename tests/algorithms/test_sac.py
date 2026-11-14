@@ -12,7 +12,9 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.utils import TorchUtils
 
@@ -54,6 +56,11 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
                               input_shape=actor_input_shape,
                               output_shape=mdp.info.action_space.shape)
 
+    device = sac_params.get('device')
+    policy = SquashedGaussianTorchPolicy(TorchApproximator(**actor_mu_params, device=device),
+                                         TorchApproximator(**actor_sigma_params, device=device),
+                                         mdp.info.action_space.low, mdp.info.action_space.high, -20, 2, device=device)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
@@ -69,7 +76,7 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
     if critic_n_models is not None:
         critic_params['n_models'] = critic_n_models
 
-    agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer,
+    agent = SAC(mdp.info, policy, actor_optimizer,
                 critic_params, batch_size, initial_replay_size, max_replay_size,
                 warmup_transitions, tau, lr_alpha,
                 critic_fit_params=None, **sac_params)

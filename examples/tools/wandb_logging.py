@@ -21,7 +21,9 @@ from tqdm import trange
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.utils.experiments import get_log_dir
 
 
@@ -40,6 +42,9 @@ def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_tr
                               input_shape=actor_input_shape,
                               output_shape=mdp.info.action_space.shape)
 
+    policy = SquashedGaussianTorchPolicy(TorchApproximator(**actor_mu_params), TorchApproximator(**actor_sigma_params),
+                                         mdp.info.action_space.low, mdp.info.action_space.high, -20, 2)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
@@ -52,8 +57,8 @@ def build_agent(mdp, batch_size, initial_replay_size, max_replay_size, warmup_tr
                          input_shape=critic_input_shape,
                          output_shape=())
 
-    return SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-               batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha)
+    return SAC(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
+               warmup_transitions, tau, lr_alpha)
 
 
 def experiment(n_epochs, n_steps, n_steps_test, save_agent=False, agent_dir=None, seed=None):

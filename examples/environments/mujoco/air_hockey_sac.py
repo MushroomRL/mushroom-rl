@@ -15,7 +15,9 @@ from tqdm import trange
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments.mujoco_envs.air_hockey import AirHockeyHit
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
+from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
@@ -57,6 +59,9 @@ def experiment(n_epochs, n_steps, n_episodes_test, render=True, use_cuda=False, 
                               input_shape=actor_input_shape,
                               output_shape=mdp.info.action_space.shape)
 
+    policy = SquashedGaussianTorchPolicy(TorchApproximator(**actor_mu_params), TorchApproximator(**actor_sigma_params),
+                                         mdp.info.action_space.low, mdp.info.action_space.high, -20, 2)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 1e-4}}
 
@@ -70,8 +75,8 @@ def experiment(n_epochs, n_steps, n_episodes_test, render=True, use_cuda=False, 
                          output_shape=())
 
     # Agent
-    agent = SAC(mdp.info, actor_mu_params, actor_sigma_params, actor_optimizer, critic_params,
-                batch_size, initial_replay_size, max_replay_size, warmup_transitions, tau, lr_alpha)
+    agent = SAC(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
+                warmup_transitions, tau, lr_alpha)
 
     # Algorithm
     core = Core(agent, mdp, logger=logger)
