@@ -19,16 +19,22 @@ class TorchPolicy(Policy):
 
     """
 
-    def __init__(self, device=None, **kwargs):
+    def __init__(self, device=None, validate_args=False, **kwargs):
         """
         Constructor.
 
         Args:
             device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``;
             **kwargs: the remaining keyword arguments, passed to the constructor of the base policy.
 
         """
         super().__init__(backend='torch', device=device, **kwargs)
+
+        self._validate_args = validate_args
+
+        self._add_save_attr(_validate_args='primitive')
 
     def __call__(self, state, action):
         return torch.exp(self.log_prob(state, action))
@@ -134,7 +140,7 @@ class GaussianTorchPolicy(TorchPolicy):
     state-dependent.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, validate_args=False, **params):
         """
         Constructor.
 
@@ -144,10 +150,12 @@ class GaussianTorchPolicy(TorchPolicy):
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation;
             device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``;
             **params: parameters used by the network constructor.
 
         """
-        super().__init__(device)
+        super().__init__(device, validate_args=validate_args)
 
         self._action_dim = output_shape[0]
 
@@ -192,7 +200,8 @@ class GaussianTorchPolicy(TorchPolicy):
                + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
-        return DiagonalGaussian(self._mean(state, action_history), torch.exp(self._log_sigma))
+        return DiagonalGaussian(self._mean(state, action_history), torch.exp(self._log_sigma),
+                                validate_args=self._validate_args)
 
     def set_weights(self, weights):
         own_parameters = list(self._own_parameters())
@@ -224,7 +233,7 @@ class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
     of the Cholesky factor and its strictly lower triangular entries, in row-major order.
 
     """
-    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, **params):
+    def __init__(self, network, input_shape, output_shape, std_0=1., device=None, validate_args=False, **params):
         """
         Constructor.
 
@@ -234,10 +243,13 @@ class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
             output_shape (tuple): the shape of the action space;
             std_0 (float, 1.): initial standard deviation of every action component, with zero initial correlation;
             device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``;
             **params: parameters used by the network constructor.
 
         """
-        super().__init__(network, input_shape, output_shape, std_0=std_0, device=device, **params)
+        super().__init__(network, input_shape, output_shape, std_0=std_0, device=device, validate_args=validate_args,
+                         **params)
 
         n_off_diagonal = self._action_dim * (self._action_dim - 1) // 2
         self._chol_off_diagonal = nn.Parameter(torch.zeros(n_off_diagonal, device=self._device))
@@ -247,7 +259,7 @@ class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
 
     def distribution(self, state, action_history=None):
         return torch.distributions.MultivariateNormal(loc=self._mean(state, action_history),
-                                                      scale_tril=self._chol_sigma(), validate_args=False)
+                                                      scale_tril=self._chol_sigma(), validate_args=self._validate_args)
 
     def _own_parameters(self):
         return super()._own_parameters() + [self._chol_off_diagonal]
@@ -267,7 +279,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     Torch policy implementing a Boltzmann policy.
 
     """
-    def __init__(self, network, input_shape, output_shape, beta, device=None, **params):
+    def __init__(self, network, input_shape, output_shape, beta, device=None, validate_args=False, **params):
         """
         Constructor.
 
@@ -279,10 +291,12 @@ class BoltzmannTorchPolicy(TorchPolicy):
                 infinity, the policy becomes more and more random. As the temperature approaches 0.0, the policy becomes
                 more and more greedy;
             device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``;
             **params: parameters used by the network constructor.
 
         """
-        super().__init__(device)
+        super().__init__(device, validate_args=validate_args)
 
         self._action_dim = output_shape[0]
         self._predict_params = dict()
@@ -320,7 +334,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
     def distribution(self, state, action_history=None):
         history_kwargs = dict() if action_history is None else dict(action_history=action_history)
         logits = self._logits(state, **history_kwargs, **self._predict_params) * self._beta.get_value(state)
-        return CategoricalWrapper(logits)
+        return CategoricalWrapper(logits, validate_args=self._validate_args)
 
     def set_weights(self, weights):
         self._logits.set_weights(weights)
@@ -342,7 +356,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
     :class:`~mushroom_rl.utils.torch_utils.torch_distributions.SquashedGaussian` distribution.
 
     """
-    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max, device=None):
+    def __init__(self, mu_approximator, sigma_approximator, min_a, max_a, log_std_min, log_std_max, device=None,
+                 validate_args=False):
         """
         Constructor.
 
@@ -353,10 +368,12 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
             max_a (np.ndarray): a vector specifying the maximum action value for each component;
             log_std_min ([float, Parameter]): min value for the policy log std;
             log_std_max ([float, Parameter]): max value for the policy log std;
-            device (str, None): device the policy is stored on, or ``None`` for the default one.
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``.
 
         """
-        super().__init__(device)
+        super().__init__(device, validate_args=validate_args)
 
         self._mu_approximator = mu_approximator
         self._sigma_approximator = sigma_approximator
@@ -381,7 +398,7 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
 
     def draw_action(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state, action_history=action_history).sample()
+            return self.distribution(state, action_history=action_history).rsample()
 
     def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
@@ -402,7 +419,8 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
         mu = self._mu_approximator.predict(state, **history_kwargs)
         log_sigma = self._sigma_approximator.predict(state, **history_kwargs)
         log_sigma = torch.clamp(log_sigma, self._log_std_min(), self._log_std_max())
-        return SquashedGaussian(mu, log_sigma.exp(), self._min_a, self._max_a, eps=self._eps)
+        return SquashedGaussian(mu, log_sigma.exp(), self._min_a, self._max_a, eps=self._eps,
+                                validate_args=self._validate_args)
 
     def set_weights(self, weights):
         mu_weights = weights[:self._mu_approximator.weights_size]

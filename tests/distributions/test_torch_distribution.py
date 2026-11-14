@@ -136,3 +136,16 @@ def test_abstract():
     for call in calls:
         with pytest.raises(NotImplementedError):
             call()
+
+
+def test_validate_args():
+    mu = torch.tensor([float('nan'), 0.])
+    theta = torch.zeros(2)
+
+    assert torch.isnan(DiagonalGaussianTorchDistribution(mu, torch.ones(2)).log_pdf(theta))
+    assert torch.isnan(CholeskyGaussianTorchDistribution(mu, torch.eye(2)).log_pdf(theta))
+
+    with pytest.raises(ValueError):
+        DiagonalGaussianTorchDistribution(mu, torch.ones(2), validate_args=True).log_pdf(theta)
+    with pytest.raises(ValueError):
+        CholeskyGaussianTorchDistribution(mu, torch.eye(2), validate_args=True).log_pdf(theta)

@@ -235,3 +235,21 @@ def test_weights():
                  lambda: StatefulTorchPolicy.distribution(policy, None, None)):
         with pytest.raises(NotImplementedError):
             call()
+
+
+def test_validate_args():
+    state = torch.zeros(2, 1, 4)
+    policy_state = torch.zeros(2, 1, 8)
+    lengths = torch.ones(2, dtype=torch.long)
+
+    policy = make_policy()
+    policy._log_sigma.data = torch.tensor([float('nan'), 0.])
+
+    assert torch.isnan(policy.distribution(state, policy_state, lengths).stddev[:, 0]).all()
+
+    policy = RecurrentGaussianTorchPolicy(network=SimpleGRUNetwork, input_shape=(4,), output_shape=(2,),
+                                          rnn_type='gru', n_hidden_features=8, validate_args=True)
+    policy._log_sigma.data = torch.tensor([float('nan'), 0.])
+
+    with pytest.raises(ValueError):
+        policy.distribution(state, policy_state, lengths)

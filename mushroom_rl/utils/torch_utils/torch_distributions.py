@@ -10,8 +10,16 @@ class CategoricalWrapper(torch.distributions.Categorical):
     distribution implemented in torch
 
     """
-    def __init__(self, logits):
-        super().__init__(logits=logits)
+    def __init__(self, logits, validate_args=False):
+        """
+        Constructor.
+
+        Args:
+            logits (torch.Tensor): unnormalized log probability of each category;
+            validate_args (bool, False): whether to validate the logits and the values passed to ``log_prob``.
+
+        """
+        super().__init__(logits=logits, validate_args=validate_args)
 
     def log_prob(self, value):
         return super().log_prob(value.squeeze(-1))
@@ -35,7 +43,8 @@ class SquashedGaussian(TransformedDistribution):
             scale (torch.Tensor): standard deviation of the underlying Gaussian;
             low (torch.Tensor): minimum value for each action component;
             high (torch.Tensor): maximum value for each action component;
-            eps (float, 1e-6): small constant used to keep the tanh inverse and its log finite.
+            eps (float, 1e-6): small constant used to keep the tanh inverse and its log finite;
+            validate_args (bool, False): whether to validate the parameters and the values passed to ``log_prob``.
 
         """
         self._low = low
@@ -44,7 +53,7 @@ class SquashedGaussian(TransformedDistribution):
         self._central = .5 * (high + low)
         self._eps = eps
 
-        base = Independent(Normal(loc, scale), 1)
+        base = Independent(Normal(loc, scale, validate_args=validate_args), 1, validate_args=validate_args)
         transforms = [TanhTransform(cache_size=1), AffineTransform(loc=self._central, scale=self._delta)]
 
         super().__init__(base, transforms, validate_args=validate_args)
@@ -113,21 +122,22 @@ class SquashedGaussian(TransformedDistribution):
 
 class DiagonalGaussian(Independent):
     """
-    Gaussian distribution with diagonal covariance, without argument validation.
+    Gaussian distribution with diagonal covariance.
 
     """
-    def __init__(self, loc, scale, reinterpreted_batch_ndims=1):
+    def __init__(self, loc, scale, reinterpreted_batch_ndims=1, validate_args=False):
         """
         Constructor.
 
         Args:
             loc (torch.Tensor): the mean of the distribution;
             scale (torch.Tensor): the standard deviation of each component;
-            reinterpreted_batch_ndims (int, 1): number of rightmost dimensions forming the event.
+            reinterpreted_batch_ndims (int, 1): number of rightmost dimensions forming the event;
+            validate_args (bool, False): whether to validate the parameters and the values passed to ``log_prob``.
 
         """
-        super().__init__(Normal(loc=loc, scale=scale, validate_args=False), reinterpreted_batch_ndims,
-                         validate_args=False)
+        super().__init__(Normal(loc=loc, scale=scale, validate_args=validate_args), reinterpreted_batch_ndims,
+                         validate_args=validate_args)
 
     def expand(self, batch_shape, _instance=None):
         new = self._get_checked_instance(DiagonalGaussian, _instance)

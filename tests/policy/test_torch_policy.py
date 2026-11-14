@@ -202,6 +202,17 @@ def test_boltzmann():
     assert np.allclose(beta.get_value(), 4.6)
 
 
+def make_policies(validate_args):
+    mu_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=Network, n_features=50)
+    sigma_approximator = TorchApproximator(input_shape=(3,), output_shape=(2,), network=Network, n_features=50)
+
+    return [GaussianTorchPolicy(Network, (3,), (2,), n_features=50, validate_args=validate_args),
+            CholeskyGaussianTorchPolicy(Network, (3,), (2,), n_features=50, validate_args=validate_args),
+            BoltzmannTorchPolicy(Network, (3,), (2,), 1., n_features=50, validate_args=validate_args),
+            SquashedGaussianTorchPolicy(mu_approximator, sigma_approximator, np.array([-2., -2.]), np.array([2., 2.]),
+                                        -20, 2, validate_args=validate_args)]
+
+
 def test_squashed_gaussian():
     np.random.seed(42)
     torch.manual_seed(42)
@@ -342,3 +353,22 @@ def test_weights():
     squashed.set_weights(weights)
 
     assert torch.equal(squashed.get_weights(), weights)
+
+
+def test_validate_args(tmpdir):
+    state = torch.full((2, 3), float('nan'))
+    action = torch.zeros(2, 2)
+    discrete_action = torch.zeros(2, 1, dtype=torch.long)
+
+    gaussian, cholesky, boltzmann, squashed = make_policies(validate_args=False)
+
+    assert torch.isnan(gaussian.distribution(state).log_prob(action)).all()
+    assert torch.isnan(cholesky.distribution(state).log_prob(action)).all()
+    assert torch.isnan(boltzmann.distribution(state).log_prob(discrete_action)).all()
+    assert torch.isnan(squashed.distribution(state).log_prob(action)).all()
+
+    for pi in make_policies(validate_args=True):
+        with pytest.raises(ValueError):
+            pi.distribution(state)
+
+    tu.assert_save_load(pi, tmpdir / 'policy.msh')

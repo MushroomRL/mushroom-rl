@@ -104,7 +104,7 @@ class ClippedGaussianPolicy(HasWeights, Policy):
     Thus, the non-differentiability.
 
     """
-    def __init__(self, mu, sigma, low, high, device=None):
+    def __init__(self, mu, sigma, low, high, device=None, validate_args=False):
         """
         Constructor.
 
@@ -116,7 +116,8 @@ class ClippedGaussianPolicy(HasWeights, Policy):
                 action dimensionality;
             low (torch.tensor): a vector containing the minimum action for each component;
             high (torch.tensor): a vector containing the maximum action for each component;
-            device (str, None): device the policy is stored on, or ``None`` for the default one.
+            device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distribution of the policy validates its parameters.
 
         """
         super().__init__('torch', device)
@@ -126,13 +127,15 @@ class ClippedGaussianPolicy(HasWeights, Policy):
         self._sigma = CovarianceParameter.make(sigma, backend='torch', device=self._device)
         self._low = torch.as_tensor(low, device=self._device)
         self._high = torch.as_tensor(high, device=self._device)
+        self._validate_args = validate_args
 
         self._add_save_attr(
             _approximator='mushroom',
             _predict_params='pickle',
             _sigma='mushroom',
             _low='torch',
-            _high='torch'
+            _high='torch',
+            _validate_args='primitive'
         )
         self._add_logger_attr(_sigma='sigma', group='policy')
 
@@ -146,7 +149,7 @@ class ClippedGaussianPolicy(HasWeights, Policy):
             mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
 
             distribution = torch.distributions.MultivariateNormal(loc=mu, scale_tril=self._sigma.get_cholesky(),
-                                                                  validate_args=False)
+                                                                  validate_args=self._validate_args)
 
             action_raw = distribution.sample()
 

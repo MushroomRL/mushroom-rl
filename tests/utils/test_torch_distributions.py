@@ -123,6 +123,23 @@ def test_diagonal_gaussian():
     assert type(expanded) is DiagonalGaussian and expanded.batch_shape == (3, 2)
 
 
+def test_validate_args():
+    nan = torch.tensor([float('nan'), 0.])
+    low = torch.tensor([-2., -2.])
+    high = torch.tensor([2., 2.])
+
+    assert torch.isnan(SquashedGaussian(nan, torch.ones(2), low, high).median[0])
+    assert torch.isnan(CategoricalWrapper(nan).logits[0])
+    assert torch.isnan(DiagonalGaussian(nan, torch.ones(2)).mean[0])
+
+    with pytest.raises(ValueError):
+        SquashedGaussian(nan, torch.ones(2), low, high, validate_args=True)
+    with pytest.raises(ValueError):
+        CategoricalWrapper(nan, validate_args=True)
+    with pytest.raises(ValueError):
+        DiagonalGaussian(nan, torch.ones(2), validate_args=True)
+
+
 def test_dist_helper():
     loc = torch.tensor([[0., 1.], [2., 3.], [4., 5.], [6., 7.]])
     dist = torch.distributions.MultivariateNormal(loc=loc, scale_tril=torch.diag(torch.tensor([.5, 2.])),

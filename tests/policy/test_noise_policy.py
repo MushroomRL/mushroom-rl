@@ -175,3 +175,17 @@ def test_clipped_gaussian(tmpdir):
         pi.draw_action(torch.randn(5))
 
     assert np.allclose(std.get_value(), np.array([1., .5]))
+
+
+def test_validate_args():
+    state = torch.full((5,), float('nan'))
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+
+    pi = ClippedGaussianPolicy(mu, torch.eye(2), -torch.ones(2), torch.ones(2))
+
+    assert torch.isnan(pi.draw_action(state)).all()
+
+    pi = ClippedGaussianPolicy(mu, torch.eye(2), -torch.ones(2), torch.ones(2), validate_args=True)
+
+    with pytest.raises(ValueError):
+        pi.draw_action(state)

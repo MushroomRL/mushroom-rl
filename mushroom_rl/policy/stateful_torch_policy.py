@@ -76,7 +76,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
     """
     def __init__(self, network, input_shape, output_shape, std_0=1., log_std_min=-20, log_std_max=2, device=None,
-                 **params):
+                 validate_args=False, **params):
         """
         Constructor.
 
@@ -90,6 +90,8 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
             log_std_min ([float, Parameter], -20): min value for the policy log std;
             log_std_max ([float, Parameter], 2): max value for the policy log std;
             device (str, None): device the policy is stored on, or ``None`` for the default one;
+            validate_args (bool, False): whether the distributions of the policy validate their parameters and the
+                values passed to ``log_prob``;
             **params: parameters used by the network constructor.
 
         """
@@ -98,7 +100,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         self._mu = RecurrentTorchApproximator(input_shape=input_shape, output_shape=output_shape,
                                               network=network, device=device, **params)
 
-        super().__init__(self._mu.policy_state_shape, device=device)
+        super().__init__(self._mu.policy_state_shape, device=device, validate_args=validate_args)
 
         self._predict_params = dict()
 
@@ -144,7 +146,7 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
 
         log_sigma = torch.clamp(self._log_sigma, self._log_std_min(), self._log_std_max())
 
-        return DiagonalGaussian(mu, torch.exp(log_sigma)), next_policy_state
+        return DiagonalGaussian(mu, torch.exp(log_sigma), validate_args=self._validate_args), next_policy_state
 
     def set_weights(self, weights):
         TorchUtils.set_weights([self._log_sigma], weights[-self._action_dim:])
