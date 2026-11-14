@@ -26,7 +26,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install flake8 pytest pytest-cov
-        pip install -e .[all,bullet]
+        pip install -e .[all]
+    - name: Install PyBullet
+      if: matrix.python-version == '3.11'
+      run: |
+        pip install -e .[bullet]
     - name: Install Atari ROMs
       run: |
         pip install "autorom[accept-rom-license]"
