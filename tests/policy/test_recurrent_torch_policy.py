@@ -253,3 +253,15 @@ def test_validate_args():
 
     with pytest.raises(ValueError):
         policy.distribution(state, policy_state, lengths)
+
+
+def test_mean():
+    policy = make_policy()
+    state = torch.zeros(3, 1, 4)
+    policy_state = torch.zeros(3, 1, 8)
+    lengths = torch.ones(3, dtype=torch.long)
+
+    mean = policy.mean(state, policy_state, lengths)
+
+    assert mean.shape == (3, 2) and mean.requires_grad
+    assert torch.equal(mean, policy.distribution(state, policy_state, lengths).mean)

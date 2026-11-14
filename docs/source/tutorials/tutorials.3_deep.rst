@@ -48,26 +48,23 @@ This script runs the experiment to solve the Walker-Stand MuJoCo task, as
 implemented in `MuJoCo <https://github.com/deepmind/dm_control/>`_. We import
 ``ActorNetwork`` and ``CriticNetwork`` from the networks package.
 
-We create the ``mdp``, the policy, and set some hyperparameters:
+We create the ``mdp`` and set some hyperparameters:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 1-28
+   :lines: 1-25
 
-Note that the policy is not instantiated in the script, since in DDPG the
-instantiation is done inside the algorithm constructor.
-
-We create the actor and the critic approximators. The critic takes ``state`` and ``action`` as two
-separate inputs, so its ``input_shape`` is a list of the two shapes:
+We create the actor approximator and the policy, then the critic approximator. The critic takes ``state``
+and ``action`` as two separate inputs, so its ``input_shape`` is a list of the two shapes:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 30-47
+   :lines: 27-47
 
 Finally, we create the ``agent`` and the ``core``:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 49-59
+   :lines: 49-58
 
 As in ``DQN``, we alternate learning and evaluation steps:
 
 .. literalinclude:: code/ddpg.py
-   :lines: 61-76
+   :lines: 60-75

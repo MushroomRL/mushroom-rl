@@ -1,6 +1,6 @@
 import pytest
 
-from mushroom_rl.policy import Policy, HasWeights, HasGradient, StatefulPolicy
+from mushroom_rl.policy import Policy, HasWeights, HasGradient, HasLocation, StatefulPolicy
 
 
 def abstract_method_tester(f, ex, *args):
@@ -35,6 +35,26 @@ def test_mixins():
 
     tmp = HasGradient()
     abstract_method_tester(tmp.diff_log, NotImplementedError, None, None)
+
+    tmp = HasLocation()
+    abstract_method_tester(tmp.location, NotImplementedError, None)
+
+    with pytest.raises(TypeError):
+        class BadLocationPolicy(HasLocation):
+            pass
+
+    with pytest.raises(TypeError):
+        class LocationMixinLast(Policy, HasLocation):
+            pass
+
+    class GoodLocationPolicy(HasWeights, HasLocation, Policy):
+        pass
+
+    class IntermediateLocationMixin(HasLocation, is_mixin=True):
+        pass
+
+    assert issubclass(GoodLocationPolicy, HasLocation)
+    assert not issubclass(IntermediateLocationMixin, Policy)
 
     with pytest.raises(TypeError):
         class BadPolicy(HasWeights):

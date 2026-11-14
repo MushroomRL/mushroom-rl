@@ -145,14 +145,12 @@ class DeepAC(Agent):
 
     @staticmethod
     def _init_target(online, target):
-        for i in range(len(target)):
-            target[i].set_weights(online[i].get_weights())
+        target.set_weights(online.get_weights())
 
     def _update_target(self, online, target):
-        for i in range(len(target)):
-            weights = self._tau() * online[i].get_weights()
-            weights += (1 - self._tau.get_value()) * target[i].get_weights()
-            target[i].set_weights(weights)
+        weights = self._tau() * online.get_weights()
+        weights += (1 - self._tau.get_value()) * target.get_weights()
+        target.set_weights(weights)
 
     def _post_load(self, device):
         raise NotImplementedError('DeepAC is an abstract class. Subclasses need to implement the `_post_load` method.')

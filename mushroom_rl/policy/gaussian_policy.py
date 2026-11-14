@@ -1,11 +1,11 @@
 import numpy as np
 
-from mushroom_rl.policy.policy import Policy, HasGradient
+from mushroom_rl.policy.policy import Policy, HasGradient, HasLocation
 from mushroom_rl.rl_utils.parameters import CovarianceParameter
 from scipy.stats import multivariate_normal
 
 
-class AbstractGaussianPolicy(HasGradient, Policy):
+class AbstractGaussianPolicy(HasGradient, HasLocation, Policy):
     """
     Abstract class of Gaussian policies.
 
@@ -21,6 +21,9 @@ class AbstractGaussianPolicy(HasGradient, Policy):
         return np.random.multivariate_normal(mu, sigma)
 
     def draw_action_greedy(self, state):
+        return self.location(state)
+
+    def location(self, state):
         return self._compute_multivariate_gaussian(state)[0]
 
 

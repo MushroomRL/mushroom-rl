@@ -372,3 +372,20 @@ def test_validate_args(tmpdir):
             pi.distribution(state)
 
     tu.assert_save_load(pi, tmpdir / 'policy.msh')
+
+
+def test_location():
+    torch.manual_seed(42)
+    state = torch.rand(4, 3)
+
+    gaussian, cholesky, _, squashed = make_policies(validate_args=False)
+
+    for pi in [gaussian, cholesky, squashed]:
+        action = pi.location(state)
+
+        assert action.shape == (4, 2) and action.requires_grad
+        assert torch.equal(action, pi.draw_action_greedy(state))
+
+    assert torch.equal(gaussian.location(state), gaussian.distribution(state).mean)
+    assert torch.equal(cholesky.location(state), cholesky.distribution(state).mean)
+    assert torch.allclose(squashed.location(state), squashed.distribution(state).median)

@@ -180,3 +180,14 @@ def test_reset():
     assert np.allclose(vpi._policy_vector[0].policy_state, reset_value)
     assert np.allclose(vpi._policy_vector[2].policy_state, reset_value)
     assert not np.allclose(vpi._policy_vector[1].policy_state, reset_value)
+
+
+def test_location():
+    np.random.seed(42)
+    policy = _make_gaussian_policy()
+    policy.set_weights(np.random.rand(policy.weights_size))
+    vector = VectorPolicy(policy, 2)
+    states = np.random.randn(2, 3)
+
+    assert np.array_equal(vector.location(states),
+                          np.stack([policy.location(states[0]), policy.location(states[1])]))

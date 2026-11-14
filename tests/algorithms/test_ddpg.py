@@ -11,7 +11,8 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3, DeepAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
-from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
+from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, GaussianTorchPolicy
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.utils import TorchUtils
@@ -29,14 +30,11 @@ class RecordingPreprocessor(Preprocessor):
         return state * self.scale
 
 
-def learn(alg, setup=None, **alg_params):
+def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
-
-    policy_class = OrnsteinUhlenbeckPolicy
-    policy_params = dict(sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
 
     initial_replay_size = 100
     max_replay_size = 5000
@@ -50,6 +48,11 @@ def learn(alg, setup=None, **alg_params):
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
 
+    if policy is None:
+        device = alg_params.get('device')
+        policy = OrnsteinUhlenbeckPolicy(TorchApproximator(**actor_params, device=device), sigma=torch.ones(1) * .2,
+                                         theta=.15, dt=1e-2, device=device)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
 
@@ -62,10 +65,11 @@ def learn(alg, setup=None, **alg_params):
                          n_layers=0,
                          input_shape=critic_input_shape,
                          output_shape=())
+    if critic_n_models is not None:
+        critic_params['n_models'] = critic_n_models
 
-    agent = alg(mdp.info, policy_class, policy_params,
-                actor_params, actor_optimizer, critic_params, batch_size,
-                initial_replay_size, max_replay_size, tau, **alg_params)
+    agent = alg(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
+                tau, **alg_params)
 
     if setup is not None:
         setup(agent)
@@ -115,6 +119,22 @@ def test_td3(device, tmpdir):
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 
+    with pytest.raises(AssertionError):
+        learn(TD3, critic_n_models=1)
+
+
+@pytest.mark.parametrize('device', devices())
+def test_ddpg_gaussian_policy(device):
+    torch.manual_seed(1)
+    policy = GaussianTorchPolicy(ActorNetwork, (2,), (1,), std_0=.2, n_features=None, n_layers=0)
+    weights = policy.get_weights().clone()
+
+    agent = learn(DDPG, policy=policy)
+    new_weights = agent.policy.get_weights()
+
+    assert not torch.equal(new_weights[:-1], weights[:-1])
+    assert torch.equal(new_weights[-1:], weights[-1:])
+
 
 @pytest.mark.parametrize('device', devices())
 def test_ddpg_fit_preprocessor_identity(device):
@@ -158,7 +178,7 @@ def test_ddpg_overwrite_actor_parameters(device):
 
     agent = learn(DDPG, exclude_bias)
 
-    weight, bias = agent.policy._approximator.parameters()
+    weight, bias = agent.policy.parameters()
 
     assert len(parameters['default']) == 2
     assert parameters['default'][0] is weight and parameters['default'][1] is bias

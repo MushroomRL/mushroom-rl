@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from mushroom_rl.policy import Policy
+from mushroom_rl.policy import Policy, HasLocation
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian, DiagonalGaussian
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -134,7 +134,7 @@ class TorchPolicy(Policy):
         raise NotImplementedError
 
 
-class GaussianTorchPolicy(TorchPolicy):
+class GaussianTorchPolicy(HasLocation, TorchPolicy):
     """
     Torch policy implementing a Gaussian policy with trainable standard deviation. The standard deviation is not
     state-dependent.
@@ -181,7 +181,26 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self._mean(state, action_history)
+            return self.location(state, action_history)
+
+    def location(self, state, action_history=None):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the mean of the Gaussian, differentiable
+        with respect to the policy parameters.
+
+        Args:
+            state (torch.Tensor): the set of states where the action is computed;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        mu = self._mu(state, action_history=action_history, **self._predict_params)
+        assert mu.shape[-1] == self._action_dim
+
+        return mu
 
     def draw_with_log_prob(self, state, action_history=None):
         dist = self.distribution(state, action_history=action_history)
@@ -200,7 +219,7 @@ class GaussianTorchPolicy(TorchPolicy):
                + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
-        return DiagonalGaussian(self._mean(state, action_history), torch.exp(self._log_sigma),
+        return DiagonalGaussian(self.location(state, action_history), torch.exp(self._log_sigma),
                                 validate_args=self._validate_args)
 
     def set_weights(self, weights):
@@ -215,12 +234,6 @@ class GaussianTorchPolicy(TorchPolicy):
 
     def parameters(self):
         return chain(self._mu.parameters(), self._own_parameters())
-
-    def _mean(self, state, action_history):
-        mu = self._mu(state, action_history=action_history, **self._predict_params)
-        assert mu.shape[-1] == self._action_dim
-
-        return mu
 
     def _own_parameters(self):
         return [self._log_sigma]
@@ -258,7 +271,7 @@ class CholeskyGaussianTorchPolicy(GaussianTorchPolicy):
         self._add_save_attr(_chol_off_diagonal='torch', _tril_indices='none')
 
     def distribution(self, state, action_history=None):
-        return torch.distributions.MultivariateNormal(loc=self._mean(state, action_history),
+        return torch.distributions.MultivariateNormal(loc=self.location(state, action_history),
                                                       scale_tril=self._chol_sigma(), validate_args=self._validate_args)
 
     def _own_parameters(self):
@@ -349,7 +362,7 @@ class BoltzmannTorchPolicy(TorchPolicy):
         self._beta = Parameter.make(beta, backend='torch', device=self._device)
 
 
-class SquashedGaussianTorchPolicy(TorchPolicy):
+class SquashedGaussianTorchPolicy(HasLocation, TorchPolicy):
     """
     Torch policy implementing a Gaussian policy squashed by a tanh and remapped to a bounded action range, as used
     by the Soft Actor-Critic algorithm. The squashing and the corresponding change-of-variables are handled by the
@@ -402,7 +415,25 @@ class SquashedGaussianTorchPolicy(TorchPolicy):
 
     def draw_action_greedy(self, state, action_history=None):
         with torch.no_grad():
-            return self.distribution(state, action_history=action_history).median
+            return self.location(state, action_history)
+
+    def location(self, state, action_history=None):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the mean of the underlying Gaussian
+        squashed into the action range, differentiable with respect to the policy parameters.
+
+        Args:
+            state (torch.Tensor): the set of states where the action is computed;
+            action_history (torch.Tensor, None): the previous actions, or ``None`` when no previous-action input is
+                used.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        history_kwargs = dict() if action_history is None else dict(action_history=action_history)
+        mu = self._mu_approximator.predict(state, **history_kwargs)
+        return torch.tanh(mu) * (.5 * (self._max_a - self._min_a)) + .5 * (self._max_a + self._min_a)
 
     def draw_with_log_prob(self, state, action_history=None):
         return self.distribution(state, action_history=action_history).rsample_and_log_prob()

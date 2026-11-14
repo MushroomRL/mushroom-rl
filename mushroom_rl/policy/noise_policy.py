@@ -1,11 +1,11 @@
 import torch
 import numpy as np
 
-from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights
+from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights, HasLocation
 from mushroom_rl.rl_utils.parameters import CovarianceParameter
 
 
-class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
+class OrnsteinUhlenbeckPolicy(HasWeights, HasLocation, StatefulPolicy):
     """
     Exploration policy adding temporally correlated noise drawn from an Ornstein-Uhlenbeck process.
 
@@ -59,15 +59,35 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
 
     def _draw_action_greedy(self, state, policy_state):
         with torch.no_grad():
-            mu = self._approximator.predict(state, **self._predict_params)
+            return self.location(state), policy_state
 
-            return mu, policy_state
+    def location(self, state):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the action without the exploration noise,
+        differentiable with respect to the policy parameters.
+
+        Args:
+            state (torch.Tensor): the state where the agent is.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        return self._approximator(state, **self._predict_params)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
 
     def get_weights(self):
         return self._approximator.get_weights()
+
+    def parameters(self):
+        """
+        Returns:
+            The trainable parameters of the mean approximator.
+
+        """
+        return self._approximator.parameters()
 
     @property
     def weights_size(self):
@@ -88,7 +108,7 @@ class OrnsteinUhlenbeckPolicy(HasWeights, StatefulPolicy):
         return self._policy_state
 
 
-class ClippedGaussianPolicy(HasWeights, Policy):
+class ClippedGaussianPolicy(HasWeights, HasLocation, Policy):
     """
     Gaussian policy whose sampled action is clipped to a given action range.
 
@@ -157,15 +177,35 @@ class ClippedGaussianPolicy(HasWeights, Policy):
 
     def draw_action_greedy(self, state):
         with torch.no_grad():
-            mu = self._approximator.predict(state, **self._predict_params).reshape(-1)
+            return torch.clip(self.location(state).reshape(-1), self._low, self._high)
 
-            return torch.clip(mu, self._low, self._high)
+    def location(self, state):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the mean of the Gaussian before
+        clipping, differentiable with respect to the policy parameters.
+
+        Args:
+            state (torch.Tensor): the state where the agent is.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        return self._approximator(state, **self._predict_params)
 
     def set_weights(self, weights):
         self._approximator.set_weights(weights)
 
     def get_weights(self):
         return self._approximator.get_weights()
+
+    def parameters(self):
+        """
+        Returns:
+            The trainable parameters of the mean approximator.
+
+        """
+        return self._approximator.parameters()
 
     @property
     def weights_size(self):

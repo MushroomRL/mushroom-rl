@@ -189,3 +189,22 @@ def test_validate_args():
 
     with pytest.raises(ValueError):
         pi.draw_action(state)
+
+
+def test_location():
+    torch.manual_seed(1)
+    mu = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,))
+    state = torch.randn(4, 5)
+
+    ou = OrnsteinUhlenbeckPolicy(mu, sigma=torch.ones(2) * .2, theta=.15, dt=1e-2)
+    clipped = ClippedGaussianPolicy(mu, torch.eye(2), -1e-3 * torch.ones(2), 1e-3 * torch.ones(2))
+
+    for pi in [ou, clipped]:
+        assert pi.location(state).requires_grad and torch.equal(pi.location(state), mu(state))
+        assert list(pi.parameters()) == list(mu.parameters())
+
+    ou.reset()
+
+    assert torch.equal(ou.draw_action_greedy(state), mu(state))
+    assert torch.equal(clipped.draw_action_greedy(state[0]), torch.clip(mu(state[0]), -1e-3, 1e-3))
+    assert not torch.equal(clipped.draw_action_greedy(state[0]), clipped.location(state[0]))

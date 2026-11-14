@@ -1,4 +1,4 @@
-from .policy import Policy, HasWeights, HasGradient, StatefulPolicy
+from .policy import Policy, HasWeights, HasGradient, HasLocation, StatefulPolicy
 from .vector_policy import VectorPolicy
 from .noise_policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
 from .td_policy import TDPolicy, Boltzmann, EpsGreedy, Mellowmax
@@ -13,7 +13,7 @@ from .dmp import DMP
 
 __all__ = [
     'Policy', 'StatefulPolicy', 'DeterministicPolicy',
-    'HasWeights', 'HasGradient', 'VectorPolicy',
+    'HasWeights', 'HasGradient', 'HasLocation', 'VectorPolicy',
     'TDPolicy', 'Boltzmann', 'EpsGreedy', 'Mellowmax',
     'GaussianPolicy', 'DiagonalGaussianPolicy', 'StateStdGaussianPolicy', 'StateLogStdGaussianPolicy',
     'OrnsteinUhlenbeckPolicy', 'ClippedGaussianPolicy',

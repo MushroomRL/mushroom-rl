@@ -331,6 +331,43 @@ class HasWeights:
         raise NotImplementedError
 
 
+class HasLocation:
+    """
+    Mixin adding the location of the action distribution to a policy. It must be combined with a :class:`Policy`
+    subclass and placed before it in the base list (e.g. ``class MyPolicy(HasLocation, Policy)``); on its own it is
+    not a policy.
+
+    """
+    def __init_subclass__(cls, is_mixin=False, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not is_mixin:
+            if not issubclass(cls, Policy):
+                raise TypeError(
+                    "'{}' uses the HasLocation mixin but does not inherit from Policy.".format(cls.__name__)
+                )
+
+            if cls.__mro__.index(Policy) < cls.__mro__.index(HasLocation):
+                raise TypeError(
+                    "'{}' resolves Policy before the HasLocation mixin. Mixins must be listed first, e.g. "
+                    "'class {}(HasLocation, Policy)'.".format(cls.__name__, cls.__name__)
+                )
+
+    def location(self, state, **kwargs):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the action of the policy without
+        exploration noise. For a torch policy, the result is differentiable with respect to the policy parameters.
+
+        Args:
+            state: the state where the agent is;
+            **kwargs: additional per-timestep conditioning inputs assembled by the agent.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        raise NotImplementedError
+
+
 class HasGradient(HasWeights, is_mixin=True):
     """
     Mixin for a parametric policy that is also differentiable.

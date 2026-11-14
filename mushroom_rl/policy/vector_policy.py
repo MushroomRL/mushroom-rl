@@ -40,6 +40,23 @@ class VectorPolicy(HasWeights, Policy):
 
         return self._backend.stack(actions, dim=0)
 
+    def location(self, state):
+        """
+        Compute the location of the action distribution of each policy in its own state.
+
+        Args:
+            state: the states, one per policy along the first axis.
+
+        Returns:
+            The locations, one per policy along the first axis.
+
+        """
+        actions = list()
+        for i, policy in enumerate(self._policy_vector):
+            actions.append(policy.location(state[i]))
+
+        return self._backend.stack(actions, dim=0)
+
     def set_n(self, n_envs):
         if len(self) > n_envs:
             self._policy_vector = self._policy_vector[:n_envs]

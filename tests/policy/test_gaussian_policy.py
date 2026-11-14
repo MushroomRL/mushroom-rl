@@ -228,3 +228,17 @@ def test_multivariate():
         numerical_diff = numerical_diff_policy(pi, state, action)
 
         assert np.allclose(exact_diff, numerical_diff)
+
+
+def test_location():
+    np.random.seed(42)
+    mu = LinearApproximator(input_shape=(5,), output_shape=(2,))
+    mu.set_weights(np.random.rand(mu.weights_size))
+    std = LinearApproximator(input_shape=(5,), output_shape=(2,))
+    std.set_weights(np.random.rand(std.weights_size))
+    state = np.random.randn(5)
+
+    for pi in [GaussianPolicy(mu, np.eye(2)), DiagonalGaussianPolicy(mu, np.ones(2)), StateStdGaussianPolicy(mu, std),
+               StateLogStdGaussianPolicy(mu, std)]:
+        assert np.array_equal(pi.location(state), mu(state))
+        assert np.array_equal(pi.draw_action_greedy(state), pi.location(state))

@@ -5,6 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from mushroom_rl.algorithms.actor_critic import DDPG
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.core import Core
 from mushroom_rl.environments.dm_control_env import DMControl
@@ -15,10 +16,6 @@ from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
 horizon = 500
 gamma = 0.99
 mdp = DMControl('walker', 'stand', horizon, gamma)
-
-# Policy
-policy_class = OrnsteinUhlenbeckPolicy
-policy_params = dict(sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
 
 # Settings
 initial_replay_size = 500
@@ -34,6 +31,9 @@ actor_params = dict(network=ActorNetwork,
                     input_shape=actor_input_shape,
                     output_shape=mdp.info.action_space.shape)
 
+# Policy
+policy = OrnsteinUhlenbeckPolicy(TorchApproximator(**actor_params), sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
+
 actor_optimizer = {'class': optim.Adam,
                    'params': {'lr': 1e-5}}
 
@@ -47,8 +47,7 @@ critic_params = dict(network=CriticNetwork,
                      output_shape=())
 
 # Agent
-agent = DDPG(mdp.info, policy_class, policy_params,
-             actor_params, actor_optimizer, critic_params,
+agent = DDPG(mdp.info, policy, actor_optimizer, critic_params,
              batch_size, initial_replay_size, max_replay_size,
              tau)
 

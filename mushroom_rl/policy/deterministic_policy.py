@@ -1,7 +1,7 @@
-from mushroom_rl.policy.policy import Policy, HasWeights
+from mushroom_rl.policy.policy import Policy, HasWeights, HasLocation
 
 
-class DeterministicPolicy(HasWeights, Policy):
+class DeterministicPolicy(HasWeights, HasLocation, Policy):
     """
     Simple parametric policy representing a deterministic policy. As
     deterministic policies are degenerate probability functions where all
@@ -45,6 +45,9 @@ class DeterministicPolicy(HasWeights, Policy):
         return self.draw_action_greedy(state)
 
     def draw_action_greedy(self, state):
+        return self.location(state)
+
+    def location(self, state):
         return self._approximator(state, **self._predict_params)
 
     def set_weights(self, weights):

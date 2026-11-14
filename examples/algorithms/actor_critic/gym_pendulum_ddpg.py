@@ -16,6 +16,7 @@ from mushroom_rl.algorithms.actor_critic import DDPG, TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import Gymnasium
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.experiments import select_class
@@ -44,10 +45,6 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, render=True, use_cuda=False
     logger = Logger(alg.name(), results_dir=None)
     logger.log_experiment_info(alg, mdp, n_epochs=n_epochs, n_steps=n_steps, n_steps_test=n_steps_test)
 
-    # Policy
-    policy_class = OrnsteinUhlenbeckPolicy
-    policy_params = dict(sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
-
     # Settings
     initial_replay_size = 500
     max_replay_size = 5000
@@ -62,6 +59,9 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, render=True, use_cuda=False
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
 
+    # Policy
+    policy = OrnsteinUhlenbeckPolicy(TorchApproximator(**actor_params), sigma=torch.ones(1) * .2, theta=.15, dt=1e-2)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
 
@@ -75,9 +75,7 @@ def experiment(alg, n_epochs, n_steps, n_steps_test, render=True, use_cuda=False
                          output_shape=())
 
     # Agent
-    agent = alg(mdp.info, policy_class, policy_params,
-                actor_params, actor_optimizer, critic_params, batch_size,
-                initial_replay_size, max_replay_size, tau)
+    agent = alg(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size, tau)
 
     # Algorithm
     core = Core(agent, mdp, logger=logger)

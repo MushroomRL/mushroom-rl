@@ -11,17 +11,14 @@ class TD3(DDPG):
     Fujimoto S. et al. 2018.
 
     """
-    def __init__(self, mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,
-                 initial_replay_size, max_replay_size, tau, policy_delay=2, noise_std=.2, noise_clip=.5,
-                 critic_fit_params=None, history_length=1, device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size,
+                 max_replay_size, tau, policy_delay=2, noise_std=.2, noise_clip=.5, critic_fit_params=None,
+                 history_length=1, device=None):
         """
         Constructor.
 
         Args:
-            policy_class (Policy): class of the policy;
-            policy_params (dict): parameters of the policy to build;
-            actor_params (dict): parameters of the actor approximator to
-                build;
+            policy (HasLocation): policy to be learned by the algorithm;
             actor_optimizer (dict): parameters to specify the actor
                 optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to
@@ -52,9 +49,9 @@ class TD3(DDPG):
         else:
             critic_params['n_models'] = 2
 
-        super().__init__(mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params,
-                         batch_size, initial_replay_size, max_replay_size, tau, policy_delay, critic_fit_params,
-                         history_length=history_length, device=device)
+        super().__init__(mdp_info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size,
+                         max_replay_size, tau, policy_delay, critic_fit_params, history_length=history_length,
+                         device=device)
 
         self._add_save_attr(
             _noise_std='mushroom',
@@ -62,7 +59,7 @@ class TD3(DDPG):
         )
 
     def _loss(self, state):
-        action = self._actor_approximator(state, **self._actor_predict_params)
+        action = self.policy.location(state)
         q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
 
         return -q.mean()
@@ -80,7 +77,7 @@ class TD3(DDPG):
             action returned by the actor.
 
         """
-        a = self._target_actor_approximator(next_state, **self._actor_predict_params).detach()
+        a = self._target_policy.location(next_state).detach()
 
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())

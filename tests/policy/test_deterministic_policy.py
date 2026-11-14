@@ -77,3 +77,4 @@ def test_deterministic_policy_torch(device):
     assert action.device.type == device
     assert torch.equal(action, a_test)
     assert torch.equal(pi.draw_action_greedy(s_test_1), action)
+    assert pi.location(s_test_1).requires_grad and torch.equal(pi.location(s_test_1), action)

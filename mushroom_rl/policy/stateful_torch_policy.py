@@ -141,6 +141,23 @@ class RecurrentGaussianTorchPolicy(StatefulTorchPolicy):
         dist, _ = self.distribution_and_policy_state(state, policy_state, lengths, **kwargs)
         return dist
 
+    def mean(self, state, policy_state, lengths=None, **kwargs):
+        """
+        Compute the mean action in the given states, differentiable with respect to the policy parameters.
+
+        Args:
+            state (torch.Tensor): the set of states where the mean is computed;
+            policy_state (torch.Tensor): the policy internal states;
+            lengths (torch.Tensor, None): the length of each input sequence, defaulted to ones when None;
+            **kwargs: additional per-timestep conditioning inputs.
+
+        Returns:
+            The mean action for the provided states.
+
+        """
+        mu, _ = self._mean_and_policy_state(state, policy_state, lengths, **kwargs)
+        return mu
+
     def distribution_and_policy_state(self, state, policy_state, lengths=None, **kwargs):
         mu, next_policy_state = self._mean_and_policy_state(state, policy_state, lengths, **kwargs)
 

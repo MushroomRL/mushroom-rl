@@ -14,17 +14,14 @@ class DDPG(DeepAC):
 
     """
 
-    def __init__(self, mdp_info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,
-                 initial_replay_size, max_replay_size, tau, policy_delay=1, critic_fit_params=None,
-                 actor_predict_params=None, critic_predict_params=None, history_length=1, device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size,
+                 max_replay_size, tau, policy_delay=1, critic_fit_params=None, critic_predict_params=None,
+                 history_length=1, device=None):
         """
         Constructor.
 
         Args:
-            policy_class (Policy): class of the policy;
-            policy_params (dict): parameters of the policy to build;
-            actor_params (dict): parameters of the actor approximator to
-                build;
+            policy (HasLocation): policy to be learned by the algorithm;
             actor_optimizer (dict): parameters to specify the actor optimizer
                 algorithm;
             critic_params (dict): parameters of the critic approximator to
@@ -39,8 +36,6 @@ class DDPG(DeepAC):
                 which an actor update is implemented;
             critic_fit_params (dict, None): parameters of the fitting algorithm
                 of the critic approximator;
-            actor_predict_params (dict, None): parameters for the prediction with the
-                actor approximator;
             critic_predict_params (dict, None): parameters for the prediction with the
                 critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
@@ -48,31 +43,19 @@ class DDPG(DeepAC):
 
         """
         self._critic_fit_params = dict() if critic_fit_params is None else critic_fit_params
-        self._actor_predict_params = dict() if actor_predict_params is None else actor_predict_params
         self._critic_predict_params = dict() if critic_predict_params is None else critic_predict_params
 
         if device is not None:
             critic_params.setdefault('device', device)
-            actor_params.setdefault('device', device)
 
         target_critic_params = deepcopy(critic_params)
         self._critic_approximator = TorchApproximator(**critic_params)
         self._target_critic_approximator = TorchApproximator(**target_critic_params)
 
-        target_actor_params = deepcopy(actor_params)
-        self._actor_approximator = TorchApproximator(**actor_params)
-        self._target_actor_approximator = TorchApproximator(**target_actor_params)
-
         self._init_target(self._critic_approximator, self._target_critic_approximator)
-        self._init_target(self._actor_approximator, self._target_actor_approximator)
+        self._target_policy = policy.copy()
 
-        if device is not None:
-            policy_params.setdefault('device', device)
-        policy = policy_class(self._actor_approximator, **policy_params)
-
-        policy_parameters = self._actor_approximator.parameters()
-
-        super().__init__(mdp_info, policy, actor_optimizer, policy_parameters, history_length=history_length,
+        super().__init__(mdp_info, policy, actor_optimizer, policy.parameters(), history_length=history_length,
                          device=device)
 
         self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
@@ -86,7 +69,6 @@ class DDPG(DeepAC):
         self._add_save_attr(
             _critic_fit_params='pickle',
             _critic_predict_params='pickle',
-            _actor_predict_params='pickle',
             _batch_size='mushroom',
             _tau='mushroom',
             _policy_delay='mushroom',
@@ -94,7 +76,7 @@ class DDPG(DeepAC):
             _replay_memory='mushroom',
             _critic_approximator='mushroom',
             _target_critic_approximator='mushroom',
-            _target_actor_approximator='mushroom'
+            _target_policy='mushroom'
         )
         self._add_logger_attr('_critic_approximator', group='critic')
 
@@ -118,7 +100,7 @@ class DDPG(DeepAC):
                     self._logger.log_training('actor', loss=loss.item())
 
             self._update_target(self._critic_approximator, self._target_critic_approximator)
-            self._update_target(self._actor_approximator, self._target_actor_approximator)
+            self._update_target(self.policy, self._target_policy)
 
             self._fit_count += 1
 
@@ -126,7 +108,7 @@ class DDPG(DeepAC):
                 self._logger.advance_step()
 
     def _loss(self, state):
-        action = self._actor_approximator(state, **self._actor_predict_params)
+        action = self.policy.location(state)
         q = self._critic_approximator(state, action, **self._critic_predict_params)
 
         return -q.mean()
@@ -144,7 +126,7 @@ class DDPG(DeepAC):
             action returned by the actor.
 
         """
-        a = self._target_actor_approximator.predict(next_state, **self._actor_predict_params)
+        a = self._target_policy.location(next_state)
 
         q = self._target_critic_approximator.predict(next_state, a, **self._critic_predict_params)
         q *= ~absorbing
@@ -152,5 +134,4 @@ class DDPG(DeepAC):
         return q
 
     def _post_load(self, device):
-        self._actor_approximator = self.policy._approximator
-        self.overwrite_actor_parameters(self._actor_approximator.parameters())
+        self.overwrite_actor_parameters(self.policy.parameters())

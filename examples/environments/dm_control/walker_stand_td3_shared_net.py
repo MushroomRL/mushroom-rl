@@ -22,6 +22,7 @@ from tqdm import trange
 from mushroom_rl.algorithms.actor_critic import TD3
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import DMControl
+from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.policy import ClippedGaussianPolicy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.rl_utils.parameters import LinearParameter
@@ -184,7 +185,6 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
     logger.log_experiment_info(TD3, mdp, n_epochs=n_epochs, n_steps=n_steps, n_episodes_test=n_episode_test)
 
     # Policy
-    policy_class = ClippedGaussianPolicy
     n_actions = mdp.info.action_space.shape[0]
     policy_params = dict(sigma=LinearParameter(np.ones(n_actions), threshold_value=.1 * np.ones(n_actions), n=100000),
                          low=torch.from_numpy(mdp.info.action_space.low).float(),
@@ -210,6 +210,8 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
                         input_shape=actor_input_shape,
                         output_shape=mdp.info.action_space.shape)
 
+    policy = ClippedGaussianPolicy(TorchApproximator(**actor_params), **policy_params)
+
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 1e-4}}
 
@@ -226,8 +228,8 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
                          output_shape=())
 
     # Agent
-    agent = TD3(mdp.info, policy_class, policy_params, actor_params, actor_optimizer, critic_params, batch_size,
-                initial_replay_size, max_replay_size, tau, policy_delay=1, noise_clip=.3,
+    agent = TD3(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
+                tau, policy_delay=1, noise_clip=.3,
                 history_length=history_length)
     agent.add_fit_preprocessor(RandomShiftAugmentation(pad=4))
     encoder_parameters = {id(p) for p in encoder.parameters()}
