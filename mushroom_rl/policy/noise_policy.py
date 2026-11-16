@@ -1,11 +1,11 @@
 import torch
 import numpy as np
 
-from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasWeights, HasLocation
+from mushroom_rl.policy.policy import Policy, StatefulPolicy, HasMeanApproximator
 from mushroom_rl.rl_utils.parameters import CovarianceParameter
 
 
-class OrnsteinUhlenbeckPolicy(HasWeights, HasLocation, StatefulPolicy):
+class OrnsteinUhlenbeckPolicy(HasMeanApproximator, StatefulPolicy):
     """
     Exploration policy adding temporally correlated noise drawn from an Ornstein-Uhlenbeck process.
 
@@ -26,18 +26,14 @@ class OrnsteinUhlenbeckPolicy(HasWeights, HasLocation, StatefulPolicy):
             device (str, None): device the policy is stored on, or ``None`` for the default one.
 
         """
-        super().__init__(policy_state_shape=tuple(mu.output_shape), backend='torch', device=device)
+        super().__init__(mu, policy_state_shape=tuple(mu.output_shape), backend='torch', device=device)
 
-        self._approximator = mu
-        self._predict_params = dict()
         self._sigma = torch.as_tensor(sigma, device=self._device)
         self._theta = theta
         self._dt = dt
         self._x0 = torch.as_tensor(x0, device=self._device) if x0 is not None else None
 
         self._add_save_attr(
-            _approximator='mushroom',
-            _predict_params='pickle',
             _sigma='torch',
             _theta='primitive',
             _dt='primitive',
@@ -61,38 +57,6 @@ class OrnsteinUhlenbeckPolicy(HasWeights, HasLocation, StatefulPolicy):
         with torch.no_grad():
             return self.location(state), policy_state
 
-    def location(self, state):
-        """
-        Compute the location of the action distribution in ``state``, i.e. the action without the exploration noise,
-        differentiable with respect to the policy parameters.
-
-        Args:
-            state (torch.Tensor): the state where the agent is.
-
-        Returns:
-            The location of the action distribution.
-
-        """
-        return self._approximator(state, **self._predict_params)
-
-    def set_weights(self, weights):
-        self._approximator.set_weights(weights)
-
-    def get_weights(self):
-        return self._approximator.get_weights()
-
-    def parameters(self):
-        """
-        Returns:
-            The trainable parameters of the mean approximator.
-
-        """
-        return self._approximator.parameters()
-
-    @property
-    def weights_size(self):
-        return self._approximator.weights_size
-
     def reset(self):
         self._policy_state = self._x0.clone() if self._x0 is not None \
             else torch.zeros(self._approximator.output_shape, device=self._device)
@@ -108,7 +72,7 @@ class OrnsteinUhlenbeckPolicy(HasWeights, HasLocation, StatefulPolicy):
         return self._policy_state
 
 
-class ClippedGaussianPolicy(HasWeights, HasLocation, Policy):
+class ClippedGaussianPolicy(HasMeanApproximator, Policy):
     """
     Gaussian policy whose sampled action is clipped to a given action range.
 
@@ -140,18 +104,14 @@ class ClippedGaussianPolicy(HasWeights, HasLocation, Policy):
             validate_args (bool, False): whether the distribution of the policy validates its parameters.
 
         """
-        super().__init__('torch', device)
+        super().__init__(mu, backend='torch', device=device)
 
-        self._approximator = mu
-        self._predict_params = dict()
         self._sigma = CovarianceParameter.make(sigma, backend='torch', device=self._device)
         self._low = torch.as_tensor(low, device=self._device)
         self._high = torch.as_tensor(high, device=self._device)
         self._validate_args = validate_args
 
         self._add_save_attr(
-            _approximator='mushroom',
-            _predict_params='pickle',
             _sigma='mushroom',
             _low='torch',
             _high='torch',
@@ -178,35 +138,3 @@ class ClippedGaussianPolicy(HasWeights, HasLocation, Policy):
     def draw_action_greedy(self, state):
         with torch.no_grad():
             return torch.clip(self.location(state).reshape(-1), self._low, self._high)
-
-    def location(self, state):
-        """
-        Compute the location of the action distribution in ``state``, i.e. the mean of the Gaussian before
-        clipping, differentiable with respect to the policy parameters.
-
-        Args:
-            state (torch.Tensor): the state where the agent is.
-
-        Returns:
-            The location of the action distribution.
-
-        """
-        return self._approximator(state, **self._predict_params)
-
-    def set_weights(self, weights):
-        self._approximator.set_weights(weights)
-
-    def get_weights(self):
-        return self._approximator.get_weights()
-
-    def parameters(self):
-        """
-        Returns:
-            The trainable parameters of the mean approximator.
-
-        """
-        return self._approximator.parameters()
-
-    @property
-    def weights_size(self):
-        return self._approximator.weights_size

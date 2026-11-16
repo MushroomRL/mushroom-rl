@@ -88,6 +88,8 @@ class DeepAC(Agent):
         super().__init__(mdp_info, policy, backend=backend, device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
+        self._check_device(policy, 'policy')
+
         self._add_save_attr(
             _optimizer='torch',
             _clipping='torch',

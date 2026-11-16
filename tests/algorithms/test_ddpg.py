@@ -5,7 +5,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from helper.dummies import FakeLogger
-from helper.cases import devices
+from helper.cases import devices, needs_cuda
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms.actor_critic import DDPG, TD3, DeepAC
@@ -121,6 +121,16 @@ def test_td3(device, tmpdir):
 
     with pytest.raises(AssertionError):
         learn(TD3, critic_n_models=1)
+
+
+@needs_cuda()
+def test_ddpg_policy_device():
+    actor = TorchApproximator(network=ActorNetwork, n_features=None, n_layers=0, input_shape=(2,), output_shape=(1,),
+                              device='cpu')
+    policy = OrnsteinUhlenbeckPolicy(actor, sigma=torch.ones(1) * .2, theta=.15, dt=1e-2, device='cpu')
+
+    with pytest.raises(AssertionError):
+        learn(DDPG, policy=policy, device='cuda')
 
 
 @pytest.mark.parametrize('device', devices())

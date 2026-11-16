@@ -1,7 +1,7 @@
-from mushroom_rl.policy.policy import Policy, HasWeights, HasLocation
+from mushroom_rl.policy.policy import Policy, HasMeanApproximator
 
 
-class DeterministicPolicy(HasWeights, HasLocation, Policy):
+class DeterministicPolicy(HasMeanApproximator, Policy):
     """
     Simple parametric policy representing a deterministic policy. As
     deterministic policies are degenerate probability functions where all
@@ -18,13 +18,7 @@ class DeterministicPolicy(HasWeights, HasLocation, Policy):
                 in each state. The policy operates in its backend and on its device.
 
         """
-        super().__init__(mu.backend_name, mu.device)
-
-        self._approximator = mu
-        self._predict_params = dict()
-
-        self._add_save_attr(_approximator='mushroom',
-                            _predict_params='pickle')
+        super().__init__(mu, backend=mu.backend_name, device=mu.device)
 
     def get_regressor(self):
         """
@@ -46,16 +40,3 @@ class DeterministicPolicy(HasWeights, HasLocation, Policy):
 
     def draw_action_greedy(self, state):
         return self.location(state)
-
-    def location(self, state):
-        return self._approximator(state, **self._predict_params)
-
-    def set_weights(self, weights):
-        self._approximator.set_weights(weights)
-
-    def get_weights(self):
-        return self._approximator.get_weights()
-
-    @property
-    def weights_size(self):
-        return self._approximator.weights_size

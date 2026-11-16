@@ -12,10 +12,13 @@ greedy evaluation only if it overrides it. For Torch policies the greedy action 
 (a Gaussian returns its mean, a categorical its ``mode``/argmax, a squashed Gaussian its ``median``, since its true
 mode is ill-behaved and can pile up at the action bounds).
 
-Two mixins add optional capabilities that can be combined with a policy: :class:`~mushroom_rl.policy.HasWeights` equips
-it with a set of trainable weights (used by policy-search and black-box optimization algorithms), while
+Three mixins add optional capabilities that can be combined with a policy: :class:`~mushroom_rl.policy.HasWeights`
+equips it with a set of trainable weights (used by policy-search and black-box optimization algorithms),
 :class:`~mushroom_rl.policy.HasGradient` additionally provides the gradient of the log-probability required by
-policy-gradient methods.
+policy-gradient methods, and :class:`~mushroom_rl.policy.HasLocation` provides the location of the action distribution,
+i.e. the action without exploration noise, differentiable for Torch policies, as required by DDPG and TD3.
+:class:`~mushroom_rl.policy.HasMeanApproximator` implements both the weights and the location for a policy built around
+a mean approximator.
 
 MushroomRL provides several families of policies:
 
@@ -40,6 +43,8 @@ reconstructable from the stored transitions, it is assembled on the fly by the
    ~mushroom_rl.policy.policy.StatefulPolicy
    ~mushroom_rl.policy.policy.HasWeights
    ~mushroom_rl.policy.policy.HasGradient
+   ~mushroom_rl.policy.policy.HasLocation
+   ~mushroom_rl.policy.policy.HasMeanApproximator
    ~mushroom_rl.policy.td_policy.EpsGreedy
    ~mushroom_rl.policy.td_policy.Boltzmann
    ~mushroom_rl.policy.td_policy.Mellowmax

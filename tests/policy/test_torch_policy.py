@@ -388,4 +388,4 @@ def test_location():
 
     assert torch.equal(gaussian.location(state), gaussian.distribution(state).mean)
     assert torch.equal(cholesky.location(state), cholesky.distribution(state).mean)
-    assert torch.allclose(squashed.location(state), squashed.distribution(state).median)
+    assert torch.equal(squashed.location(state), squashed.distribution(state).median)

@@ -56,6 +56,18 @@ def test_mixins():
     assert issubclass(GoodLocationPolicy, HasLocation)
     assert not issubclass(IntermediateLocationMixin, Policy)
 
+    class WeightsLocationMixin(HasLocation, HasWeights, is_mixin=True):
+        pass
+
+    class CombinedPolicy(WeightsLocationMixin, Policy):
+        pass
+
+    assert issubclass(CombinedPolicy, HasWeights) and issubclass(CombinedPolicy, HasLocation)
+
+    with pytest.raises(TypeError):
+        class CombinedMixinLast(Policy, WeightsLocationMixin):
+            pass
+
     with pytest.raises(TypeError):
         class BadPolicy(HasWeights):
             pass

@@ -273,7 +273,33 @@ class StatefulPolicy(Policy):
         raise NotImplementedError("'{}' does not define a greedy action.".format(type(self).__name__))
 
 
-class HasWeights:
+class PolicyMixin:
+    """
+    Base class of the policy mixins. A class combining mixins with a :class:`Policy` subclass must list every mixin
+    before the policy class in its base list; a class combining only mixins, which is not a policy itself, must be
+    declared with ``is_mixin=True``.
+
+    """
+    def __init_subclass__(cls, is_mixin=False, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if not is_mixin:
+            mixins = [base for base in cls.__mro__[1:] if issubclass(base, PolicyMixin) and base is not PolicyMixin]
+
+            if not issubclass(cls, Policy):
+                raise TypeError(
+                    "'{}' uses the {} mixin but does not inherit from Policy (intermediate mixins must pass "
+                    "is_mixin=True).".format(cls.__name__, mixins[0].__name__)
+                )
+
+            for mixin in mixins:
+                if cls.__mro__.index(Policy) < cls.__mro__.index(mixin):
+                    raise TypeError(
+                        "'{}' resolves Policy before the {} mixin. Mixins must be listed first, e.g. "
+                        "'class {}({}, Policy)'.".format(cls.__name__, mixin.__name__, cls.__name__, mixin.__name__)
+                    )
+
+
+class HasWeights(PolicyMixin, is_mixin=True):
     """
     Mixin adding a set of trainable parameters (the policy weights) to a policy. It must be combined with a
     :class:`Policy` subclass and placed before it in the base list (e.g. ``class MyPolicy(HasWeights, Policy)`` or
@@ -281,23 +307,6 @@ class HasWeights:
     differentiable, use :class:`HasGradient` instead.
 
     """
-    def __init_subclass__(cls, is_mixin=False, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if is_mixin:
-            return
-
-        if not issubclass(cls, Policy):
-            raise TypeError(
-                "'{}' uses the HasWeights mixin but does not inherit from Policy. HasWeights and HasGradient can only "
-                "be combined with a Policy subclass (intermediate mixins must pass is_mixin=True).".format(cls.__name__)
-            )
-
-        if cls.__mro__.index(Policy) < cls.__mro__.index(HasWeights):
-            raise TypeError(
-                "'{}' resolves Policy before the HasWeights mixin. Mixins must be listed first, e.g. "
-                "'class {}(HasWeights, Policy)'.".format(cls.__name__, cls.__name__)
-            )
-
     def set_weights(self, weights):
         """
         Setter.
@@ -331,27 +340,13 @@ class HasWeights:
         raise NotImplementedError
 
 
-class HasLocation:
+class HasLocation(PolicyMixin, is_mixin=True):
     """
     Mixin adding the location of the action distribution to a policy. It must be combined with a :class:`Policy`
     subclass and placed before it in the base list (e.g. ``class MyPolicy(HasLocation, Policy)``); on its own it is
     not a policy.
 
     """
-    def __init_subclass__(cls, is_mixin=False, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if not is_mixin:
-            if not issubclass(cls, Policy):
-                raise TypeError(
-                    "'{}' uses the HasLocation mixin but does not inherit from Policy.".format(cls.__name__)
-                )
-
-            if cls.__mro__.index(Policy) < cls.__mro__.index(HasLocation):
-                raise TypeError(
-                    "'{}' resolves Policy before the HasLocation mixin. Mixins must be listed first, e.g. "
-                    "'class {}(HasLocation, Policy)'.".format(cls.__name__, cls.__name__)
-                )
-
     def location(self, state, **kwargs):
         """
         Compute the location of the action distribution in ``state``, i.e. the action of the policy without
@@ -416,3 +411,63 @@ class HasGradient(HasWeights, is_mixin=True):
             The derivative w.r.t. the  policy weights
         """
         return self(state, action) * self.diff_log(state, action, policy_state)
+
+
+class HasMeanApproximator(HasWeights, HasLocation, is_mixin=True):
+    """
+    Mixin implementing a policy built around a mean approximator: the weights and the trainable parameters of the
+    policy are those of the approximator, and the location of the action distribution is its output. It must be
+    combined with a :class:`Policy` subclass and placed before it in the base list.
+
+    """
+    def __init__(self, mu, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            mu (Approximator): the approximator computing the mean action in each state;
+            **kwargs: the remaining keyword arguments, passed to the constructor of the base policy.
+
+        """
+        super().__init__(**kwargs)
+
+        self._approximator = mu
+        self._predict_params = dict()
+
+        self._add_save_attr(
+            _approximator='mushroom',
+            _predict_params='pickle'
+        )
+
+    def location(self, state):
+        """
+        Compute the location of the action distribution in ``state``, i.e. the output of the mean approximator,
+        without exploration noise or clipping. For a torch approximator, the result is differentiable with respect to
+        the policy parameters.
+
+        Args:
+            state: the state where the agent is.
+
+        Returns:
+            The location of the action distribution.
+
+        """
+        return self._approximator(state, **self._predict_params)
+
+    def set_weights(self, weights):
+        self._approximator.set_weights(weights)
+
+    def get_weights(self):
+        return self._approximator.get_weights()
+
+    def parameters(self):
+        """
+        Returns:
+            The trainable parameters of the mean approximator.
+
+        """
+        return self._approximator.parameters()
+
+    @property
+    def weights_size(self):
+        return self._approximator.weights_size
