@@ -1,7 +1,5 @@
 import torch
 
-from copy import deepcopy
-
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.value_functions import compute_gae
@@ -90,7 +88,7 @@ class TRPO(OnPolicyDeepAC):
         v_target = v_target.detach()
 
         # Policy update
-        self._old_policy = deepcopy(self.policy)
+        self._old_policy = self.policy.copy()
         old_pol_dist = self._old_policy.distribution(state_old, action_history=prev_action)
         old_log_prob = self._old_policy.log_prob(state_old, action, action_history=prev_action).detach()
 

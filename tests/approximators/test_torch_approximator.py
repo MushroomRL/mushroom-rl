@@ -81,6 +81,61 @@ class ModeRecordingNet(nn.Module):
         self.inits += 1
 
 
+class CountingLinear(nn.Linear):
+    def __init__(self, in_features, out_features):
+        super().__init__(in_features, out_features)
+        self.register_buffer('calls', torch.zeros(()))
+
+    def forward(self, x):
+        self.calls.add_(1)
+        return super().forward(x)
+
+
+class EncodedNet(nn.Module):
+    def __init__(self, input_shape, output_shape, encoder=None, **kwargs):
+        super().__init__()
+        self._encoder = encoder
+        self._h = nn.Linear(encoder.out_features, output_shape[0])
+
+    def forward(self, x):
+        return self._h(F.relu(self._encoder(x.float())))
+
+
+class TiedNet(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+        self._h1 = nn.Linear(input_shape[0], input_shape[0])
+        self._h2 = nn.Linear(input_shape[0], input_shape[0])
+        self._h2.weight = self._h1.weight
+        self._out = nn.Linear(input_shape[0], output_shape[0])
+
+    def forward(self, x):
+        return self._out(F.relu(self._h2(F.relu(self._h1(x.float())))))
+
+
+class FrozenNet(nn.Module):
+    def __init__(self, input_shape, output_shape, encoder=None, **kwargs):
+        super().__init__()
+        self._encoder = encoder
+        self._h1 = nn.Linear(encoder.out_features, encoder.out_features)
+        self._h1.weight.requires_grad_(False)
+        self._h2 = nn.Linear(encoder.out_features, output_shape[0])
+
+    def forward(self, x):
+        return self._h2(F.relu(self._h1(F.relu(self._encoder(x.float())))))
+
+
+class CountingNet(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+        self._h = nn.Linear(input_shape[0], output_shape[0])
+        self.register_buffer('calls', torch.zeros(()))
+
+    def forward(self, x):
+        self.calls.add_(1)
+        return self._h(x.float())
+
+
 def test_predict():
     torch.manual_seed(1)
     approximator = TorchApproximator(input_shape=(4, 8), output_shape=(3,), network=FlatNet)
@@ -242,12 +297,12 @@ def test_logger(tmpdir):
     assert not (logger.path / 'training' / 'critic_loss.npy').exists()
 
 
-@pytest.mark.parametrize('n_models', [None, 2])
-def test_reinitialize(n_models):
+@pytest.mark.parametrize('n_models, ensemble_params', [(None, {}), (2, {}), (2, {'shared_optimizer': False})])
+def test_reinitialize(n_models, ensemble_params):
     def make(reinitialize):
         return TorchApproximator(QNetwork, (2,), (1,), n_features=4,
                                  optimizer={'class': optim.Adam, 'params': {'lr': .5}},
-                                 loss=F.mse_loss, reinitialize=reinitialize, n_models=n_models)
+                                 loss=F.mse_loss, reinitialize=reinitialize, n_models=n_models, **ensemble_params)
 
     torch.manual_seed(0)
     x, y = torch.rand(8, 2), torch.rand(8, 1)
@@ -290,7 +345,7 @@ def test_fit_options(n_models):
         assert isinstance(approximator.network, ModeRecordingNet)
         assert approximator.loss is F.mse_loss
         assert len(approximator.loss_fit) == 2
-        assert [model._optimizer.param_groups[0]['lr'] for model in approximator._models] == [.01, .01]
+        assert approximator._optimizer.param_groups[0]['lr'] == .01
 
 
 def test_ensemble_predict():
@@ -544,6 +599,131 @@ def test_ensemble_save_load(tmpdir):
     assert loaded.predict(unbatched, prediction='min').shape == (2,)
 
 
+@pytest.mark.parametrize('shared_optimizer', [True, False])
+def test_ensemble_optimizer(shared_optimizer):
+    torch.manual_seed(16)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=QNetwork, n_features=8, n_layers=1,
+                                 n_models=3, optimizer={'class': optim.Adam, 'params': {'lr': 1e-2}},
+                                 loss=F.mse_loss, shared_optimizer=shared_optimizer)
+    x, y = torch.rand(16, 4), torch.rand(16, 2)
+    ensemble.fit(x, y, n_epochs=2)
+    weights = ensemble.get_weights()
+
+    assert weights.shape == ensemble.weights_size
+    assert [p.shape for p in ensemble.parameters()] == [(3, *p.shape) for p in ensemble[0].network.parameters()]
+    assert torch.allclose(ensemble.predict(x, prediction='all'),
+                          torch.stack([ensemble.predict(x, idx=i) for i in range(3)]), atol=1e-6)
+
+    if shared_optimizer:
+        with pytest.raises(AssertionError):
+            ensemble.fit(x, y, idx=1)
+    else:
+        ensemble.set_learning_rate(.5)
+        ensemble.fit(x, y, idx=1)
+        fitted = ensemble.get_weights()
+
+        assert [model._optimizer.param_groups[0]['lr'] for model in ensemble] == [.5, .5, .5]
+        assert torch.equal(fitted[[0, 2]], weights[[0, 2]]) and not torch.equal(fitted[1], weights[1])
+        assert torch.allclose(ensemble.predict(x, prediction='all')[1], ensemble.predict(x, idx=1), atol=1e-6)
+
+
+@pytest.mark.parametrize('shared_optimizer', [True, False])
+def test_ensemble_shared_parameters(shared_optimizer):
+    torch.manual_seed(17)
+    encoder = CountingLinear(4, 5)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=EncodedNet, encoder=encoder,
+                                 n_models=2, optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss,
+                                 shared_optimizer=shared_optimizer)
+    x, y = torch.rand(16, 4), torch.rand(16, 2)
+    parameters = list(dict.fromkeys(p for model in ensemble for p in model.network.parameters()))
+    loss = sum(F.mse_loss(model.network(x), y) for model in ensemble)
+    expected = [(p - .1 * g).detach() for p, g in zip(parameters, torch.autograd.grad(loss, parameters))]
+    ensemble.fit(x, y)
+    ensemble.predict(x)
+
+    if shared_optimizer:
+        assert all(torch.allclose(p, e, atol=1e-6) for p, e in zip(parameters, expected))
+
+    with torch.no_grad():
+        encoder.weight.add_(1.)
+
+    assert [p.shape for p in ensemble.parameters()] == [(5, 4), (5,), (2, 2, 5), (2, 2)]
+    assert torch.allclose(ensemble.predict(x, prediction='all'),
+                          torch.stack([ensemble.predict(x, idx=i) for i in range(2)]), atol=1e-6)
+
+    weights = ensemble.get_weights()
+    weights[0, :25], weights[1, :25] = 1., 2.
+    ensemble.set_weights(weights)
+
+    assert torch.equal(encoder.weight, torch.full((5, 4), 2.)) and torch.equal(encoder.bias, torch.full((5,), 2.))
+    assert torch.equal(ensemble.get_weights()[:, 25:], weights[:, 25:])
+
+
+@pytest.mark.parametrize('shared_optimizer', [True, False])
+def test_ensemble_frozen_parameters(shared_optimizer):
+    torch.manual_seed(20)
+    encoder = nn.Linear(4, 5)
+    encoder.weight.requires_grad_(False)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=FrozenNet, encoder=encoder,
+                                 n_models=2, optimizer={'class': optim.Adam, 'params': {'lr': 1e-2}},
+                                 loss=F.mse_loss, shared_optimizer=shared_optimizer)
+    weights = ensemble.get_weights()
+    ensemble.fit(torch.rand(16, 4), torch.rand(16, 2))
+    changed = (ensemble.get_weights() != weights).any(0)
+
+    assert not changed[:20].any() and not changed[25:50].any()
+    assert changed[20:25].any() and changed[50:].any()
+
+
+def test_ensemble_tied_weights():
+    torch.manual_seed(19)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=TiedNet, n_models=2, batch_size=0,
+                                 optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss)
+    x, y = torch.rand(16, 4), torch.rand(16, 2)
+
+    assert torch.allclose(ensemble.predict(x, prediction='all'),
+                          torch.stack([ensemble.predict(x, idx=i) for i in range(2)]), atol=1e-6)
+
+    expected = list()
+    for model in ensemble:
+        parameters = list(model.network.parameters())
+        gradient = torch.autograd.grad(F.mse_loss(model.network(x), y), parameters)
+        expected.append(torch.cat([(p - .1 * g).detach().flatten() for p, g in zip(parameters, gradient)]))
+    ensemble.fit(x, y)
+
+    assert torch.allclose(ensemble.get_weights(), torch.stack(expected), atol=1e-6)
+    assert all(model.network._h1.weight is model.network._h2.weight for model in ensemble)
+
+
+@pytest.mark.parametrize('shared_optimizer', [True, False])
+def test_ensemble_storage(shared_optimizer, tmpdir):
+    torch.manual_seed(18)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=CountingNet, n_models=2,
+                                 optimizer={'class': optim.Adam, 'params': {'lr': 1e-2}}, loss=F.mse_loss,
+                                 shared_optimizer=shared_optimizer)
+    x, y = torch.rand(16, 4), torch.rand(16, 2)
+    ensemble.predict(x)
+    ensemble.predict(x, idx=1)
+
+    assert [model.network.calls.item() for model in ensemble] == [1., 2.]
+
+    ensemble.fit(x, y)
+    copied = ensemble.copy()
+    path = str(tmpdir / 'ensemble.msh')
+    ensemble.save(path)
+    loaded = TorchApproximator.load(path)
+    for approximator in [ensemble, copied, loaded]:
+        approximator.fit(x, y)
+
+        assert torch.allclose(approximator.predict(x, prediction='all'),
+                              torch.stack([approximator.predict(x, idx=i) for i in range(2)]), atol=1e-6)
+
+    assert torch.equal(copied.get_weights(), ensemble.get_weights())
+    assert torch.equal(loaded.get_weights(), ensemble.get_weights())
+    with pytest.raises(AssertionError):
+        ensemble[0].to('cpu')
+
+
 def test_ensemble_full_batch():
     torch.manual_seed(7)
 
@@ -576,10 +756,11 @@ def test_to_device(n_models, device):
 
     assert approximator.to(device) is approximator
 
-    models = [approximator] if n_models == 1 else approximator._models
     assert approximator.device == device
+    if n_models > 1:
+        assert {model.device for model in approximator} == {device}
     assert {p.device.type for p in approximator.parameters()} == {device}
-    assert {value.device.type for m in models for state in m._optimizer.state.values() for value in state.values()
+    assert {value.device.type for state in approximator._optimizer.state.values() for value in state.values()
             if torch.is_tensor(value) and value.ndim > 0} == {device}
 
     approximator.fit(x.to(device), y.to(device), n_epochs=2)

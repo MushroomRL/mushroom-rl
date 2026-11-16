@@ -217,10 +217,12 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
                        'params': {'lr': 1e-4}}
 
     critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
-    # halved: the shared encoder is stepped once per critic model, i.e. twice per fit
+    # one optimizer per critic model: the shared encoder is stepped once per critic model, i.e. twice per fit,
+    # hence the halved learning rate
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 5e-5}},
+                         shared_optimizer=False,
                          loss=F.mse_loss,
                          n_features=n_features,
                          feature_dim=feature_dim,

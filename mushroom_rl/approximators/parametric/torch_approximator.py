@@ -87,7 +87,6 @@ class TorchApproximator(Approximator):
         else:
             self._optimizer = None
         self._last_loss = None
-        self._dirty = False
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss, self._store_loss, quiet,
                                      device=self._device)
@@ -109,7 +108,6 @@ class TorchApproximator(Approximator):
     def _reinitialize(self):
         self.network.reset_parameters()
         self._optimizer.state.clear()
-        self._dirty = True
 
     def _pad_inputs(self, args, kwargs):
         n_declared = len(self._input_ndims)
@@ -169,7 +167,6 @@ class TorchApproximator(Approximator):
         args = args[:-n_targets] + kwargs_data + args[-n_targets:]
 
         self._trainer.fit(args, n_epochs, weights, epsilon, patience, validation_split, kwargs)
-        self._dirty = True
 
         if self._trainer.dropout:
             self.network.eval()
@@ -269,7 +266,6 @@ class TorchApproximator(Approximator):
 
         """
         TorchUtils.set_weights(self.network.parameters(), weights)
-        self._dirty = True
 
     def get_weights(self):
         """
@@ -321,6 +317,42 @@ class TorchApproximator(Approximator):
         return torch.stack(gradients, -1).reshape(-1, *y_hat.shape[1:])
 
 
+class TorchEnsembleMember(TorchApproximator):
+    """
+    Model of a ``TorchEnsemble``. Its parameters are the slice of the ensemble's stacked parameters at its index:
+    it is saved, loaded and moved by its ensemble only, and it can be fitted alone only when the ensemble has one
+    optimizer per model.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            *args: positional parameters of ``TorchApproximator``;
+            **kwargs: keyword parameters of ``TorchApproximator``.
+
+        """
+        super().__init__(*args, **kwargs)
+
+        self._ensemble_move = False
+        del self._save_attributes['network']
+
+    def to(self, device):
+        assert self._ensemble_move, 'A model of an ensemble moves with its ensemble: call to on the ensemble.'
+        return super().to(device)
+
+    def fit(self, *args, **kwargs):
+        assert self._optimizer is not None, \
+            'Fitting a single model of an ensemble requires an ensemble built with shared_optimizer=False.'
+        super().fit(*args, **kwargs)
+
+    def _post_load(self, device):
+        self._ensemble_move = False
+        self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+
+
 class TorchEnsemble(Ensemble):
     """
     Ensemble of TorchApproximator models trained in parallel using ``torch.func.vmap`` and
@@ -330,7 +362,8 @@ class TorchEnsemble(Ensemble):
 
     def __init__(self, network, input_shape, output_shape, optimizer=None, loss=None, batch_size=0, n_fit_targets=1,
                  reinitialize=False, dropout=False, quiet=True, n_models=None, prediction='mean',
-                 randomness='different', action_history_shape=None, kwargs_shape=None, device=None, **params):
+                 randomness='different', shared_optimizer=True, action_history_shape=None, kwargs_shape=None,
+                 device=None, **params):
         """
         Constructor.
 
@@ -357,6 +390,9 @@ class TorchEnsemble(Ensemble):
                 noisy layer, or dropout) behave across the models of the ensemble. ``'different'`` draws
                 independent randomness per model, ``'same'`` shares a single draw across all models, and
                 ``'error'`` forbids random operations altogether;
+            shared_optimizer (bool, True): if True, a single optimizer updates all the models, stepping the
+                parameters shared between models once with the sum of their gradients; if False, each model has its
+                own optimizer, and a single model can be fitted with ``idx``;
             action_history_shape (tuple, None): the per-timestep shape of the ``action_history``
                 keyword input, when the network consumes the previous action. Convenience shortcut
                 for ``kwargs_shape={'action_history': action_history_shape}``;
@@ -368,14 +404,15 @@ class TorchEnsemble(Ensemble):
             **params: dictionary of parameters needed to construct the network.
 
         """
-        super().__init__(TorchApproximator, n_models, prediction=prediction,
+        super().__init__(TorchEnsembleMember, n_models, prediction=prediction,
                          input_shape=input_shape, output_shape=output_shape, network=network,
-                         optimizer=optimizer, loss=loss, batch_size=batch_size,
+                         optimizer=None if shared_optimizer else optimizer, loss=loss, batch_size=batch_size,
                          n_fit_targets=n_fit_targets, reinitialize=reinitialize,
                          dropout=dropout, quiet=quiet, action_history_shape=action_history_shape,
                          kwargs_shape=kwargs_shape, device=device, **params)
 
         self._randomness = randomness
+        self._shared_optimizer = shared_optimizer
         self._input_ndims = [len(s) for s in input_shape] if isinstance(input_shape, list) else [len(input_shape)]
 
         kwargs_shape = dict(kwargs_shape) if kwargs_shape is not None else dict()
@@ -383,39 +420,55 @@ class TorchEnsemble(Ensemble):
             kwargs_shape['action_history'] = action_history_shape
         self._kwargs_ndims = {name: len(shape) for name, shape in kwargs_shape.items()}
 
-        self._base_model = deepcopy(self._models[0].network).to('meta').eval()
-        self._params, self._buffers = stack_module_state([m.network for m in self._models])
+        networks = [m.network for m in self._models]
+        params, buffers = stack_module_state(networks)
+        self._shared_params = self._shared_names(networks, 'get_parameter', params)
+        self._shared_buffers = self._shared_names(networks, 'get_buffer', buffers)
+        self._params = {name: torch.nn.Parameter(p.detach(), requires_grad=p.requires_grad)
+                        for name, p in params.items() if name not in self._shared_params}
+        self._buffers = {name: b for name, b in buffers.items() if name not in self._shared_buffers}
+        self._shared_objects = self._find_shared_objects(networks, self._shared_params + self._shared_buffers)
+        self._bind_members()
+
+        if shared_optimizer and optimizer is not None:
+            self._optimizer = optimizer['class'](self.parameters(), **optimizer['params'])
+        else:
+            self._optimizer = None
+
+        self._base_model = self._meta_template(networks[0])
         self._trainer = TorchTrainer(loss, batch_size, n_fit_targets, reinitialize, dropout,
                                      self._fit_epoch, self._compute_val_loss,
                                      self._store_loss, quiet, device=self._device)
 
         self._add_save_attr(
             _randomness='primitive',
+            _shared_optimizer='primitive',
             _input_ndims='primitive',
             _kwargs_ndims='primitive',
+            _shared_params='primitive',
+            _shared_buffers='primitive',
+            _base_model='pickle',
+            _params='torch',
+            _buffers='torch',
+            _optimizer='torch',
+            _shared_objects='torch',
             _trainer='mushroom',
         )
 
-    def _sync_params(self):
-        if any(m._dirty for m in self._models):
-            self._params, self._buffers = stack_module_state([m.network for m in self._models])
-            for m in self._models:
-                m._dirty = False
+    def __deepcopy__(self, memo):
+        copied = MushroomObject.__new__(type(self))
+        memo[id(self)] = copied
+        for name, value in self.__dict__.items():
+            setattr(copied, name, deepcopy(value, memo))
+        copied._bind_members()
 
-    def _post_load(self, device):
-        super()._post_load(device)
+        return copied
 
-        self._base_model = deepcopy(self._models[0].network).to('meta').eval()
+    def to(self, device):
         for m in self._models:
-            m._dirty = True
-        self._sync_params()
-        self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+            m._ensemble_move = True
 
-    def _parse_single_output(self, out, prediction, compute_variance):
-        return self._aggregate(out, prediction, compute_variance)
-
-    def _parse_multi_output(self, out, prediction, compute_variance):
-        return tuple(self._aggregate(o, prediction, compute_variance) for o in out)
+        return super().to(device)
 
     def predict(self, *args, idx=None, prediction=None, compute_variance=False, **kwargs):
         """
@@ -444,8 +497,6 @@ class TorchEnsemble(Ensemble):
         if idx is not None:
             return self._models[idx].predict(*args, **kwargs)
 
-        self._sync_params()
-
         n_declared = len(self._input_ndims)
         torch_args = tuple(torch.as_tensor(x, device=self._device) for x in args)
         single = self._is_single(torch_args[0])
@@ -461,7 +512,7 @@ class TorchEnsemble(Ensemble):
 
         prediction = prediction if prediction is not None else self._prediction
 
-        out = self._unbatch(vmap(fwd, randomness=self._randomness)(self._params, self._buffers), single, axis=1)
+        out = self._unbatch(vmap(fwd, randomness=self._randomness)(*self._functional_state()), single, axis=1)
 
         return self._parse_output(out, prediction, compute_variance)
 
@@ -473,7 +524,8 @@ class TorchEnsemble(Ensemble):
         Args:
             *args: input, where the last ``n_fit_targets`` elements are considered as the target,
                 while the others are considered as input;
-            idx (int, None): if provided, fit only the model at that index;
+            idx (int, None): if provided, fit only the model at that index. Requires an ensemble built with
+                ``shared_optimizer=False``;
             n_epochs (int, None): the number of training epochs;
             weights (torch.Tensor, None): the weights of each sample in the computation of the loss;
             epsilon (float, None): the coefficient used for early stopping;
@@ -486,12 +538,10 @@ class TorchEnsemble(Ensemble):
         if idx is not None:
             self._models[idx].fit(*args, n_epochs=n_epochs, weights=weights, epsilon=epsilon,
                                   patience=patience, validation_split=validation_split, **kwargs)
-            self._sync_params()
             return
 
         if self._trainer.reinitialize:
-            for m in self._models:
-                m._reinitialize()
+            self._reinitialize()
 
         if self._trainer.dropout:
             self._base_model.train()
@@ -509,8 +559,172 @@ class TorchEnsemble(Ensemble):
             for m in self._models:
                 m.network.eval()
 
-        self._sync_params()
         self._log()
+
+    def parameters(self):
+        """
+        Returns:
+            The parameters of the ensemble: a stacked tensor with a leading model axis for each parameter of the
+            network, and the parameters the models share with each other once each.
+
+        """
+        return [self._params.get(name, p) for name, p in self._models[0].network.named_parameters()]
+
+    def set_learning_rate(self, lr):
+        """
+        Set the learning rate of the optimizer of all models in the ensemble.
+
+        Args:
+            lr (float): the new learning rate.
+
+        """
+        if self._shared_optimizer:
+            assert self._optimizer is not None, "Cannot set learning rate: optimizer not set."
+            for param_group in self._optimizer.param_groups:
+                param_group['lr'] = lr
+        else:
+            for m in self._models:
+                m.set_learning_rate(lr)
+
+    def set_weights(self, weights):
+        """
+        Set weights for each model in the ensemble independently.
+
+        Args:
+            weights: tensor of shape ``(n_models, weights_size_per_model)``.
+
+        """
+        offset = 0
+        for name, p in self._models[0].network.named_parameters():
+            size = p.numel()
+            block = torch.as_tensor(weights[:, offset:offset + size])
+            if name in self._params:
+                self._params[name].data.copy_(block.reshape(self._params[name].shape))
+            else:
+                p.data.copy_(block[-1].reshape(p.shape))
+            offset += size
+
+    def get_weights(self):
+        """
+        Returns:
+            The stacked weights of all models, shape ``(n_models, weights_size_per_model)``.
+
+        """
+        n_models = len(self._models)
+
+        return torch.cat([self._params[name].detach().reshape(n_models, -1) if name in self._params
+                          else p.detach().reshape(1, -1).expand(n_models, -1)
+                          for name, p in self._models[0].network.named_parameters()], 1)
+
+    def diff(self, *args, **kwargs):
+        """
+        Compute the derivative of the output w.r.t. the model parameters for each model, stacked.
+
+        Args:
+            *args: input;
+            **kwargs: other parameters used by the diff method of the approximator.
+
+        Returns:
+            The stacked derivatives of all models w.r.t. the model parameters, shape
+            ``(n_models, weights_size, *output_shape)``.
+
+        """
+        return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)
+
+    @property
+    def network(self):
+        """
+        Returns:
+            The network of the first model in the ensemble.
+
+        """
+        return self._models[0].network
+
+    @property
+    def loss(self):
+        """
+        Returns:
+            The loss function optimized by the fit method.
+
+        """
+        return self._trainer.loss
+
+    @property
+    def loss_fit(self):
+        """
+        Returns:
+            List of per-model losses from the last fit call.
+
+        """
+        return [m.loss_fit for m in self._models]
+
+    @property
+    def weights_size(self):
+        """
+        Returns:
+            The shape of the stacked weights matrix ``(n_models, weights_size_per_model)``.
+
+        """
+        return len(self._models), self._models[0].weights_size
+
+    def _post_load(self, device):
+        super()._post_load(device)
+
+        self._build_members()
+        if self._optimizer is not None:
+            TorchUtils.update_optimizer_parameters(self._optimizer, self.parameters())
+        for m in self._models:
+            if m._optimizer is not None:
+                TorchUtils.update_optimizer_parameters(m._optimizer, list(m.network.parameters()))
+        self._trainer.set_callbacks(self._fit_epoch, self._compute_val_loss, self._store_loss)
+
+    def _build_members(self):
+        template = self._base_model
+        for i, m in enumerate(self._models):
+            memo = {id(self._get_object(template, name)): obj for name, obj in self._shared_objects.items()}
+            memo.update({id(template.get_parameter(name)): torch.nn.Parameter(p.data[i], requires_grad=p.requires_grad)
+                         for name, p in self._params.items()})
+            memo.update({id(template.get_buffer(name)): b[i] for name, b in self._buffers.items()})
+            m.network = deepcopy(template, memo)
+
+    def _bind_members(self):
+        for i, network in enumerate(m.network for m in self._models):
+            for name, p in self._params.items():
+                network.get_parameter(name).data = p.data[i]
+            for name, b in self._buffers.items():
+                network.get_buffer(name).data = b.data[i]
+
+    def _functional_state(self):
+        params, buffers = self._params, self._buffers
+        if self._shared_params or self._shared_buffers:
+            n_models = len(self._models)
+            network = self._models[0].network
+            params = dict(params)
+            buffers = dict(buffers)
+            for name in self._shared_params:
+                p = network.get_parameter(name)
+                params[name] = p.expand(n_models, *p.shape)
+            for name in self._shared_buffers:
+                b = network.get_buffer(name)
+                # a copy per model: in-place updates made by the forward cannot be written to a single shared buffer
+                buffers[name] = b.expand(n_models, *b.shape).clone()
+
+        return params, buffers
+
+    def _reinitialize(self):
+        if self._shared_optimizer:
+            for m in self._models:
+                m.network.reset_parameters()
+            self._optimizer.state.clear()
+        else:
+            for m in self._models:
+                m._reinitialize()
+
+    def _parse_single_output(self, out, prediction, compute_variance):
+        return self._aggregate(out, prediction, compute_variance)
+
+    def _parse_multi_output(self, out, prediction, compute_variance):
+        return tuple(self._aggregate(o, prediction, compute_variance) for o in out)
 
     def _fit_epoch(self, args, use_weights, network_kwargs):
         n_models = len(self._models)
@@ -527,8 +741,6 @@ class TorchEnsemble(Ensemble):
         return torch.stack(loss_current).mean(dim=0)
 
     def _fit_batch(self, stacked_batch, use_weights, network_kwargs):
-        self._sync_params()
-
         if use_weights:
             stacked_w = stacked_batch[-1].float()
             stacked_data = stacked_batch[:-1]
@@ -565,16 +777,29 @@ class TorchEnsemble(Ensemble):
 
         per_model_grads, per_model_losses = vmap(
             grad(compute_loss, has_aux=True), randomness=self._randomness
-        )(self._params, self._buffers, *all_data)
-
-        for i, m in enumerate(self._models):
-            m._optimizer.zero_grad()
-            for name, param in m.network.named_parameters():
-                param.grad = per_model_grads[name][i]
-            m._optimizer.step()
-            m._dirty = True
+        )(*self._functional_state(), *all_data)
+        self._optimizer_step(per_model_grads)
 
         return per_model_losses.detach()
+
+    def _optimizer_step(self, per_model_grads):
+        if self._shared_optimizer:
+            self._optimizer.zero_grad()
+            for name, param in self._params.items():
+                if param.requires_grad:
+                    param.grad = per_model_grads[name]
+            for name in self._shared_params:
+                param = self._models[0].network.get_parameter(name)
+                if param.requires_grad:
+                    param.grad = per_model_grads[name].sum(0)
+            self._optimizer.step()
+        else:
+            for i, m in enumerate(self._models):
+                m._optimizer.zero_grad()
+                for name, param in m.network.named_parameters():
+                    if param.requires_grad:
+                        param.grad = per_model_grads[name][i]
+                m._optimizer.step()
 
     def _compute_val_loss(self, val_args, use_weights, network_kwargs):
         if use_weights:
@@ -598,7 +823,7 @@ class TorchEnsemble(Ensemble):
             return trainer.compute_loss_from_output(y_hat, y_targets, weights)
 
         with torch.no_grad():
-            losses = vmap(compute_loss, randomness=self._randomness)(self._params, self._buffers)
+            losses = vmap(compute_loss, randomness=self._randomness)(*self._functional_state())
         return float(losses.mean().item())
 
     def _store_loss(self, losses):
@@ -609,92 +834,38 @@ class TorchEnsemble(Ensemble):
         for m in self._models:
             m._log()
 
-    def parameters(self):
-        """
-        Returns:
-            The concatenated parameters of all models in the ensemble.
+    @staticmethod
+    def _meta_template(network):
+        memo = {id(p): torch.nn.Parameter(p.detach().to('meta'), requires_grad=p.requires_grad)
+                for p in network.parameters()}
+        memo.update({id(b): b.to('meta') for b in network.buffers()})
 
-        """
-        return [p for m in self._models for p in m.parameters()]
+        return deepcopy(network, memo)
 
-    @property
-    def network(self):
-        """
-        Returns:
-            The network of the first model in the ensemble.
+    @staticmethod
+    def _find_shared_objects(networks, tensor_names):
+        modules = [name for name, module in networks[0].named_modules()
+                   if name and all(network.get_submodule(name) is module for network in networks)]
+        names = [name for name in modules + tensor_names
+                 if not any(name.startswith(module + '.') for module in modules)]
 
-        """
-        return self._models[0].network
+        return {name: TorchEnsemble._get_object(networks[0], name) for name in names}
 
-    @property
-    def loss(self):
-        """
-        Returns:
-            The loss function optimized by the fit method.
+    @staticmethod
+    def _get_object(network, name):
+        module_name, _, attribute = name.rpartition('.')
 
-        """
-        return self._trainer.loss
+        return getattr(network.get_submodule(module_name), attribute)
 
-    @property
-    def loss_fit(self):
-        """
-        Returns:
-            List of per-model losses from the last fit call.
+    @staticmethod
+    def _shared_names(networks, getter, names):
+        shared = list()
+        for name in names:
+            tensors = [getattr(network, getter)(name) for network in networks]
+            if all(t is tensors[0] for t in tensors):
+                shared.append(name)
+            else:
+                assert len({id(t) for t in tensors}) == len(tensors), \
+                    f'{name} is shared by some models of the ensemble but not by all of them.'
 
-        """
-        return [m.loss_fit for m in self._models]
-
-    def set_learning_rate(self, lr):
-        """
-        Set the learning rate of the optimizer of all models in the ensemble.
-
-        Args:
-            lr (float): the new learning rate.
-
-        """
-        for m in self._models:
-            m.set_learning_rate(lr)
-
-    def set_weights(self, weights):
-        """
-        Set weights for each model in the ensemble independently.
-
-        Args:
-            weights: tensor of shape ``(n_models, weights_size_per_model)``.
-
-        """
-        for i, m in enumerate(self._models):
-            m.set_weights(weights[i])
-        self._sync_params()
-
-    def get_weights(self):
-        """
-        Returns:
-            The stacked weights of all models, shape ``(n_models, weights_size_per_model)``.
-
-        """
-        return torch.stack([m.get_weights() for m in self._models])
-
-    @property
-    def weights_size(self):
-        """
-        Returns:
-            The shape of the stacked weights matrix ``(n_models, weights_size_per_model)``.
-
-        """
-        return len(self._models), self._models[0].weights_size
-
-    def diff(self, *args, **kwargs):
-        """
-        Compute the derivative of the output w.r.t. the model parameters for each model, stacked.
-
-        Args:
-            *args: input;
-            **kwargs: other parameters used by the diff method of the approximator.
-
-        Returns:
-            The stacked derivatives of all models w.r.t. the model parameters, shape
-            ``(n_models, weights_size, *output_shape)``.
-
-        """
-        return torch.stack([m.diff(*args, **kwargs) for m in self._models], dim=0)
+        return shared

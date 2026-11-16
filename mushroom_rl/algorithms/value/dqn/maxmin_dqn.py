@@ -25,6 +25,7 @@ class MaxminDQN(DQN):
         params['approximator_params'] = dict(params['approximator_params'])
         params['approximator_params']['n_models'] = n_approximators
         params['approximator_params']['prediction'] = 'min'
+        params['approximator_params']['shared_optimizer'] = False
 
         super().__init__(mdp_info, policy, approximator, **params)
 
