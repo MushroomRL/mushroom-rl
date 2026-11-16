@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import torch
 
+from zipfile import ZipFile
+
 from helper.cases import needs_cuda
 
 from mushroom_rl.core import MushroomObject
@@ -83,6 +85,17 @@ class DummyListClass(MushroomObject):
         return all(self._eq(getattr(self, a), getattr(other, a)) for a in attributes)
 
 
+class DummyOptimizerClass(MushroomObject):
+    def __init__(self):
+        self.network = torch.nn.Linear(3, 2)
+        self.optimizer = torch.optim.Adam(self.network.parameters())
+
+        self._add_save_attr(network='torch', optimizer='torch')
+
+    def _post_load(self, device):
+        TorchUtils.update_optimizer_parameters(self.optimizer, list(self.network.parameters()))
+
+
 @pytest.mark.parametrize('save_device, load_device', [('cpu', 'cpu'),
                                                       pytest.param('cuda', 'cpu', marks=needs_cuda()),
                                                       pytest.param('cpu', 'cuda', marks=needs_cuda())])
@@ -112,6 +125,28 @@ def test_serialization_lists(tmpdir):
     assert isinstance(b.torch_list, list) and isinstance(b.torch_list[0], torch.Tensor)
     assert isinstance(b.mushroom_list[0], DummyLeaf)
     assert isinstance(b.mushroom_nested[0], list) and isinstance(b.mushroom_nested[0][0], DummyLeaf)
+
+
+def test_serialization_optimizer(tmpdir):
+    torch.manual_seed(1)
+    a = DummyOptimizerClass()
+    a.network(torch.randn(4, 3)).sum().backward()
+    a.optimizer.step()
+    a.save(tmpdir / 'optimizer.msh')
+
+    with ZipFile(tmpdir / 'optimizer.msh') as zip_file:
+        saved = MushroomObject._load_torch(zip_file, 'optimizer.torch')
+    b = MushroomObject.load(tmpdir / 'optimizer.msh')
+
+    saved_params = saved.param_groups[0]['params']
+    assert [p.device.type for p in saved_params] == ['meta', 'meta']
+    assert [p.shape for p in saved_params] == [(2, 3), (2,)]
+    assert all(any(k is p for p in saved_params) for k in saved.state)
+    assert all(x is y for x, y in zip(a.optimizer.param_groups[0]['params'], a.network.parameters()))
+    assert all(x is y for x, y in zip(b.optimizer.param_groups[0]['params'], b.network.parameters()))
+    for p_a, p_b in zip(a.network.parameters(), b.network.parameters()):
+        for key in ['step', 'exp_avg', 'exp_avg_sq']:
+            assert torch.equal(a.optimizer.state[p_a][key], b.optimizer.state[p_b][key])
 
 
 def test_save_methods(tmpdir):

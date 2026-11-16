@@ -3,6 +3,7 @@ import torch
 import pickle
 import numpy as np
 
+from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 
@@ -384,9 +385,39 @@ class MushroomObject(object):
 
     @staticmethod
     def _save_torch(zip_file, name, obj, folder, **_):
+        if isinstance(obj, torch.optim.Optimizer):
+            obj = MushroomObject._detach_optimizer(obj)
         path = MushroomObject._append_folder(folder, name)
         with zip_file.open(path, 'w') as f:
             torch.save(obj, f)
+
+    @staticmethod
+    def _detach_optimizer(optimizer):
+        """
+        Copy a torch optimizer, replacing its parameters with meta tensors of the same shape and dtype. The
+        optimizer is not modified.
+
+        Args:
+            optimizer (torch.optim.Optimizer): the optimizer to copy.
+
+        Returns:
+            The copy of the optimizer, sharing its state tensors.
+
+        """
+        placeholders = dict()
+
+        def placeholder(p):
+            if id(p) not in placeholders:
+                placeholders[id(p)] = torch.empty_like(p, device='meta')
+            return placeholders[id(p)]
+
+        detached = type(optimizer).__new__(type(optimizer))
+        detached.__dict__.update(optimizer.__dict__)
+        detached.param_groups = [dict(group, params=[placeholder(p) for p in group['params']])
+                                 for group in optimizer.param_groups]
+        detached.state = defaultdict(dict, {placeholder(p): s for p, s in optimizer.state.items()})
+
+        return detached
 
     @staticmethod
     def _save_json(zip_file, name, obj, folder, **_):
