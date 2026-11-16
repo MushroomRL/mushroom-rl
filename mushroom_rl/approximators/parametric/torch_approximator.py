@@ -312,18 +312,11 @@ class TorchApproximator(Approximator):
         y_hat = self.network(*args, **kwargs)
         assert y_hat.shape[0] == 1, 'diff supports a single sample only.'
 
+        parameters = list(self.network.parameters())
         gradients = list()
         for y in y_hat.flatten():
-            TorchUtils.zero_grad(self.network.parameters())
-            y.backward(retain_graph=True)
-
-            gradient = list()
-            for p in self.network.parameters():
-                g = p.grad.data.detach()
-                gradient.append(g.flatten())
-
-            g = torch.concatenate(gradient)
-            gradients.append(g)
+            gradient = torch.autograd.grad(y, parameters, retain_graph=True, materialize_grads=True)
+            gradients.append(torch.concatenate([g.flatten() for g in gradient]))
 
         return torch.stack(gradients, -1).reshape(-1, *y_hat.shape[1:])
 

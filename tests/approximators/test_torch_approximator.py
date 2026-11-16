@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 
@@ -5,7 +7,7 @@ from helper.cases import devices
 
 from mushroom_rl.core import Logger
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.approximators.parametric.networks import QNetwork
+from mushroom_rl.approximators.parametric.networks import LinearNetwork, QNetwork
 
 import torch
 import torch.nn as nn
@@ -13,17 +15,74 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 
+class FlatNet(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+        self._h = nn.Linear(math.prod(input_shape), output_shape[0])
+
+    def forward(self, x):
+        return self._h(x.float().reshape(x.shape[0], -1))
+
+
+class KwargNet(nn.Module):
+    def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
+        super().__init__()
+        self._h = nn.Linear(input_shape[0] + extra_shape[0], output_shape[0])
+
+    def forward(self, x, extra=None):
+        return self._h(torch.cat([x, extra], dim=-1))
+
+
+class ConvNet(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+        self._c = nn.Conv2d(input_shape[0], 2, kernel_size=4, stride=4)
+        self._h = nn.Linear(2 * 5 * 5, output_shape[0])
+
+    def forward(self, x):
+        h = F.relu(self._c(x.float()))
+        return self._h(h.view(h.shape[0], -1))
+
+
+class TwoHeadNet(nn.Module):
+    def __init__(self, input_shape, output_shape, **kwargs):
+        super().__init__()
+        self._a = nn.Linear(input_shape[0], output_shape[0][0])
+        self._b = nn.Linear(input_shape[0], output_shape[1][0])
+
+    def forward(self, x):
+        return self._a(x.float()), self._b(x.float())
+
+
+class KwargLinear(nn.Module):
+    def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
+        super().__init__()
+        self._wx = nn.Parameter(torch.zeros(1))
+        self._we = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x, extra=None):
+        return self._wx * x + self._we * extra
+
+
+class ModeRecordingNet(nn.Module):
+    def __init__(self, input_shape, output_shape, action_history_shape=None, **kwargs):
+        super().__init__()
+        self.history_shape = action_history_shape
+        self.modes = list()
+        self.inits = 0
+        self._h = nn.Linear(input_shape[0] + action_history_shape[0], 1)
+        self._dropout = nn.Dropout(.5)
+
+    def forward(self, x, action_history=None):
+        self.modes.append(self.training)
+        return self._h(self._dropout(torch.cat([x.float(), action_history.float()], -1))).squeeze(-1)
+
+    def reset_parameters(self):
+        self.inits += 1
+
+
 def test_predict():
     torch.manual_seed(1)
-
-    class FlatNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] * input_shape[1], output_shape[0])
-
-        def forward(self, x):
-            return self._h(x.float().reshape(x.shape[0], -1))
-
     approximator = TorchApproximator(input_shape=(4, 8), output_shape=(3,), network=FlatNet)
 
     single = torch.rand(4, 8)
@@ -35,15 +94,6 @@ def test_predict():
     assert out_batch.shape == (5, 3)
 
     torch.manual_seed(1)
-
-    class KwargNet(nn.Module):
-        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] + extra_shape[0], output_shape[0])
-
-        def forward(self, x, extra=None):
-            return self._h(torch.cat([x, extra], dim=-1))
-
     approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=KwargNet,
                                      kwargs_shape={'extra': (3,)})
 
@@ -59,17 +109,6 @@ def test_predict():
 
 def test_diff():
     torch.manual_seed(9)
-
-    class ConvNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._c = nn.Conv2d(input_shape[0], 2, kernel_size=4, stride=4)
-            self._h = nn.Linear(2 * 5 * 5, output_shape[0])
-
-        def forward(self, x):
-            h = F.relu(self._c(x.float()))
-            return self._h(h.view(h.shape[0], -1))
-
     approximator = TorchApproximator(input_shape=(4, 20, 20), output_shape=(6,), network=ConvNet)
 
     unbatched = torch.rand(4, 20, 20)
@@ -78,15 +117,6 @@ def test_diff():
     assert torch.allclose(gradient, approximator.diff(unbatched.unsqueeze(0)))
 
     torch.manual_seed(10)
-
-    class KwargNet(nn.Module):
-        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] + extra_shape[0], output_shape[0])
-
-        def forward(self, x, extra=None):
-            return self._h(torch.cat([x, extra], dim=-1))
-
     approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=KwargNet,
                                      kwargs_shape={'extra': (3,)})
 
@@ -98,6 +128,15 @@ def test_diff():
     with pytest.raises(KeyError):
         approximator.diff(unbatched)
 
+    torch.manual_seed(11)
+    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=LinearNetwork, use_bias=True,
+                                 n_models=2, optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss)
+    ensemble.fit(torch.rand(8, 4), torch.rand(8, 2))
+
+    gradient = ensemble.diff(unbatched)
+    expected = torch.cat([torch.block_diag(unbatched[None], unbatched[None]).T, torch.eye(2)])
+    assert torch.equal(gradient, expected.expand(2, -1, -1))
+
     approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=QNetwork, n_features=[5], n_layers=1)
 
     assert approximator.diff(unbatched, torch.tensor([1])).shape == (approximator.weights_size,)
@@ -105,16 +144,6 @@ def test_diff():
         approximator.diff(torch.rand(3, 4), torch.tensor([[1], [0], [1]]))
 
     torch.manual_seed(14)
-
-    class TwoHeadNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._a = nn.Linear(input_shape[0], output_shape[0][0])
-            self._b = nn.Linear(input_shape[0], output_shape[1][0])
-
-        def forward(self, x):
-            return self._a(x.float()), self._b(x.float())
-
     single = TorchApproximator(input_shape=(5,), output_shape=[(3,), (2,)], network=TwoHeadNet)
     ensemble = TorchApproximator(input_shape=(5,), output_shape=[(3,), (2,)], network=TwoHeadNet, n_models=3)
 
@@ -128,16 +157,6 @@ def test_diff():
 
 def test_fit_kwargs():
     torch.manual_seed(3)
-
-    class KwargLinear(nn.Module):
-        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
-            super().__init__()
-            self._wx = nn.Parameter(torch.zeros(1))
-            self._we = nn.Parameter(torch.zeros(1))
-
-        def forward(self, x, extra=None):
-            return self._wx * x + self._we * extra
-
     n = 200
     x = torch.arange(n, dtype=torch.float32).unsqueeze(1) / n
     extra = torch.arange(n, dtype=torch.float32).flip(0).unsqueeze(1) / n
@@ -245,26 +264,11 @@ def test_reinitialize(n_models):
 
 @pytest.mark.parametrize('n_models', [1, 2])
 def test_fit_options(n_models):
-    class Net(nn.Module):
-        def __init__(self, input_shape, output_shape, action_history_shape=None, **kwargs):
-            super().__init__()
-            self.history_shape = action_history_shape
-            self.modes = list()
-            self.inits = 0
-            self._h = nn.Linear(input_shape[0] + action_history_shape[0], 1)
-            self._dropout = nn.Dropout(.5)
-
-        def forward(self, x, action_history=None):
-            self.modes.append(self.training)
-            return self._h(self._dropout(torch.cat([x.float(), action_history.float()], -1))).squeeze(-1)
-
-        def reset_parameters(self):
-            self.inits += 1
-
     torch.manual_seed(1)
-    approximator = TorchApproximator(Net, (2,), (), optimizer={'class': optim.SGD, 'params': {'lr': .1}},
-                                     loss=F.mse_loss, batch_size=4, reinitialize=True, dropout=True,
-                                     n_models=n_models, action_history_shape=(3,))
+    approximator = TorchApproximator(ModeRecordingNet, (2,), (),
+                                     optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss,
+                                     batch_size=4, reinitialize=True, dropout=True, n_models=n_models,
+                                     action_history_shape=(3,))
     x, y, history = torch.rand(8, 2), torch.rand(8), torch.rand(8, 3)
     networks = [approximator.network] if n_models == 1 else [approximator._base_model] + \
         [model.network for model in approximator._models]
@@ -283,7 +287,7 @@ def test_fit_options(n_models):
     if n_models == 2:
         approximator.set_learning_rate(.01)
 
-        assert isinstance(approximator.network, Net)
+        assert isinstance(approximator.network, ModeRecordingNet)
         assert approximator.loss is F.mse_loss
         assert len(approximator.loss_fit) == 2
         assert [model._optimizer.param_groups[0]['lr'] for model in approximator._models] == [.01, .01]
@@ -329,17 +333,6 @@ def test_ensemble_predict():
     assert np.allclose(y_stacked[0].detach().numpy(), y_stacked0_exp)
 
     torch.manual_seed(3)
-
-    class ConvNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._c = nn.Conv2d(input_shape[0], 2, kernel_size=4, stride=4)
-            self._h = nn.Linear(2 * 5 * 5, output_shape[0])
-
-        def forward(self, x):
-            h = F.relu(self._c(x.float()))
-            return self._h(h.view(h.shape[0], -1))
-
     single = TorchApproximator(input_shape=(4, 20, 20), output_shape=(6,), network=ConvNet)
     ensemble = TorchApproximator(input_shape=(4, 20, 20), output_shape=(6,), network=ConvNet, n_models=3,
                                  prediction='mean')
@@ -378,15 +371,6 @@ def test_ensemble_predict():
 
 def test_ensemble_predict_all():
     torch.manual_seed(5)
-
-    class FlatNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] * input_shape[1] * input_shape[2], output_shape[0])
-
-        def forward(self, x):
-            return self._h(x.float().reshape(x.shape[0], -1))
-
     ensemble = TorchApproximator(input_shape=(4, 20, 20), output_shape=(6,), network=FlatNet, n_models=3,
                                  prediction='all')
 
@@ -411,16 +395,6 @@ def test_ensemble_predict_all():
     assert torch.allclose(ensemble.predict(batch_five, prediction='mean'), stacked_five.mean(0))
 
     torch.manual_seed(6)
-
-    class TwoHeadNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._a = nn.Linear(input_shape[0], output_shape[0][0])
-            self._b = nn.Linear(input_shape[0], output_shape[1][0])
-
-        def forward(self, x):
-            return self._a(x.float()), self._b(x.float())
-
     single = TorchApproximator(input_shape=(5,), output_shape=[(3,), (2,)], network=TwoHeadNet)
     ensemble = TorchApproximator(input_shape=(5,), output_shape=[(3,), (2,)], network=TwoHeadNet, n_models=4,
                                  prediction='all')
@@ -451,15 +425,6 @@ def test_ensemble_predict_all():
 
 def test_ensemble_predict_kwargs():
     torch.manual_seed(7)
-
-    class KwargNet(nn.Module):
-        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] + extra_shape[0], output_shape[0])
-
-        def forward(self, x, extra=None):
-            return self._h(torch.cat([x, extra], dim=-1))
-
     single = TorchApproximator(input_shape=(4,), output_shape=(2,), network=KwargNet,
                                kwargs_shape={'extra': (3,)})
     ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=KwargNet,
@@ -522,16 +487,6 @@ def test_ensemble_prediction_modes():
     assert unaggregated.predict(batch_five, compute_variance=True).shape == (3, 5, 2)
 
     torch.manual_seed(13)
-
-    class TwoHeadNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._a = nn.Linear(input_shape[0], output_shape[0][0])
-            self._b = nn.Linear(input_shape[0], output_shape[1][0])
-
-        def forward(self, x):
-            return self._a(x.float()), self._b(x.float())
-
     ensemble = TorchApproximator(input_shape=(5,), output_shape=[(3,), (2,)], network=TwoHeadNet, n_models=4,
                                  prediction='all')
 
@@ -544,15 +499,6 @@ def test_ensemble_prediction_modes():
     assert torch.allclose(mean_b, stacked_b.mean(0)) and torch.allclose(variance_b, stacked_b.var(0))
 
     torch.manual_seed(11)
-
-    class FlatNet(nn.Module):
-        def __init__(self, input_shape, output_shape, **kwargs):
-            super().__init__()
-            self._h = nn.Linear(input_shape[0] * input_shape[1] * input_shape[2], output_shape[0])
-
-        def forward(self, x):
-            return self._h(x.float().reshape(x.shape[0], -1))
-
     ensemble = TorchApproximator(input_shape=(4, 20, 20), output_shape=(6,), network=FlatNet, n_models=3)
 
     unbatched = torch.rand(4, 20, 20)
@@ -564,16 +510,6 @@ def test_ensemble_prediction_modes():
 
 def test_ensemble_fit_kwargs():
     torch.manual_seed(9)
-
-    class KwargLinear(nn.Module):
-        def __init__(self, input_shape, output_shape, extra_shape=None, **kwargs):
-            super().__init__()
-            self._wx = nn.Parameter(torch.zeros(1))
-            self._we = nn.Parameter(torch.zeros(1))
-
-        def forward(self, x, extra=None):
-            return self._wx * x + self._we * extra
-
     n = 200
     x = torch.arange(n, dtype=torch.float32).unsqueeze(1) / n
     extra = torch.arange(n, dtype=torch.float32).flip(0).unsqueeze(1) / n

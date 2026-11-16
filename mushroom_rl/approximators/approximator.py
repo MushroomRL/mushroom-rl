@@ -1,5 +1,3 @@
-import numpy as np
-
 from mushroom_rl.core import MushroomObject, MushroomBackendObject
 
 
@@ -107,7 +105,7 @@ class Approximator(MushroomBackendObject):
     def _is_single(self, x):
         input_shape = self._input_shape[0] if isinstance(self._input_shape, list) else self._input_shape
 
-        return np.ndim(x) == len(input_shape)
+        return x.ndim == len(input_shape)
 
     @staticmethod
     def _unbatch(output, single, axis=0):

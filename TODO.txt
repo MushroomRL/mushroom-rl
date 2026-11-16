@@ -10,6 +10,9 @@ For Mushroom 2.0:
 
 For Mushroom 2.1:
     * Port to Mujoco 4.0
+    * mushroom-wide graph capture (CUDA graphs / torch.compile) of the training steps: static parameter and input
+      buffers, capturable optimizers, no host syncs or Python branching inside the captured region. TorchEnsemble
+      (stacked parameters as the single source of truth, one shared optimizer) is the first capture-ready piece
     * make utils/angles.py backend-agnostic and drop utils/isaac_sim/torch_maths.wrap_to_pi (used by the Isaac
       quadruped commands)
     * Improve the HistoryManager:

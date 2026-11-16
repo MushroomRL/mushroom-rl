@@ -4,7 +4,6 @@ from copy import deepcopy
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.rl_utils.value_functions import compute_gae
 from mushroom_rl.rl_utils.parameters import Parameter
 
@@ -95,14 +94,13 @@ class TRPO(OnPolicyDeepAC):
         old_pol_dist = self._old_policy.distribution(state_old, action_history=prev_action)
         old_log_prob = self._old_policy.log_prob(state_old, action, action_history=prev_action).detach()
 
-        TorchUtils.zero_grad(self.policy.parameters())
         loss = self._compute_loss(state, action, adv, old_log_prob, prev_action)
 
         prev_loss = loss.item()
 
         # Compute Gradient
-        loss.backward()
-        g = TorchUtils.get_gradient(self.policy.parameters())
+        gradient = torch.autograd.grad(loss, list(self.policy.parameters()), materialize_grads=True)
+        g = torch.cat([g_i.flatten() for g_i in gradient])
 
         # Compute direction through conjugate gradient
         stepdir = self._conjugate_gradient(g, state, old_pol_dist, prev_action)

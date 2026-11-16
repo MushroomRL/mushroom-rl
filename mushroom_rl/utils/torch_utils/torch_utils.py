@@ -70,22 +70,6 @@ class TorchUtils(object):
         return weights
 
     @staticmethod
-    def zero_grad(parameters):
-        """
-        Function used to set to zero the value of the gradient of a set
-        of torch parameters.
-
-        Args:
-            parameters (list): list of parameters to be considered.
-
-        """
-
-        for p in parameters:
-            if p.grad is not None:
-                p.grad.detach_()
-                p.grad.zero_()
-
-    @staticmethod
     def get_gradient(params):
         """
         Function used to get the value of the gradient of a set of
