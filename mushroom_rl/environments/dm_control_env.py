@@ -83,6 +83,10 @@ class DMControl(Environment):
     def full_name(self):
         return f'{self.name()}.{self._domain_name}.{self._task_name}'
 
+    def seed(self, seed):
+        if seed is not None:
+            self.env.task.random.seed(seed)
+
     def reset(self, state=None):
         if state is None:
             self._state = self._convert_observation(self.env.reset().observation)

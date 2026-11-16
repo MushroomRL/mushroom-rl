@@ -178,6 +178,7 @@ def experiment(n_epochs, n_steps, n_episode_test, render=True, use_cuda=False, s
     gamma = 0.99
     mdp = DMControl('walker', 'stand', horizon, gamma, use_pixels=True, pixels_width=84, pixels_height=84,
                     action_repeat=2)
+    mdp.seed(seed)
 
     logger = Logger(TD3.name(), results_dir=None)
     logger.log_experiment_info(TD3, mdp, n_epochs=n_epochs, n_steps=n_steps, n_episodes_test=n_episode_test)
