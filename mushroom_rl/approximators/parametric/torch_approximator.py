@@ -309,10 +309,7 @@ class TorchApproximator(Approximator):
         assert y_hat.shape[0] == 1, 'diff supports a single sample only.'
 
         parameters = list(self.network.parameters())
-        gradients = list()
-        for y in y_hat.flatten():
-            gradient = torch.autograd.grad(y, parameters, retain_graph=True, materialize_grads=True)
-            gradients.append(torch.concatenate([g.flatten() for g in gradient]))
+        gradients = [TorchUtils.compute_gradient(y, parameters, retain_graph=True) for y in y_hat.flatten()]
 
         return torch.stack(gradients, -1).reshape(-1, *y_hat.shape[1:])
 
@@ -338,6 +335,9 @@ class TorchEnsembleMember(TorchApproximator):
 
         self._ensemble_move = False
         del self._save_attributes['network']
+
+    def save(self, path, full_save=False):
+        raise NotImplementedError('A model of an ensemble is saved with its ensemble: call save on the ensemble.')
 
     def to(self, device):
         assert self._ensemble_move, 'A model of an ensemble moves with its ensemble: call to on the ensemble.'
@@ -784,6 +784,7 @@ class TorchEnsemble(Ensemble):
 
     def _optimizer_step(self, per_model_grads):
         if self._shared_optimizer:
+            self._clear_member_gradients()
             self._optimizer.zero_grad()
             for name, param in self._params.items():
                 if param.requires_grad:
@@ -800,6 +801,11 @@ class TorchEnsemble(Ensemble):
                     if param.requires_grad:
                         param.grad = per_model_grads[name][i]
                 m._optimizer.step()
+
+    def _clear_member_gradients(self):
+        for m in self._models:
+            for param in m.network.parameters():
+                param.grad = None
 
     def _compute_val_loss(self, val_args, use_weights, network_kwargs):
         if use_weights:

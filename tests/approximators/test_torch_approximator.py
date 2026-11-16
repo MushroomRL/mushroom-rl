@@ -615,6 +615,10 @@ def test_ensemble_optimizer(shared_optimizer):
                           torch.stack([ensemble.predict(x, idx=i) for i in range(3)]), atol=1e-6)
 
     if shared_optimizer:
+        ensemble.predict(x, idx=0).sum().backward()
+        ensemble.fit(x, y)
+
+        assert all(p.grad is None for model in ensemble for p in model.network.parameters())
         with pytest.raises(AssertionError):
             ensemble.fit(x, y, idx=1)
     else:
@@ -722,6 +726,8 @@ def test_ensemble_storage(shared_optimizer, tmpdir):
     assert torch.equal(loaded.get_weights(), ensemble.get_weights())
     with pytest.raises(AssertionError):
         ensemble[0].to('cpu')
+    with pytest.raises(NotImplementedError):
+        ensemble[0].save(path)
 
 
 def test_ensemble_full_batch():

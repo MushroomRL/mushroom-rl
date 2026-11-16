@@ -70,23 +70,25 @@ class TorchUtils(object):
         return weights
 
     @staticmethod
-    def get_gradient(params):
+    def compute_gradient(output, parameters, retain_graph=False):
         """
-        Function used to get the value of the gradient of a set of
-        torch parameters.
+        Compute the gradient of a scalar output w.r.t. a set of torch parameters as a single vector. The ``grad``
+        attribute of the parameters is not modified.
 
         Args:
-            parameters (list): list of parameters to be considered.
+            output (torch.Tensor): the scalar to differentiate;
+            parameters (list): list of parameters to be considered;
+            retain_graph (bool, False): whether to keep the computational graph of ``output``, to differentiate it
+                again.
+
+        Returns:
+            A torch tensor consisting of the gradient w.r.t. all the parameters concatenated into a single vector,
+            with zeros for the parameters the output does not depend on.
 
         """
-        views = []
-        for p in params:
-            if p.grad is None:
-                view = p.new(p.numel()).zero_()
-            else:
-                view = p.grad.view(-1)
-            views.append(view)
-        return torch.cat(views, 0)
+        gradient = torch.autograd.grad(output, list(parameters), retain_graph=retain_graph, materialize_grads=True)
+
+        return torch.concatenate([g.flatten() for g in gradient])
 
     @classmethod
     def to_float_tensor(cls, x, device=None):

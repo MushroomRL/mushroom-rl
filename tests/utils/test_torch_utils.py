@@ -72,10 +72,6 @@ def test_get_optimizer():
 
 
 def test_lookups():
-    params = [nn.Parameter(torch.ones(2)), nn.Parameter(torch.ones(3))]
-    params[1].grad = torch.full((3,), 2.)
-
-    assert torch.equal(TorchUtils.get_gradient(params), torch.tensor([0., 0., 2., 2., 2.]))
     assert TorchUtils.get_activation('ReLU') is nn.ReLU
     assert TorchUtils.get_recurrent_network('lstm') is nn.LSTM
 
@@ -101,6 +97,13 @@ def test_weights():
 
     assert params[0].dtype == torch.float32
     assert torch.equal(TorchUtils.get_weights(params), torch.arange(7, dtype=torch.float32) + .5)
+
+    output = (params[0] ** 2).sum()
+
+    assert torch.equal(TorchUtils.compute_gradient(output, params, retain_graph=True),
+                       torch.tensor([1., 3., 5., 7., 0., 0., 0.]))
+    assert torch.equal(TorchUtils.compute_gradient(output, params[:1]), torch.tensor([1., 3., 5., 7.]))
+    assert all(p.grad is None for p in params)
 
 
 def make_trainer(train_losses, val_losses=None, quiet=True, loss=F.mse_loss):
