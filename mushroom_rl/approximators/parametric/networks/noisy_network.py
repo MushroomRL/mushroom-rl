@@ -40,7 +40,8 @@ class NoisyNetwork(MushroomNetwork):
                 self.mu_bias = Parameter(torch.Tensor(out_features))
                 self.sigma_bias = Parameter(torch.Tensor(out_features))
             else:
-                self.register_parameter('bias', None)
+                self.register_parameter('mu_bias', None)
+                self.register_parameter('sigma_bias', None)
             self._sigma_coeff = sigma_coeff
 
             self.reset_parameters()
@@ -53,7 +54,7 @@ class NoisyNetwork(MushroomNetwork):
 
             nn.init.uniform_(self.mu_weight, -bound_weight, bound_weight)
             nn.init.constant_(self.sigma_weight, bound_sigma)
-            if hasattr(self, 'mu_bias'):
+            if self.mu_bias is not None:
                 nn.init.uniform_(self.mu_bias, -bound_weight, bound_weight)
                 nn.init.constant_(self.sigma_bias, bound_sigma)
 
@@ -64,18 +65,20 @@ class NoisyNetwork(MushroomNetwork):
             eps_dot = torch.matmul(self._noise(eps_output), self._noise(eps_input))
             weight = self.mu_weight + self.sigma_weight * eps_dot
 
-            if hasattr(self, 'mu_bias'):
-                self.bias = self.mu_bias + self.sigma_bias * self._noise(eps_output[:, 0])
+            if self.mu_bias is not None:
+                bias = self.mu_bias + self.sigma_bias * self._noise(eps_output[:, 0])
+            else:
+                bias = None
 
-            return F.linear(input, weight, self.bias)
+            return F.linear(input, weight, bias)
 
         @staticmethod
         def _noise(x):
             return torch.sign(x) * torch.sqrt(torch.abs(x))
 
         def extra_repr(self):
-            return 'in_features={}, out_features={}, mu_bias={}, sigma_bias={}'.format(
-                self.in_features, self.out_features, self.mu_bias, self.sigma_bias is not None
+            return 'in_features={}, out_features={}, bias={}'.format(
+                self.in_features, self.out_features, self.mu_bias is not None
             )
 
     def __init__(self, input_shape, output_shape, features_network, n_features, sigma_coeff=.5, **kwargs):

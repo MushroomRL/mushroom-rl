@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 import pytest
 import torch
@@ -317,11 +319,21 @@ def test_noisy():
     assert out.shape == (3,)
     assert np.allclose(out, expected, atol=1e-6)
 
+    copied = deepcopy(net)
+    torch.manual_seed(7)
+    assert np.array_equal(copied(_make_input(), action=action).detach().numpy(), out)
+
     nl = NoisyNetwork.NoisyLinear(8, 4)
     assert nl.mu_weight.shape == (4, 8)
     assert nl.sigma_weight.shape == (4, 8)
     assert nl.mu_bias.shape == (4,)
     assert nl.sigma_bias.shape == (4,)
+    assert repr(nl) == 'NoisyLinear(in_features=8, out_features=4, bias=True)'
+
+    nl = NoisyNetwork.NoisyLinear(8, 4, bias=False)
+    assert repr(nl) == 'NoisyLinear(in_features=8, out_features=4, bias=False)'
+    assert [name for name, _ in nl.named_parameters()] == ['mu_weight', 'sigma_weight']
+    assert nl(torch.ones(2, 8)).shape == (2, 4)
 
 
 def test_quantile():
