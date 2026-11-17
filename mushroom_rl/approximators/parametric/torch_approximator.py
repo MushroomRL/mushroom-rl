@@ -533,6 +533,8 @@ class TorchEnsemble(Ensemble):
         if idx is not None:
             self._models[idx].fit(*args, n_epochs=n_epochs, weights=weights, epsilon=epsilon,
                                   patience=patience, validation_split=validation_split, **kwargs)
+            for param in self._params.values():
+                param.grad = None
             return
 
         if self._trainer.reinitialize:

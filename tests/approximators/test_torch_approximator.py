@@ -636,10 +636,11 @@ def test_ensemble_optimizer(shared_optimizer):
         assert torch.equal(fitted[[0, 2]], weights[[0, 2]]) and not torch.equal(fitted[1], weights[1])
         assert torch.allclose(ensemble.predict(x, prediction='all')[1], ensemble.predict(x, idx=1), atol=1e-6)
 
-        ensemble.predict(x).sum().backward()
-        ensemble.fit(x, y)
+        for idx in [None, 1]:
+            ensemble.predict(x).sum().backward()
+            ensemble.fit(x, y, idx=idx)
 
-        assert all(p.grad is None for p in ensemble.parameters())
+            assert all(p.grad is None for p in ensemble.parameters())
 
 
 @pytest.mark.parametrize('shared_optimizer', [True, False])
