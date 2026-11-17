@@ -455,14 +455,9 @@ class TorchEnsemble(Ensemble):
             _trainer='mushroom',
         )
 
-    def __deepcopy__(self, memo):
-        copied = MushroomObject.__new__(type(self))
-        memo[id(self)] = copied
-        for name, value in self.__dict__.items():
-            setattr(copied, name, deepcopy(value, memo))
-        copied._bind_members()
-
-        return copied
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._bind_members()
 
     def to(self, device):
         for m in self._models:
@@ -670,7 +665,10 @@ class TorchEnsemble(Ensemble):
     def _post_load(self, device):
         super()._post_load(device)
 
-        self._build_members()
+        if hasattr(self._models[0], 'network'):
+            self._bind_members()
+        else:
+            self._build_members()
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, self.parameters())
         for m in self._models:
@@ -689,8 +687,14 @@ class TorchEnsemble(Ensemble):
 
     def _bind_members(self):
         for i, network in enumerate(m.network for m in self._models):
+            for name, obj in self._shared_objects.items():
+                module_name, _, attribute = name.rpartition('.')
+                setattr(network.get_submodule(module_name), attribute, obj)
             for name, p in self._params.items():
-                network.get_parameter(name).data = p.data[i]
+                param = network.get_parameter(name)
+                param.data = p.data[i]
+                if param.grad is not None:
+                    param.grad = param.grad.to(p.device)
             for name, b in self._buffers.items():
                 network.get_buffer(name).data = b.data[i]
 
@@ -775,12 +779,13 @@ class TorchEnsemble(Ensemble):
         if stacked_w is not None:
             all_data = all_data + (stacked_w,)
 
-        per_model_grads, per_model_losses = vmap(
-            grad(compute_loss, has_aux=True), randomness=self._randomness
-        )(*self._functional_state(), *all_data)
+        with torch.no_grad():
+            per_model_grads, per_model_losses = vmap(
+                grad(compute_loss, has_aux=True), randomness=self._randomness
+            )(*self._functional_state(), *all_data)
         self._optimizer_step(per_model_grads)
 
-        return per_model_losses.detach()
+        return per_model_losses
 
     def _optimizer_step(self, per_model_grads):
         if self._shared_optimizer:
@@ -795,6 +800,8 @@ class TorchEnsemble(Ensemble):
                     param.grad = per_model_grads[name].sum(0)
             self._optimizer.step()
         else:
+            for param in self._params.values():
+                param.grad = None
             for i, m in enumerate(self._models):
                 m._optimizer.zero_grad()
                 for name, param in m.network.named_parameters():

@@ -1,4 +1,5 @@
 import math
+import pickle
 
 import numpy as np
 import pytest
@@ -183,14 +184,15 @@ def test_diff():
     with pytest.raises(KeyError):
         approximator.diff(unbatched)
 
-    torch.manual_seed(11)
-    ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=LinearNetwork, use_bias=True,
-                                 n_models=2, optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss)
-    ensemble.fit(torch.rand(8, 4), torch.rand(8, 2))
-
-    gradient = ensemble.diff(unbatched)
     expected = torch.cat([torch.block_diag(unbatched[None], unbatched[None]).T, torch.eye(2)])
-    assert torch.equal(gradient, expected.expand(2, -1, -1))
+    for shared_optimizer in [True, False]:
+        torch.manual_seed(11)
+        ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=LinearNetwork, use_bias=True,
+                                     n_models=2, optimizer={'class': optim.SGD, 'params': {'lr': .1}},
+                                     loss=F.mse_loss, shared_optimizer=shared_optimizer)
+        ensemble.fit(torch.rand(8, 4), torch.rand(8, 2))
+
+        assert torch.equal(ensemble.diff(unbatched), expected.expand(2, -1, -1))
 
     approximator = TorchApproximator(input_shape=(4,), output_shape=(2,), network=QNetwork, n_features=[5], n_layers=1)
 
@@ -317,12 +319,13 @@ def test_reinitialize(n_models, ensemble_params):
     assert torch.equal(reinitialized.predict(x), fresh.predict(x))
 
 
+@pytest.mark.parametrize('dropout', [True, False])
 @pytest.mark.parametrize('n_models', [1, 2])
-def test_fit_options(n_models):
+def test_fit_options(n_models, dropout):
     torch.manual_seed(1)
     approximator = TorchApproximator(ModeRecordingNet, (2,), (),
                                      optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss,
-                                     batch_size=4, reinitialize=True, dropout=True, n_models=n_models,
+                                     batch_size=4, reinitialize=True, dropout=dropout, n_models=n_models,
                                      action_history_shape=(3,))
     x, y, history = torch.rand(8, 2), torch.rand(8), torch.rand(8, 3)
     networks = [approximator.network] if n_models == 1 else [approximator._base_model] + \
@@ -334,7 +337,7 @@ def test_fit_options(n_models):
     prediction = approximator.predict(x[:2], action_history=history[:2])
 
     assert fit_modes == {True}
-    assert {mode for network in networks for mode in network.modes} == {False}
+    assert {mode for network in networks for mode in network.modes} == {not dropout}
     assert prediction.shape == (2,)
     assert all(network.history_shape == (3,) for network in networks)
     assert [network.inits for network in networks[-n_models:]] == [1] * n_models
@@ -608,7 +611,10 @@ def test_ensemble_optimizer(shared_optimizer):
     x, y = torch.rand(16, 4), torch.rand(16, 2)
     ensemble.fit(x, y, n_epochs=2)
     weights = ensemble.get_weights()
+    fitted_parameters = ensemble.parameters() if shared_optimizer else \
+        [p for model in ensemble for p in model.network.parameters()]
 
+    assert all(p.grad is not None and not p.grad.requires_grad for p in fitted_parameters)
     assert weights.shape == ensemble.weights_size
     assert [p.shape for p in ensemble.parameters()] == [(3, *p.shape) for p in ensemble[0].network.parameters()]
     assert torch.allclose(ensemble.predict(x, prediction='all'),
@@ -630,10 +636,15 @@ def test_ensemble_optimizer(shared_optimizer):
         assert torch.equal(fitted[[0, 2]], weights[[0, 2]]) and not torch.equal(fitted[1], weights[1])
         assert torch.allclose(ensemble.predict(x, prediction='all')[1], ensemble.predict(x, idx=1), atol=1e-6)
 
+        ensemble.predict(x).sum().backward()
+        ensemble.fit(x, y)
+
+        assert all(p.grad is None for p in ensemble.parameters())
+
 
 @pytest.mark.parametrize('shared_optimizer', [True, False])
 def test_ensemble_shared_parameters(shared_optimizer):
-    torch.manual_seed(17)
+    torch.manual_seed(4)
     encoder = CountingLinear(4, 5)
     ensemble = TorchApproximator(input_shape=(4,), output_shape=(2,), network=EncodedNet, encoder=encoder,
                                  n_models=2, optimizer={'class': optim.SGD, 'params': {'lr': .1}}, loss=F.mse_loss,
@@ -713,16 +724,18 @@ def test_ensemble_storage(shared_optimizer, tmpdir):
 
     ensemble.fit(x, y)
     copied = ensemble.copy()
+    pickled = pickle.loads(pickle.dumps(ensemble))
     path = str(tmpdir / 'ensemble.msh')
     ensemble.save(path)
     loaded = TorchApproximator.load(path)
-    for approximator in [ensemble, copied, loaded]:
+    for approximator in [ensemble, copied, pickled, loaded]:
         approximator.fit(x, y)
 
         assert torch.allclose(approximator.predict(x, prediction='all'),
                               torch.stack([approximator.predict(x, idx=i) for i in range(2)]), atol=1e-6)
 
     assert torch.equal(copied.get_weights(), ensemble.get_weights())
+    assert torch.equal(pickled.get_weights(), ensemble.get_weights())
     assert torch.equal(loaded.get_weights(), ensemble.get_weights())
     with pytest.raises(AssertionError):
         ensemble[0].to('cpu')
@@ -759,6 +772,8 @@ def test_to_device(n_models, device):
                                      n_models=n_models, optimizer={'class': optim.Adam, 'params': {'lr': 1e-2}},
                                      loss=F.mse_loss, device='cpu')
     approximator.fit(x, y, n_epochs=2)
+    network = approximator.network
+    network(x).sum().backward()
 
     assert approximator.to(device) is approximator
 
@@ -766,6 +781,8 @@ def test_to_device(n_models, device):
     if n_models > 1:
         assert {model.device for model in approximator} == {device}
     assert {p.device.type for p in approximator.parameters()} == {device}
+    assert approximator.network is network
+    assert {t.device.type for p in network.parameters() for t in (p, p.grad)} == {device}
     assert {value.device.type for state in approximator._optimizer.state.values() for value in state.values()
             if torch.is_tensor(value) and value.ndim > 0} == {device}
 
