@@ -29,7 +29,7 @@ class LSPI(BatchTD):
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
-        state, action, reward, next_state, absorbing, _, _ = self._history_manager.parse_history(dataset)
+        state, action, reward, next_state, absorbing, _ = self._history_manager.parse_history(dataset)
 
         phi_state = self.approximator.model.phi(state)
         phi_next_state = self.approximator.model.phi(next_state)

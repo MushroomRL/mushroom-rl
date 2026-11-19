@@ -26,7 +26,7 @@ def get_episodes(mdp, n_episodes=100, to='numpy'):
     core = Core(agent, mdp)
     dataset = core.evaluate(n_episodes=n_episodes)
 
-    return dataset.parse(to=to)
+    return tuple(dataset.parse(to=to))
 
 
 @pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))

@@ -33,7 +33,7 @@ class BoostedFQI(FQI):
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
-        state, action, reward, next_state, absorbing, _, _ = self._history_manager.parse_history(dataset)
+        state, action, reward, next_state, absorbing, _ = self._history_manager.parse_history(dataset)
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:
                 self._target = reward

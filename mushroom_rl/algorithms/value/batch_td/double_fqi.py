@@ -20,10 +20,11 @@ class DoubleFQI(FQI):
 
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
-        parsed = self._history_manager.parse_history(dataset)[:5]
+        batch = self._history_manager.parse_history(dataset)
 
         half = len(dataset) // 2
-        state, action, reward, next_state, absorbing = [[x[i * half:(i + 1) * half] for i in range(2)] for x in parsed]
+        state, action, reward, next_state, absorbing, _ = [[x[i * half:(i + 1) * half] for i in range(2)]
+                                                           for x in batch]
 
         for _ in trange(self._n_iterations(), dynamic_ncols=True, disable=self._quiet, leave=False):
             if self._target is None:

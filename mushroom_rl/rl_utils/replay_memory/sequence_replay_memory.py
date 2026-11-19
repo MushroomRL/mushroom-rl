@@ -1,4 +1,4 @@
-from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.batch import SequenceBatch
 from mushroom_rl.rl_utils.replay_memory.replay_memory import ReplayMemory
 
 
@@ -14,8 +14,7 @@ class SequenceReplayMemory(ReplayMemory):
     ``(n_samples, truncation_length, *obs_shape)`` when no stacking is used.
 
     """
-    def __init__(self, mdp_info, agent_info, initial_size, max_size, truncation_length, history_manager=None,
-                 return_extra=False):
+    def __init__(self, mdp_info, agent_info, initial_size, max_size, truncation_length, history_manager=None):
         """
         Constructor.
 
@@ -26,16 +25,13 @@ class SequenceReplayMemory(ReplayMemory):
             max_size (int): maximum size of the replay buffer;
             truncation_length (int): truncation length to be sampled;
             history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation
-                online, reused to rebuild the same stacked observation for every timestep of a sequence;
-            return_extra (bool, False): whether :meth:`get` appends, as a trailing element, the ``extra_data``
-                dictionary of the history windows not delivered in-band in the state, keyed as the online policy
-                keyword arguments. When ``False`` these streams are not returned.
+                online, reused to rebuild the same stacked observation for every timestep of a sequence.
 
         """
         self._truncation_length = truncation_length
 
         super().__init__(mdp_info, agent_info, initial_size, max_size,
-                         history_manager=history_manager, store_policy_state=True, return_extra=return_extra)
+                         history_manager=history_manager, store_policy_state=True)
 
         self._add_save_attr(
             _truncation_length='primitive'
@@ -49,8 +45,9 @@ class SequenceReplayMemory(ReplayMemory):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples. When ``return_extra`` is set, the ``extra_data`` dictionary assembled
-            by the history manager, padded to the truncation length, is appended as the trailing element.
+            The :class:`~mushroom_rl.core.batch.SequenceBatch` of the sampled sequences, zero-padded to the truncation
+            length, with the previous-action windows of the current and of the next step when that stream is
+            active.
 
         """
         backend = self._dataset.backend
@@ -69,65 +66,56 @@ class SequenceReplayMemory(ReplayMemory):
                            device=self._agent_info.device)
         a = backend.zeros(n_samples, self._truncation_length, *self._mdp_info.action_space.shape,
                           dtype=action_dtype, device=self._agent_info.device)
-        r = backend.zeros(n_samples, 1, device=self._agent_info.device)
-        ab = backend.zeros(n_samples, 1, dtype=int, device=self._agent_info.device)
+        r = backend.zeros(n_samples, device=self._agent_info.device)
+        ab = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
         last = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
-        ps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape,
-                           device=self._agent_info.device)
-        nps = backend.zeros(n_samples, self._truncation_length, *self._agent_info.policy_state_shape,
-                            device=self._agent_info.device)
-
-        extra_buffers = dict()
-        lengths = list()
+        ps = backend.zeros(n_samples, *self._agent_info.policy_state_shape, device=self._agent_info.device)
+        nps = backend.zeros(n_samples, *self._agent_info.policy_state_shape, device=self._agent_info.device)
+        lengths = backend.zeros(n_samples, dtype=int,
+                                device='cpu' if self._agent_info.backend_name == 'torch' else None)
 
         stored = backend.arange(0, size, device=self._agent_info.device)
         cut = ds.history_cut(stored, self._history_manager.max_reach)
         candidates = stored[~cut]
         anchors = candidates[backend.randint(0, len(candidates), (n_samples,), device=self._agent_info.device)]
 
-        for num in range(n_samples):
-            positions = self._sequence_positions(anchors[num:num + 1], cut)
-            length = len(positions)
+        hops, valid = ds.walk_back(anchors, self._truncation_length - 1)
+        counts = (valid & ~cut[hops]).sum(1)
+        samples = backend.arange(0, n_samples, device=self._agent_info.device)
+        steps = counts[:, None] - 1 - backend.arange(0, self._truncation_length, device=self._agent_info.device)
+        positions = hops[samples[:, None], backend.clip(steps, 0, self._truncation_length - 1)]
 
-            state_seq, action_seq, reward_seq, next_state_seq, absorbing_seq, last_seq, extra = \
-                self._history_manager.parse_history(ds, anchor_idxs=positions)
+        sequences = self._history_manager.parse_history(ds, anchor_idxs=positions.reshape(-1), get_policy_state=True)
 
-            s[num, :length] = state_seq
-            ss[num, :length] = next_state_seq
-            a[num, :length] = action_seq
-            ps[num, :length] = self._dataset.policy_state[positions]
-            nps[num, :length] = self._dataset.policy_next_state[positions]
-            if self._return_extra:
-                for name, value in extra.items():
-                    if name not in extra_buffers:
-                        extra_buffers[name] = backend.zeros(n_samples, self._truncation_length, *value.shape[1:],
-                                                            dtype=value.dtype, device=self._agent_info.device)
-                    extra_buffers[name][num, :length] = value
-            r[num] = reward_seq[-1]
-            ab[num] = absorbing_seq[-1]
-            last[num] = last_seq[-1]
+        def per_sample(x):
+            return x.reshape((n_samples, self._truncation_length) + tuple(x.shape[1:]))
 
-            lengths.append(length)
+        def padded(x, out):
+            mask = (steps >= 0).reshape(tuple(steps.shape) + (1,) * (len(x.shape) - 1))
+            out[:] = backend.where(mask, per_sample(x), out)
+            return out
 
-        out = [s, a, r, ss, ab, last, ps, nps, lengths]
-        if self._return_extra:
-            out.append(extra_buffers)
-        return tuple(out)
+        padded(sequences.state, s)
+        padded(sequences.next_state, ss)
+        padded(sequences.action, a)
+        ps[:] = per_sample(sequences.policy_state)[:, 0]
+        nps[:] = per_sample(sequences.next_policy_state)[:, 0]
+        r[:] = per_sample(sequences.reward)[samples, counts - 1]
+        ab[:] = per_sample(sequences.absorbing)[samples, counts - 1]
+        last[:] = per_sample(sequences.last)[samples, counts - 1]
+        lengths[:] = counts
 
-    def _sequence_positions(self, anchor, cut):
-        """
-        Collect the buffer positions of the sequence ending at an anchor.
+        action_history = next_action_history = None
+        if sequences.action_history is not None:
+            window_shape = tuple(sequences.action_history.shape[1:])
+            window_dtype = sequences.action_history.dtype
+            action_history = padded(sequences.action_history,
+                                    backend.zeros(n_samples, self._truncation_length, *window_shape,
+                                                  dtype=window_dtype, device=self._agent_info.device))
+            next_action_history = padded(sequences.next_action_history,
+                                         backend.zeros(n_samples, self._truncation_length, *window_shape,
+                                                       dtype=window_dtype, device=self._agent_info.device))
 
-        Args:
-            anchor (Array): the buffer position of the final step of the sequence, as a one-element array;
-            cut: for every stored position, whether its history window reaches a step that is not stored anymore.
-
-        Returns:
-            The buffer positions of the steps of the episode of ``anchor`` ending at it, oldest first, at most
-            ``truncation_length`` of them, all stored and with a stored history window.
-
-        """
-        positions, valid = self._dataset.walk_back(anchor, self._truncation_length - 1)
-        steps = positions[0][valid[0] & ~cut[positions[0]]]
-        return self._dataset.backend.as_array(ArrayBackend.convert(steps, to='list')[::-1],
-                                              device=self._agent_info.device)
+        return SequenceBatch(s, a, r, ss, ab, last, action_history=action_history,
+                             next_action_history=next_action_history, policy_state=ps, next_policy_state=nps,
+                             lengths=lengths)
