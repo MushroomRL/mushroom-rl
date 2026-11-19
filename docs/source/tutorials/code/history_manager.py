@@ -52,22 +52,21 @@ for t in range(len(dataset)):
     print('action_history window:\n', action_windows[t])
 
 # Parsing a whole dataset at once
-state, action, reward, next_state, absorbing, last, extra = history.parse_history(dataset)
+batch = history.parse_history(dataset)
 print('#' * 40)
 print('parse_history')
 for t in range(len(dataset)):
     print('-' * 40)
     print(f'step {t}:')
-    print('state window:\n', state[t])
-    print('action_history window:\n', extra['action_history'][t])
+    print('state window:\n', batch.state[t])
+    print('action_history window:\n', batch.action_history[t])
 
 # n-step return folded into the parse
-_, _, nstep_reward, nstep_next_state, nstep_absorbing, nstep_last, nstep_extra = \
-    history.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)
+nstep_batch = history.parse_nstep_history(dataset, gamma=0.9, n_steps_return=2)
 print('#' * 40)
 print('parse_nstep_history (n_steps_return=2)')
-print('n-step reward:\n', nstep_reward)
-print('endpoint:\n', nstep_extra['endpoint'])
+print('n-step reward:\n', nstep_batch.reward)
+print('next state window, at the end of the return:\n', nstep_batch.next_state)
 
 # Observation preprocessing, applied before the stacking
 preprocessor = StandardizationPreprocessor(mdp_info)

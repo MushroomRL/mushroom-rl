@@ -1,5 +1,6 @@
 from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.batch import Batch
 
 from mushroom_rl.core._impl.layout import EpisodeLayout
 from mushroom_rl.core._impl.history_state import HistoryContext
@@ -281,31 +282,39 @@ class HistoryManager(MushroomBackendObject):
 
         return self._convert_output(to, state)
 
-    def parse_history(self, dataset, anchor_idxs=None, to=None):
+    def parse_history(self, dataset, anchor_idxs=None, to=None, get_policy_state=False):
         """
-        Parse a dataset into its arrays with the history windows applied, as :meth:`Dataset.parse`: ``state`` and
-        ``next_state`` are the stacked observation windows, and the window of every other active stream is returned
-        aside.
+        Parse a dataset into a batch with the history windows applied, as :meth:`Dataset.parse`: ``state`` and
+        ``next_state`` are the stacked observation windows, and ``action_history`` and ``next_action_history`` hold
+        the previous-action windows of the current and of the next step when that stream is active.
 
         Args:
             dataset (Dataset): the dataset to parse;
             anchor_idxs (None): the rows to parse, buffer positions for a circular dataset; by default every row;
-            to (str, None): the backend of the returned arrays; by default the agent backend.
+            to (str, None): the backend of the returned arrays; by default the agent backend;
+            get_policy_state (bool, False): whether the batch also holds the policy state and policy next state of
+                each row.
 
         Returns:
-            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, where ``extra`` maps every other
-            active stream to its windows. A stream of length 1 collapses to the raw value.
+            The :class:`~mushroom_rl.core.batch.Batch` of the parsed rows. A stream of length 1 collapses to the raw
+            value.
+
+        Raises:
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
         if dataset.is_circular:
             dataset = dataset.to_backend(self.backend_name, device=self._device)
             if anchor_idxs is None:
                 anchor_idxs = self._backend.arange(0, len(dataset), device=self._device)
-            state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor_idxs, self._backend,
-                                                                dataset=dataset)
+            state, next_state, action_history, next_action_history = self._transition_history(
+                dataset.state, dataset.next_state, dataset.action, dataset.last, anchor_idxs, self._backend,
+                dataset=dataset)
+            policy_state, next_policy_state = self._select_policy_state(dataset, anchor_idxs, anchor_idxs) \
+                if get_policy_state else (None, None)
             return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs],
-                                        next_state, dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
+                                        next_state, dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs],
+                                        action_history, next_action_history, policy_state, next_policy_state)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self.backend_name, device=self._device)
@@ -316,37 +325,44 @@ class HistoryManager(MushroomBackendObject):
         else:
             state, next_state = self.preprocess(states), self.preprocess(next_states)
 
-        extra = dict()
+        action_history = next_action_history = None
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last,
-                                                         attachment=dataset.history_state)
+            action_history = self.build_history('action_history', actions, last, attachment=dataset.history_state)
+            next_action_history = self._next_action_history(action_history, actions, self._backend)
 
         if anchor_idxs is not None:
             state, actions, reward = state[anchor_idxs], actions[anchor_idxs], reward[anchor_idxs]
             next_state, absorbing, last = next_state[anchor_idxs], absorbing[anchor_idxs], last[anchor_idxs]
-            extra = {name: value[anchor_idxs] for name, value in extra.items()}
+            if self.uses_action:
+                action_history, next_action_history = action_history[anchor_idxs], next_action_history[anchor_idxs]
 
-        return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, extra)
+        policy_state, next_policy_state = self._select_policy_state(dataset, anchor_idxs, anchor_idxs) \
+            if get_policy_state else (None, None)
+        return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, action_history,
+                                    next_action_history, policy_state, next_policy_state)
 
-    def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None):
+    def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None,
+                            get_policy_state=False):
         """
-        Parse a dataset into its n-step arrays: :meth:`parse_history` with the discounted n-step reward, and the next
-        state, absorbing and last flags of the n-step endpoint. Transitions whose return crosses a truncation or runs
-        past the newest stored step are dropped.
+        Parse a dataset into a batch of n-step transitions: :meth:`parse_history` with the discounted n-step reward,
+        and the next state, next previous-action window, absorbing and last flags of the n-step endpoint. Transitions
+        whose return crosses a truncation or runs past the newest stored step are dropped.
 
         Args:
             dataset (Dataset): the dataset to parse;
             gamma (float, 1.): the discount factor;
             n_steps_return (int, 1): the number of steps of the return;
             anchor_idxs (None): the rows to parse, buffer positions for a circular dataset; by default every row;
-            to (str, None): the backend of the returned arrays; by default the agent backend.
+            to (str, None): the backend of the returned arrays; by default the agent backend;
+            get_policy_state (bool, False): whether the batch also holds the policy state of the first step and the
+                policy next state of the endpoint of each transition.
 
         Returns:
-            The tuple ``(state, action, reward, next_state, absorbing, last, extra)`` of the kept transitions, with
-            their rows under ``extra['anchor']`` and their endpoints under ``extra['endpoint']``.
+            The :class:`~mushroom_rl.core.batch.Batch` of the kept transitions.
 
         Raises:
-            NotImplementedError: if the agent backend is ``'list'``.
+            NotImplementedError: if the agent backend is ``'list'``;
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
         if self.backend_name == 'list':
@@ -358,13 +374,14 @@ class HistoryManager(MushroomBackendObject):
             reduced_reward, anchor, endpoint = self.build_nstep_return(dataset.reward, dataset.absorbing,
                                                                        dataset.last, anchor_idxs, gamma,
                                                                        n_steps_return, dataset=dataset)
-            state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor, self._backend,
-                                                                next_anchor_idxs=endpoint, dataset=dataset)
-            extra['endpoint'] = endpoint
-            extra['anchor'] = anchor
+            state, next_state, action_history, next_action_history = self._transition_history(
+                dataset.state, dataset.next_state, dataset.action, dataset.last, anchor, self._backend,
+                next_anchor_idxs=endpoint, dataset=dataset)
+            policy_state, next_policy_state = self._select_policy_state(dataset, anchor, endpoint) \
+                if get_policy_state else (None, None)
             return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
-                                        dataset.absorbing[endpoint], dataset.last[endpoint], extra)
+                                        dataset.absorbing[endpoint], dataset.last[endpoint], action_history,
+                                        next_action_history, policy_state, next_policy_state)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self.backend_name, device=self._device)
@@ -379,14 +396,17 @@ class HistoryManager(MushroomBackendObject):
             state = self.preprocess(states[anchor])
             next_state = self.preprocess(next_states[endpoint])
 
-        extra = dict()
+        action_history = next_action_history = None
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last,
-                                                         attachment=dataset.history_state)[anchor]
-        extra['endpoint'] = endpoint
-        extra['anchor'] = anchor
+            windows = self.build_history('action_history', actions, last, attachment=dataset.history_state)
+            action_history = windows[anchor]
+            next_action_history = self._next_action_history(windows[endpoint], actions[endpoint], self._backend)
+
+        policy_state, next_policy_state = self._select_policy_state(dataset, anchor, endpoint) if get_policy_state \
+            else (None, None)
         return self._convert_parsed(to, state, actions[anchor], reduced_reward, next_state, absorbing[endpoint],
-                                    last[endpoint], extra)
+                                    last[endpoint], action_history, next_action_history, policy_state,
+                                    next_policy_state)
 
     def build_history(self, name, buffer, last, anchor_idxs=None, backend=None, attachment=None, dataset=None):
         """
@@ -636,14 +656,20 @@ class HistoryManager(MushroomBackendObject):
 
         return ArrayBackend.get_array_backend(to).convert(*arrays, backend=self._backend)
 
-    def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, extra):
+    def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, action_history,
+                        next_action_history, policy_state, next_policy_state):
         """
-        Convert a whole parse result, the ``extra`` windows included, as in :meth:`_convert_output`.
+        Convert a whole parse result, as in :meth:`_convert_output`, and assemble it into a batch.
 
         """
         converted = self._convert_output(to, state, action, reward, next_state, absorbing, last)
+        if action_history is not None:
+            action_history, next_action_history = self._convert_output(to, action_history, next_action_history)
+        if policy_state is not None:
+            policy_state, next_policy_state = self._convert_output(to, policy_state, next_policy_state)
 
-        return (*converted, {name: self._convert_output(to, window) for name, window in extra.items()})
+        return Batch(*converted, action_history=action_history, next_action_history=next_action_history,
+                     policy_state=policy_state, next_policy_state=next_policy_state)
 
     def _allocate_buffers(self, n_envs):
         self._n_envs = n_envs
@@ -686,11 +712,16 @@ class HistoryManager(MushroomBackendObject):
             state = self.preprocess(states[anchor_idxs])
             next_state = self.preprocess(next_states[endpoint_idxs])
 
-        extra = dict()
+        action_history = next_action_history = None
         if self.uses_action:
-            extra['action_history'] = self._build_history_at('action_history', actions, last, anchor_idxs, backend,
-                                                             dataset)
-        return state, next_state, extra
+            action_history = self._build_history_at('action_history', actions, last, anchor_idxs, backend, dataset)
+            if next_anchor_idxs is None:
+                endpoint_windows = action_history
+            else:
+                endpoint_windows = self._build_history_at('action_history', actions, last, next_anchor_idxs, backend,
+                                                          dataset)
+            next_action_history = self._next_action_history(endpoint_windows, actions[endpoint_idxs], backend)
+        return state, next_state, action_history, next_action_history
 
     def _build_history_at(self, name, buffer, last, anchor_idxs, backend, dataset):
         spec = self._stream_specs[name]
@@ -716,6 +747,19 @@ class HistoryManager(MushroomBackendObject):
         if self._stream_specs['obs_history']['length'] == 1:
             return next_obs
         return backend.concatenate([state_history[:, 1:], next_obs[:, None]], dim=1)
+
+    def _next_action_history(self, action_history, actions, backend):
+        if self._stream_specs['action_history']['length'] == 1:
+            return actions
+        return backend.concatenate([action_history[:, 1:], actions[:, None]], dim=1)
+
+    def _select_policy_state(self, dataset, anchor_idxs, endpoint_idxs):
+        assert dataset.is_stateful, "The policy state is requested, but the dataset does not store it."
+        policy_state, next_policy_state = self._backend.convert(dataset.policy_state, dataset.policy_next_state,
+                                                                device=self._device)
+        if anchor_idxs is None:
+            return policy_state, next_policy_state
+        return policy_state[anchor_idxs], next_policy_state[endpoint_idxs]
 
     def _stack(self, name, value):
         spec = self._stream_specs[name]

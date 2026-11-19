@@ -2,64 +2,29 @@ import torch
 from mushroom_rl.utils.episodes import episode_ends, split_episodes, unsplit_episodes
 
 
-def _next_action_history(action_history, action, last):
-    """
-    Build the previous-action window aligned to the next state from the one aligned to the current state.
-
-    Args:
-        action_history (torch.Tensor): the previous-action window aligned to each state;
-        action (torch.Tensor): the action taken at each of those steps;
-        last (torch.Tensor): the episode-boundary flag of each step.
-
-    Returns:
-        The previous-action window aligned to the next state, in the same shape as ``action_history``.
-
-    """
-    if action_history.dim() == action.dim():
-        return action
-
-    boundary = last > 0
-    boundary[-1] = True
-
-    next_action_history = torch.empty_like(action_history)
-    next_action_history[:-1] = action_history[1:]
-    next_action_history[boundary] = torch.cat([action_history[boundary][:, 1:], action[boundary][:, None]], dim=1)
-
-    return next_action_history
-
-
-def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_history=None, action=None):
+def compute_advantage_montecarlo(V, batch, gamma):
     """
     Function to estimate the advantage and new value function target
     over a dataset. The value function is estimated using rollouts
-    (Monte Carlo estimation).
+    (Monte Carlo estimation). The previous-action windows of ``batch`` are passed to ``V`` as ``action_history``.
 
     Args:
         V (Approximator): the current value function approximator;
-        s (torch.tensor): the set of states in which we want to evaluate the advantage;
-        ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
-        r (torch.tensor): the reward obtained in each transition from state s to state ss;
-        absorbing (torch.tensor): an array of boolean flags indicating if the reached state is absorbing;
-        gamma (float): the discount factor of the considered problem;
-        action_history (torch.tensor, None): the previous-action window aligned to ``s``, forwarded to ``V`` when the
-            critic conditions on it;
-        action (torch.tensor, None): the action taken at each step, used to derive the previous-action window aligned to
-            ``ss`` when the critic conditions on it.
+        batch (Batch): the transitions;
+        gamma (float): the discount factor of the considered problem.
     Returns:
         The new estimate for the value function of the next state
         and the advantage function.
     """
     with torch.no_grad():
-        v = V(s, action_history=action_history)
+        v = V(batch.state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
 
-        next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
-            else None
-        last_ep, r_ep, absorbing_ep = split_episodes(last, r, absorbing)
+        last_ep, r_ep, absorbing_ep = split_episodes(batch.last, batch.reward, batch.absorbing)
         q_ep = torch.zeros_like(r_ep, dtype=torch.float32)
-        ends = episode_ends(last, r_ep.shape[0] if r_ep.ndim > 1 else 1)
-        next_ah = next_action_history[ends] if next_action_history is not None else None
-        q_end = V(ss[ends], action_history=next_ah)
+        ends = episode_ends(batch.last, r_ep.shape[0] if r_ep.ndim > 1 else 1)
+        next_ah = batch.next_action_history[ends] if batch.next_action_history is not None else None
+        q_end = V(batch.next_state[ends], action_history=next_ah)
         q_next_ep = torch.zeros_like(q_end)
 
         not_absorbing_ep = ~absorbing_ep
@@ -69,45 +34,36 @@ def compute_advantage_montecarlo(V, s, ss, r, absorbing, last, gamma, action_his
             q_next_ep = r_ep[..., k] + gamma * q_next_ep * not_absorbing_ep[..., k]
             q_ep[..., k] = q_next_ep
 
-        q = unsplit_episodes(last, q_ep)
+        q = unsplit_episodes(batch.last, q_ep)
         adv = q - v
 
         return q, adv
 
 
-def compute_advantage(V, s, ss, r, absorbing, last, gamma, action_history=None, action=None):
+def compute_advantage(V, batch, gamma):
     """
     Function to estimate the advantage and new value function target
-    over a dataset. The value function is estimated using bootstrapping.
+    over a dataset. The value function is estimated using bootstrapping. The previous-action windows of ``batch`` are
+    passed to ``V`` as ``action_history``.
 
     Args:
         V (Approximator): the current value function approximator;
-        s (torch.tensor): the set of states in which we want to evaluate the advantage;
-        ss (torch.tensor): the set of next states in which we want to evaluate the advantage;
-        r (torch.tensor): the reward obtained in each transition from state s to state ss;
-        absorbing (torch.tensor): an array of boolean flags indicating if the reached state is absorbing;
-        last (torch.tensor): an array of boolean flags indicating if the reached state is the last of the trajectory;
-        gamma (float): the discount factor of the considered problem;
-        action_history (torch.tensor, None): the previous-action window aligned to ``s``, forwarded to ``V`` when the
-            critic conditions on it;
-        action (torch.tensor, None): the action taken at each step, used to derive the previous-action window aligned to
-            ``ss`` when the critic conditions on it.
+        batch (Batch): the transitions;
+        gamma (float): the discount factor of the considered problem.
     Returns:
         The new estimate for the value function of the next state and the advantage function.
     """
     with torch.no_grad():
-        next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
-            else None
-        v = V(s, action_history=action_history)
+        v = V(batch.state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
-        v_next = V(ss, action_history=next_action_history) * ~absorbing
+        v_next = V(batch.next_state, action_history=batch.next_action_history) * ~batch.absorbing
 
-        q = r + gamma * v_next
+        q = batch.reward + gamma * v_next
         adv = q - v
         return q, adv
 
 
-def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, action=None):
+def compute_gae(V, batch, gamma, lam):
     """
     Function to compute Generalized Advantage Estimation (GAE)
     and new value function target over a dataset.
@@ -116,35 +72,26 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
     Advantage Estimation".
     Schulman J. et al. 2016.
 
+    The previous-action windows of ``batch`` are passed to ``V`` as ``action_history``.
+
     Args:
         V (Approximator): the current value function approximator;
-        s (torch.tensor): the set of states in which we want to evaluate the advantage;
-        ss (torch.tensor): the set of next states in which we want to evaluate the advantage. They come from
-            trajectories: the next state of every step that does not end an episode is the state of the following
-            step;
-        r (torch.tensor): the reward obtained in each transition from state s to state ss;
-        absorbing (torch.tensor): an array of boolean flags indicating if the reached state is absorbing;
-        last (torch.tensor): an array of boolean flags indicating if the reached state is the last of the trajectory;
+        batch (Batch): the transitions of whole trajectories, i.e. the next state of every step that does not end an
+            episode is the state of the following step;
         gamma (float): the discount factor of the considered problem;
-        lam (float): the value for the lamba coefficient used by GEA algorithm;
-        action_history (torch.tensor, None): the previous-action window aligned to ``s``, forwarded to ``V`` when the
-            critic conditions on it;
-        action (torch.tensor, None): the action taken at each step, used to derive the previous-action window aligned to
-            ``ss`` when the critic conditions on it.
+        lam (float): the value for the lamba coefficient used by GEA algorithm.
     Returns:
         The new estimate for the value function of the next state
         and the estimated generalized advantage.
     """
     with torch.no_grad():
-        next_action_history = _next_action_history(action_history, action, last) if action_history is not None \
-            else None
-        v = V(s, action_history=action_history)
+        v = V(batch.state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
 
-        last_ep, v_ep, r_ep, absorbing_ep = split_episodes(last, v, r, absorbing)
-        ends = episode_ends(last, v_ep.shape[0] if v_ep.ndim > 1 else 1)
-        next_ah = next_action_history[ends] if next_action_history is not None else None
-        v_end = V(ss[ends], action_history=next_ah)
+        last_ep, v_ep, r_ep, absorbing_ep = split_episodes(batch.last, v, batch.reward, batch.absorbing)
+        ends = episode_ends(batch.last, v_ep.shape[0] if v_ep.ndim > 1 else 1)
+        next_ah = batch.next_action_history[ends] if batch.next_action_history is not None else None
+        v_end = V(batch.next_state[ends], action_history=next_ah)
 
         v_next_ep = torch.zeros_like(v_ep)
         v_next_ep[..., :-1] = v_ep[..., 1:]
@@ -156,6 +103,6 @@ def compute_gae(V, s, ss, r, absorbing, last, gamma, lam, action_history=None, a
         for k in range(v_ep.shape[-1] - 2, -1, -1):
             gen_adv_ep[..., k] = delta_ep[..., k] + gamma * lam * gen_adv_ep[..., k + 1]
 
-        gen_adv = unsplit_episodes(last, gen_adv_ep)
+        gen_adv = unsplit_episodes(batch.last, gen_adv_ep)
 
         return gen_adv + v, gen_adv

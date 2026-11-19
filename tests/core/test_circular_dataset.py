@@ -299,11 +299,11 @@ def test_parse():
     wrapped = make_wrapped_buffer().parse()
     linked = make_linked_buffer().parse()
 
-    assert np.array_equal(wrapped[0][:, 0], np.array([12., 20., 21., 22., 23.]))
-    assert np.array_equal(wrapped[2], np.array([1., 2., 2., 2., 2.]))
-    assert np.array_equal(wrapped[5], np.array([True, False, False, False, True]))
-    assert np.array_equal(linked[0][:, 0], np.array([10., 11., 12., 13., 2., 3.]))
-    assert np.array_equal(linked[5], np.array([False, False, False, True, False, True]))
+    assert np.array_equal(wrapped.state[:, 0], np.array([12., 20., 21., 22., 23.]))
+    assert np.array_equal(wrapped.reward, np.array([1., 2., 2., 2., 2.]))
+    assert np.array_equal(wrapped.last, np.array([True, False, False, False, True]))
+    assert np.array_equal(linked.state[:, 0], np.array([10., 11., 12., 13., 2., 3.]))
+    assert np.array_equal(linked.last, np.array([False, False, False, True, False, True]))
 
 
 def test_last_or_boundary():
@@ -327,7 +327,7 @@ def test_policy_state_conversion():
 
     converted = buffer.to_backend('torch')
 
-    assert np.array_equal(buffer.parse()[0][:, 0], np.array([2., 3., 4.]))
+    assert np.array_equal(buffer.parse().state[:, 0], np.array([2., 3., 4.]))
     assert np.array_equal(buffer.parse_policy_state()[0][:, 0], np.array([20., 30., 40.]))
     assert torch.equal(converted.state[:, 0], torch.tensor([4., 2., 3.], dtype=converted.state.dtype))
     assert torch.equal(converted.policy_state[:, 0], torch.tensor([40., 20., 30.], dtype=converted.policy_state.dtype))

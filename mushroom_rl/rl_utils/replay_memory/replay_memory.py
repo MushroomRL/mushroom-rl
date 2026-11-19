@@ -10,7 +10,7 @@ class ReplayMemory(MushroomObject):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, history_manager=None, n_steps_return=1,
-                 store_policy_state=False, return_extra=False):
+                 store_policy_state=False):
         """
         Constructor.
 
@@ -22,12 +22,10 @@ class ReplayMemory(MushroomObject):
             history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
                 reused offline so that the stacked observation matches the one built online;
             n_steps_return (int, 1): number of steps used for the n-step return;
-            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory. When
-                ``False``, no policy-state buffer is allocated and the policy state of the added datasets is dropped;
-                a stateless algorithm should leave it ``False`` even if its policy is stateful;
-            return_extra (bool, False): whether :meth:`get` appends, as a trailing element, the ``extra_data``
-                dictionary of the history windows not delivered in-band in the state, keyed as the online policy
-                keyword arguments. When ``False`` these streams are not returned.
+            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory and
+                returned by :meth:`get`. When ``False``, no policy-state buffer is allocated and the policy state of
+                the added datasets is dropped; a stateless algorithm should leave it ``False`` even if its policy is
+                stateful.
 
         """
         assert agent_info.backend_name in ["numpy", "torch"], \
@@ -41,7 +39,6 @@ class ReplayMemory(MushroomObject):
             else HistoryManager.default_streams(mdp_info, agent_info)
         self._n_steps_return = n_steps_return
         self._store_policy_state = store_policy_state
-        self._return_extra = return_extra
         self._mdp_info = mdp_info
         self._agent_info = agent_info
 
@@ -54,7 +51,6 @@ class ReplayMemory(MushroomObject):
             _history_manager='mushroom',
             _n_steps_return='primitive',
             _store_policy_state='primitive',
-            _return_extra='primitive',
             _mdp_info='mushroom',
             _agent_info='mushroom',
             _dataset='mushroom!',
@@ -81,11 +77,11 @@ class ReplayMemory(MushroomObject):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples.
+            The :class:`~mushroom_rl.core.batch.Batch` of the sampled transitions.
 
         """
         idxs = self._sample_idxs(n_samples)
-        return tuple(self._assemble_batch(idxs))
+        return self._assemble_batch(idxs)
 
     def reset(self):
         """
@@ -116,37 +112,22 @@ class ReplayMemory(MushroomObject):
 
     def _assemble_batch(self, idxs):
         """
-        Read the transitions at the given buffer indices and assemble the batch.
-        When a history is used the stacked observation windows are rebuilt from the buffer. The policy states
-        are appended when stored, followed by the ``extra_data`` dictionary of the out-of-band history windows when
-        ``return_extra`` is set.
+        Read the transitions at the given buffer indices and assemble the batch. When a history is used the stacked
+        observation windows are rebuilt from the buffer. The policy states are included when stored.
 
         Args:
             idxs: the buffer indices of the transitions to read.
 
         Returns:
-            The list of arrays forming the sampled batch.
+            The :class:`~mushroom_rl.core.batch.Batch` of the transitions.
 
         """
-        ds = self._dataset
         if self._n_steps_return > 1:
-            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_nstep_history(
-                ds, self._mdp_info.gamma, self._n_steps_return, anchor_idxs=idxs)
-            anchor = extra.pop('anchor')
-            endpoint = extra.pop('endpoint')
-        else:
-            state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(
-                ds, anchor_idxs=idxs)
-            anchor = endpoint = idxs
-
-        policy_state = [ds.policy_state[anchor], ds.policy_next_state[endpoint]] if ds.is_stateful else []
-
-        out = [state, action, reward, next_state, absorbing, last, *policy_state]
-
-        if self._return_extra:
-            out.append(extra)
-
-        return out
+            return self._history_manager.parse_nstep_history(self._dataset, self._mdp_info.gamma, self._n_steps_return,
+                                                             anchor_idxs=idxs,
+                                                             get_policy_state=self._store_policy_state)
+        return self._history_manager.parse_history(self._dataset, anchor_idxs=idxs,
+                                                   get_policy_state=self._store_policy_state)
 
     def _sample_idxs(self, n_samples):
         """

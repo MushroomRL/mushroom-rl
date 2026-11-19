@@ -40,24 +40,23 @@ class RudinPPO(PPO):
         state_old = self._history_manager.parse_state(dataset)
         self._history_manager.update_preprocessors(dataset)
 
-        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        prev_action = extra.get('action_history')
+        batch = self._history_manager.parse_history(dataset)
 
-        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
-                                    self._lambda(), action_history=prev_action, action=action)
+        v_target, adv = compute_gae(self._V, batch, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
         adv = adv.detach()
         v_target = v_target.detach()
 
         with torch.no_grad():
-            old_pol_dist = self.policy.distribution(state_old, action_history=prev_action)
+            old_pol_dist = self.policy.distribution(state_old, action_history=batch.action_history)
 
-        old_log_p = old_pol_dist.log_prob(action).detach()
+        old_log_p = old_pol_dist.log_prob(batch.action).detach()
 
-        self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
+        self._V.fit(batch.state, v_target, action_history=batch.action_history, **self._critic_fit_params)
 
-        kl, entropy = self._update_policy(state, action, adv, old_log_p, old_pol_dist, prev_action)
+        kl, entropy = self._update_policy(batch.state, batch.action, adv, old_log_p, old_pol_dist,
+                                          batch.action_history)
 
         self._log_info(dataset, kl, entropy)
 

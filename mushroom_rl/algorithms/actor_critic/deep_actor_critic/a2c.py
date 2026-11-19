@@ -61,18 +61,16 @@ class A2C(DeepAC):
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
 
-        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        prev_action = extra.get('action_history')
+        batch = self._history_manager.parse_history(dataset)
 
-        v, adv = compute_advantage_montecarlo(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
-                                              action_history=prev_action, action=action)
-        self._V.fit(state, v, action_history=prev_action, **self._critic_fit_params)
+        v, adv = compute_advantage_montecarlo(self._V, batch, self.mdp_info.gamma)
+        self._V.fit(batch.state, v, action_history=batch.action_history, **self._critic_fit_params)
 
-        loss = self._loss(state, action, adv, prev_action)
+        loss = self._loss(batch.state, batch.action, adv, batch.action_history)
         self._optimize_actor_parameters(loss)
 
         if self._logger:
-            entropy = self.policy.entropy(state, action_history=prev_action)
+            entropy = self.policy.entropy(batch.state, action_history=batch.action_history)
             self._logger.log_training('actor', loss=loss.item(), entropy=entropy.item())
             self._logger.advance_step()
 

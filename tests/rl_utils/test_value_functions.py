@@ -2,37 +2,12 @@ import numpy as np
 import pytest
 import torch
 
-from mushroom_rl.core import MDPInfo, AgentInfo
-from mushroom_rl.core.spaces import Box
-from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.policy import DeterministicPolicy
 from mushroom_rl.environments.segway import Segway
-from mushroom_rl.core import Core, Agent
+from mushroom_rl.core import Batch, Core, Agent
 from mushroom_rl.approximators.parametric import LinearApproximator, TorchApproximator
 from mushroom_rl.approximators.parametric.networks import LinearNetwork
-from mushroom_rl.rl_utils.value_functions import compute_advantage, compute_gae, compute_advantage_montecarlo, \
-    _next_action_history
-
-
-def test_next_action_history():
-    actions = torch.tensor([[10.], [11.], [12.], [13.], [14.]])
-    last = torch.tensor([0., 0., 1., 0., 1.])
-
-    act_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
-    obs_space = Box(np.full((1,), -1.0), np.full((1,), 1.0), (1,))
-    mdp_info = MDPInfo(obs_space, act_space, gamma=0.99, horizon=100, backend='torch')
-    agent_info = AgentInfo(is_episodic=False, policy_state_shape=None, backend='torch')
-    hm = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2)
-
-    action_history = hm.build_history('action_history', actions, last, torch.arange(5))
-    next_action_history = _next_action_history(action_history, actions, last)
-
-    # non-boundary rows reuse the next row of action_history verbatim; the row ending each episode (2 and 4,
-    # the latter also the last row of the buffer) is rebuilt by shifting the window and appending the action
-    # just taken, rather than reading into the next (unrelated) episode
-    expected = torch.tensor([[[0.], [10.]], [[10.], [11.]], [[11.], [12.]], [[0.], [13.]], [[13.], [14.]]])
-    assert next_action_history.shape == (5, 2, 1)
-    assert torch.allclose(next_action_history, expected)
+from mushroom_rl.rl_utils.value_functions import compute_advantage, compute_gae, compute_advantage_montecarlo
 
 
 def test_advantage_montecarlo():
@@ -81,10 +56,11 @@ def _value_functions_tester(test_fun, correct_fun, *args):
                           network=LinearNetwork, use_bias=True, loss=torch.nn.MSELoss(),
                           optimizer={'class': torch.optim.Adam, 'params': {'lr': 0.001}})
 
-    state, action, reward, next_state, absorbing, last = _get_episodes(mdp, 10)
+    batch = _get_episodes(mdp, 10)
+    state, _, reward, next_state, absorbing, last = batch
 
     correct_v, correct_adv = correct_fun(V, state, next_state, reward, absorbing, last, *args)
-    v, adv = test_fun(V, state, next_state, reward, absorbing, last, *args)
+    v, adv = test_fun(V, batch, *args)
 
     assert torch.allclose(v, correct_v)
     assert torch.allclose(adv, correct_adv)
@@ -92,7 +68,7 @@ def _value_functions_tester(test_fun, correct_fun, *args):
     V.fit(state, correct_v)
 
     correct_v, correct_adv = correct_fun(V, state, next_state, reward, absorbing, last, *args)
-    v, adv = test_fun(V, state, next_state, reward, absorbing, last, *args)
+    v, adv = test_fun(V, batch, *args)
 
     assert torch.allclose(v, correct_v)
     assert torch.allclose(adv, correct_adv)
@@ -146,8 +122,10 @@ def test_edge_cases(case, last, absorbing):
     absorbing = torch.tensor(absorbing, dtype=torch.bool)
     V, state, next_state, reward = _edge_case_setup(last)
 
-    q, adv = compute_advantage_montecarlo(V, state, next_state, reward, absorbing, last, 0.99)
-    v_target, gen_adv = compute_gae(V, state, next_state, reward, absorbing, last, 0.99, 0.95)
+    batch = Batch(state, None, reward, next_state, absorbing, last)
+
+    q, adv = compute_advantage_montecarlo(V, batch, 0.99)
+    v_target, gen_adv = compute_gae(V, batch, 0.99, 0.95)
 
     expected = torch.tensor(np.load(f'tests/rl_utils/data/test_edge_cases_{case}.npy'))
     q_test, adv_test, v_target_test, gen_adv_test = expected
@@ -163,7 +141,9 @@ def test_advantage():
     absorbing = torch.tensor([0, 0, 1, 0, 1], dtype=torch.bool)
     V, state, next_state, reward = _edge_case_setup(absorbing)
 
-    q, adv = compute_advantage(V, state, next_state, reward, absorbing, absorbing.clone(), .9)
+    batch = Batch(state, None, reward, next_state, absorbing, absorbing.clone())
+
+    q, adv = compute_advantage(V, batch, .9)
 
     with torch.no_grad():
         q_test = reward + .9 * V(next_state) * ~absorbing
@@ -175,4 +155,4 @@ def test_advantage():
     V = TorchApproximator(input_shape=(3,), output_shape=(1,), network=LinearNetwork)
     for compute, params in [(compute_advantage, ()), (compute_gae, (.95,)), (compute_advantage_montecarlo, ())]:
         with pytest.raises(AssertionError):
-            compute(V, state, next_state, reward, absorbing, absorbing.clone(), .9, *params)
+            compute(V, batch, .9, *params)

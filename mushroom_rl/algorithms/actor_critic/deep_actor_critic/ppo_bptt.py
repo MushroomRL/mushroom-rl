@@ -1,6 +1,7 @@
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
+from mushroom_rl.core import SequenceBatch
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
@@ -85,37 +86,28 @@ class PPO_BPTT(OnPolicyDeepAC):
         state_old = self._history_manager.parse_state(dataset)
         self._history_manager.update_preprocessors(dataset)
 
-        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        prev_action = extra.get('action_history')
+        batch = self._history_manager.parse_history(dataset, get_policy_state=True)
+        sequences, state_old_seq = self._transform_to_sequences(batch, state_old)
 
-        policy_state, policy_next_state = dataset.parse_policy_state(to='torch')
-        state_old_seq, state_seq, policy_state_seq, act_seq, state_next_seq, policy_next_state_seq, prev_action_seq, \
-            lengths = self._transform_to_sequences(state_old, state, policy_state, action, next_state,
-                                                   policy_next_state, prev_action, last, absorbing)
-
-        v_target, adv = self.compute_gae(self._V, state_seq, policy_state_seq, state_next_seq, policy_next_state_seq,
-                                         lengths, reward, absorbing, last, self.mdp_info.gamma, self._lambda(),
-                                         action_history=prev_action_seq,
-                                         next_action_history=act_seq if self._history_manager.uses_action else None)
+        v_target, adv = self.compute_gae(self._V, sequences, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
         with torch.no_grad():
-            old_pol_dist = self.policy.distribution(state_old_seq, policy_state_seq, lengths,
-                                                    action_history=prev_action_seq)
+            old_pol_dist = self.policy.distribution(state_old_seq, sequences.policy_state, sequences.lengths,
+                                                    action_history=sequences.action_history)
 
-        old_log_p = old_pol_dist.log_prob(action).detach()
+        old_log_p = old_pol_dist.log_prob(batch.action).detach()
 
-        self._V.fit(state_seq, policy_state_seq, lengths, v_target, action_history=prev_action_seq,
-                    **self._critic_fit_params)
+        self._V.fit(sequences.state, sequences.policy_state, sequences.lengths, v_target,
+                    action_history=sequences.action_history, **self._critic_fit_params)
 
-        kl, entropy = self._update_policy(state_seq, policy_state_seq, action, lengths, adv, old_log_p,
-                                          prev_action_seq)
+        kl, entropy = self._update_policy(sequences.state, sequences.policy_state, batch.action, sequences.lengths, adv,
+                                          old_log_p, sequences.action_history)
 
         self._log_info(dataset, kl, entropy)
 
     @staticmethod
-    def compute_gae(V, s, pi_h, ss, pi_hn, lengths, r, absorbing, last, gamma, lam, action_history=None,
-                    next_action_history=None):
+    def compute_gae(V, sequences, gamma, lam):
         """
         Function to compute Generalized Advantage Estimation (GAE)
         and new value function target over a dataset.
@@ -126,16 +118,8 @@ class PPO_BPTT(OnPolicyDeepAC):
 
         Args:
             V (Approximator): the current value function approximator;
-            s (torch.Tensor): the set of states in which we want
-                to evaluate the advantage;
-            ss (torch.Tensor): the set of next states in which we want
-                to evaluate the advantage;
-            r (torch.Tensor): the reward obtained in each transition
-                from state s to state ss;
-            absorbing (torch.Tensor): an array of boolean flags indicating
-                if the reached state is absorbing;
-            last (torch.Tensor): an array of boolean flags indicating
-                if the reached state is the last of the trajectory;
+            sequences (SequenceBatch): the sequences ending at each step of whole trajectories, in the order of the
+                steps;
             gamma (float): the discount factor of the considered problem;
             lam (float): the value for the lamba coefficient used by GEA
                 algorithm.
@@ -144,8 +128,11 @@ class PPO_BPTT(OnPolicyDeepAC):
             and the estimated generalized advantage.
         """
         with torch.no_grad():
-            v = V(s, pi_h, lengths=lengths, action_history=action_history)
-            v_next = V(ss, pi_hn, lengths=lengths, action_history=next_action_history)
+            v = V(sequences.state, sequences.policy_state, lengths=sequences.lengths,
+                  action_history=sequences.action_history)
+            v_next = V(sequences.next_state, sequences.next_policy_state, lengths=sequences.lengths,
+                       action_history=sequences.next_action_history)
+            r, absorbing, last = sequences.reward, sequences.absorbing, sequences.last
             gen_adv = torch.empty_like(v)
             for rev_k in range(len(v)):
                 k = len(v) - rev_k - 1
@@ -158,73 +145,61 @@ class PPO_BPTT(OnPolicyDeepAC):
 
             return gen_adv + v, gen_adv
 
-    def _transform_to_sequences(self, states_old, states, policy_states, actions, next_states, policy_next_states,
-                                prev_actions, last, absorbing):
-        device = self._info.device
+    def _transform_to_sequences(self, batch, states_old):
+        n_steps = len(batch.state)
 
         with torch.no_grad():
-            # array preallocation
-            s_old = torch.empty(len(states), self._truncation_length, *states_old.shape[1:], device=device)
-            s = torch.empty(len(states), self._truncation_length, *states.shape[1:], device=device)
-            ps = torch.empty(len(states), *policy_states.shape[1:], device=device)
-            a = torch.empty(len(actions), self._truncation_length, *actions.shape[1:], device=device)
-            ss = torch.empty(len(states), self._truncation_length, *next_states.shape[1:], device=device)
-            pss = torch.empty(len(states), *policy_states.shape[1:], device=device)
-            pa = torch.empty(len(states), self._truncation_length, *prev_actions.shape[1:], device=device) \
-                if self._history_manager.uses_action else None
-            # the sequence lengths stay on the CPU, as pack_padded_sequence requires
-            lengths = torch.empty(len(states), dtype=torch.long)
+            steps = torch.arange(n_steps, device=batch.last.device)
+            boundary = (batch.last.int() + batch.absorbing.int()) > 0
+            previous_boundary = torch.cummax(torch.where(boundary, steps, -1), dim=0).values
+            previous_boundary = torch.cat([previous_boundary.new_full((1,), -1), previous_boundary[:-1]])
+            begin = torch.maximum(steps - self._truncation_length + 1, previous_boundary + 1)
+            lengths = steps - begin + 1
 
-            for i in range(len(states)):
-                # determine the beginning of a sequence
-                begin_seq = max(i - self._truncation_length + 1, 0)
-                end_seq = i + 1
+            offsets = torch.arange(self._truncation_length, device=steps.device)
+            rows = torch.clamp(begin[:, None] + offsets, max=n_steps - 1)
+            valid = offsets < lengths[:, None]
 
-                # the sequence may contain more than one trajectory, we need to cut it so that it contains only one
-                begin_scan = max(begin_seq - 1, 0)
-                lasts_absorbing = last[begin_scan: i].int() + absorbing[begin_scan: i].int()
-                begin_traj = torch.where(lasts_absorbing > 0)
-                sequence_is_shorter_than_requested = len(*begin_traj) > 0
-                if sequence_is_shorter_than_requested:
-                    begin_seq = begin_scan + begin_traj[0][-1] + 1
+            state, action, next_state, state_old = self._gather_sequences(rows, valid, batch.state, batch.action,
+                                                                          batch.next_state, states_old)
+            action_history = next_action_history = None
+            if self._history_manager.uses_action:
+                action_history, next_action_history = self._gather_sequences(rows, valid, batch.action_history,
+                                                                             batch.next_action_history)
+            policy_state, next_policy_state = self._gather_sequence_starts(begin, batch.policy_state,
+                                                                           batch.next_policy_state)
 
-                # get the sequences
-                states_old_seq = states_old[begin_seq:end_seq]
-                states_seq = states[begin_seq:end_seq]
-                actions_seq = actions[begin_seq:end_seq]
-                next_states_seq = next_states[begin_seq:end_seq]
+            sequences = SequenceBatch(state, action, batch.reward, next_state, batch.absorbing, batch.last,
+                                      action_history=action_history, next_action_history=next_action_history,
+                                      policy_state=policy_state, next_policy_state=next_policy_state,
+                                      lengths=lengths.cpu())
 
-                # apply padding
-                length_seq = len(states_seq)
-                padded_states_old = torch.concatenate([states_old_seq,
-                                                       torch.zeros((self._truncation_length - states_old_seq.shape[0],
-                                                                    *states_old_seq.shape[1:]), device=device)])
-                padded_states = torch.concatenate([states_seq,
-                                                   torch.zeros((self._truncation_length - states_seq.shape[0],
-                                                                *states_seq.shape[1:]), device=device)])
-                padded_next_states = torch.concatenate([next_states_seq,
-                                                        torch.zeros((self._truncation_length - next_states_seq.shape[0],
-                                                                     *next_states_seq.shape[1:]), device=device)])
-                padded_action_seq = torch.concatenate([actions_seq,
-                                                       torch.zeros((self._truncation_length - actions_seq.shape[0],
-                                                                    *actions_seq.shape[1:]), device=device)])
+            return sequences, state_old
 
-                s_old[i] = padded_states_old
-                s[i] = padded_states
-                ps[i] = policy_states[begin_seq]
-                a[i] = padded_action_seq
-                ss[i] = padded_next_states
-                pss[i] = policy_next_states[begin_seq]
+    def _gather_sequences(self, rows, valid, *arrays):
+        """
+        Gather the sequence of every step from each array, zero-padded after its final step, into the default dtype
+        on the agent device.
 
-                if self._history_manager.uses_action:
-                    prev_action_seq = prev_actions[begin_seq:end_seq]
-                    pa[i] = torch.concatenate([prev_action_seq,
-                                               torch.zeros((self._truncation_length - prev_action_seq.shape[0],
-                                                            *prev_action_seq.shape[1:]), device=device)])
+        """
+        sequences = list()
+        for array in arrays:
+            mask = valid.reshape(valid.shape + (1,) * (array.dim() - 1))
+            padded = torch.where(mask, array[rows], 0)
+            sequences.append(torch.empty(padded.shape, device=self._info.device).copy_(padded))
+        return sequences
 
-                lengths[i] = length_seq
+    def _gather_sequence_starts(self, begin, *arrays):
+        """
+        Gather the entry at the first step of the sequence of every step from each array, into the default dtype on
+        the agent device.
 
-            return s_old, s, ps, a, ss, pss, pa, lengths
+        """
+        starts = list()
+        for array in arrays:
+            start = array[begin]
+            starts.append(torch.empty(start.shape, device=self._info.device).copy_(start))
+        return starts
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
         tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
