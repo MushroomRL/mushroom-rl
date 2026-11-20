@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import torch
@@ -8,6 +10,7 @@ from helper.cases import devices
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Batch, Core
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import PPO_BPTT, RudinPPO
 from mushroom_rl.environments import InvertedPendulum, LQR
 from mushroom_rl.policy import GaussianTorchPolicy, RecurrentGaussianTorchPolicy
@@ -16,8 +19,9 @@ from mushroom_rl.approximators.parametric.networks import (
 )
 
 
-def learn(alg, policy, alg_params, mdp, n_steps=50):
-    agent = alg(mdp.info, policy, **alg_params)
+def learn(alg, policy, alg_params, mdp, n_steps=50, asymmetric=None):
+    make = alg if asymmetric is None else partial(alg.asymmetric, **asymmetric)
+    agent = make(mdp.info, policy, **alg_params)
     core = Core(agent, mdp)
     core.learn(n_steps=n_steps, n_steps_per_fit=n_steps)
     return agent
@@ -224,6 +228,34 @@ def test_RudinPPO_action_history_length(device):
 
     assert agent._history_manager.uses_action
     tu.assert_recorded(w, 'test_RudinPPO_action_history_length', device)
+
+
+@pytest.mark.parametrize('device', devices())
+def test_asymmetric(device, tmpdir):
+    np.random.seed(1)
+    torch.manual_seed(1)
+    asymmetric = dict(actor_indices=[1], critic_indices=[1, 0], critic_history_length=2)
+    policy, alg_params = make_rudin_setup()
+    policy = GaussianTorchPolicy(ActorNetwork, (1,), (1,), std_0=1., n_features=None, n_layers=0)
+    alg_params['critic_params']['input_shape'] = (2, 2)
+    agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50), asymmetric=asymmetric)
+
+    assert type(agent.history_manager) is AsymmetricHistoryManager
+    tu.assert_save_load(agent, tmpdir / 'rudin.msh')
+
+    _, alg_params = make_bptt_setup()
+    policy = RecurrentGaussianTorchPolicy(network=RecurrentActorNetwork, input_shape=(1,), output_shape=(1,),
+                                          n_features=4, n_hidden_features=4, rnn_type='gru', num_hidden_layers=1)
+    agent = learn(PPO_BPTT, policy, alg_params, InvertedPendulum(horizon=50),
+                  asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]))
+    dataset = Core(agent, InvertedPendulum(horizon=50)).evaluate(n_steps=20, quiet=True)
+    batch = agent.history_manager.parse_history(dataset, get_policy_state=True)
+    sequences, _ = agent._transform_to_sequences(batch, batch.state)
+
+    assert type(agent.history_manager) is AsymmetricHistoryManager
+    assert sequences.state.shape[-1] == 1 and sequences.critic_state.shape[-1] == 2
+    assert torch.equal(sequences.critic_state[:, 0, 0], sequences.state[:, 0, 0])
+    tu.assert_save_load(agent, tmpdir / 'bptt.msh')
 
 
 def test_PPO_BPTT_lstm():

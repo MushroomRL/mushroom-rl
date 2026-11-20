@@ -12,7 +12,8 @@ class Batch:
 
     Iterating over a batch yields the six transition arrays ``state, action, reward, next_state, absorbing, last``,
     so a batch can be unpacked as ``state, action, reward, next_state, absorbing, last = batch``. Every other field is
-    accessed by name.
+    accessed by name. ``critic_state`` and ``critic_next_state`` hold the critic input when it differs from the actor
+    input, and are the same arrays as ``state`` and ``next_state`` otherwise.
 
     The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place.
 
@@ -28,6 +29,14 @@ class Batch:
     next_action_history: Any = None
     policy_state: Any = None
     next_policy_state: Any = None
+    critic_state: Any = None
+    critic_next_state: Any = None
+
+    def __post_init__(self):
+        if self.critic_state is None:
+            object.__setattr__(self, 'critic_state', self.state)
+        if self.critic_next_state is None:
+            object.__setattr__(self, 'critic_next_state', self.next_state)
 
     def __iter__(self):
         return iter((self.state, self.action, self.reward, self.next_state, self.absorbing, self.last))
@@ -46,6 +55,38 @@ class Batch:
 
         """
         return cls(**{f.name: getattr(batch, f.name) for f in fields(batch)}, **values)
+
+    @property
+    def state_arrays(self):
+        """
+        The state arrays of the batch: ``state`` and ``next_state``, followed by ``critic_state`` and
+        ``critic_next_state`` when the batch holds a critic input.
+
+        """
+        arrays = (self.state, self.next_state)
+        if self.critic_state is not self.state:
+            arrays += (self.critic_state, self.critic_next_state)
+        return arrays
+
+    @property
+    def action_arrays(self):
+        """
+        The action arrays of the batch: ``action``, followed by ``action_history`` and ``next_action_history`` when
+        the batch holds them.
+
+        """
+        arrays = (self.action,)
+        if self.action_history is not None:
+            arrays += (self.action_history, self.next_action_history)
+        return arrays
+
+    @property
+    def policy_state_arrays(self):
+        """
+        The policy state arrays of the batch: ``policy_state`` and ``next_policy_state`` when the batch holds them.
+
+        """
+        return () if self.policy_state is None else (self.policy_state, self.next_policy_state)
 
 
 @batch_dataclass

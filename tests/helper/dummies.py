@@ -1,6 +1,6 @@
 import numpy as np
 
-from mushroom_rl.core import Agent, Box, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core import Agent, Box, Environment, MDPInfo, VectorizedEnvironment
 from mushroom_rl.policy import Policy
 
 
@@ -20,6 +20,27 @@ class RecordingAgent(Agent):
 
     def fit(self, dataset):
         self.fit_rewards += np.asarray(dataset.reward).tolist()
+
+
+class CountingEnv(Environment):
+    def __init__(self, horizon):
+        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
+        self._t = -1
+        self._ep_t = 0
+        super().__init__(mdp_info)
+
+    def reset(self, state=None):
+        self._t += 1
+        self._ep_t = 0
+        return self._obs(), {}
+
+    def step(self, action):
+        self._t += 1
+        self._ep_t += 1
+        return self._obs(), 0., False, {}
+
+    def _obs(self):
+        return np.array([0., self._t, self._ep_t])
 
 
 class CountingVecEnv(VectorizedEnvironment):

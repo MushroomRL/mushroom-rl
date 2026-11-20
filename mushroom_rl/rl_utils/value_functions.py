@@ -7,6 +7,7 @@ def compute_advantage_montecarlo(V, batch, gamma):
     Function to estimate the advantage and new value function target
     over a dataset. The value function is estimated using rollouts
     (Monte Carlo estimation). The previous-action windows of ``batch`` are passed to ``V`` as ``action_history``.
+    When the batch holds a critic input, ``V`` is evaluated on it.
 
     Args:
         V (Approximator): the current value function approximator;
@@ -17,14 +18,14 @@ def compute_advantage_montecarlo(V, batch, gamma):
         and the advantage function.
     """
     with torch.no_grad():
-        v = V(batch.state, action_history=batch.action_history)
+        v = V(batch.critic_state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
 
         last_ep, r_ep, absorbing_ep = split_episodes(batch.last, batch.reward, batch.absorbing)
         q_ep = torch.zeros_like(r_ep, dtype=torch.float32)
         ends = episode_ends(batch.last, r_ep.shape[0] if r_ep.ndim > 1 else 1)
         next_ah = batch.next_action_history[ends] if batch.next_action_history is not None else None
-        q_end = V(batch.next_state[ends], action_history=next_ah)
+        q_end = V(batch.critic_next_state[ends], action_history=next_ah)
         q_next_ep = torch.zeros_like(q_end)
 
         not_absorbing_ep = ~absorbing_ep
@@ -44,7 +45,7 @@ def compute_advantage(V, batch, gamma):
     """
     Function to estimate the advantage and new value function target
     over a dataset. The value function is estimated using bootstrapping. The previous-action windows of ``batch`` are
-    passed to ``V`` as ``action_history``.
+    passed to ``V`` as ``action_history``. When the batch holds a critic input, ``V`` is evaluated on it.
 
     Args:
         V (Approximator): the current value function approximator;
@@ -54,9 +55,9 @@ def compute_advantage(V, batch, gamma):
         The new estimate for the value function of the next state and the advantage function.
     """
     with torch.no_grad():
-        v = V(batch.state, action_history=batch.action_history)
+        v = V(batch.critic_state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
-        v_next = V(batch.next_state, action_history=batch.next_action_history) * ~batch.absorbing
+        v_next = V(batch.critic_next_state, action_history=batch.next_action_history) * ~batch.absorbing
 
         q = batch.reward + gamma * v_next
         adv = q - v
@@ -72,7 +73,8 @@ def compute_gae(V, batch, gamma, lam):
     Advantage Estimation".
     Schulman J. et al. 2016.
 
-    The previous-action windows of ``batch`` are passed to ``V`` as ``action_history``.
+    The previous-action windows of ``batch`` are passed to ``V`` as ``action_history``. When the batch holds a critic
+    input, ``V`` is evaluated on it.
 
     Args:
         V (Approximator): the current value function approximator;
@@ -85,13 +87,13 @@ def compute_gae(V, batch, gamma, lam):
         and the estimated generalized advantage.
     """
     with torch.no_grad():
-        v = V(batch.state, action_history=batch.action_history)
+        v = V(batch.critic_state, action_history=batch.action_history)
         assert v.ndim == 1, 'V must return one scalar per sample: declare output_shape=().'
 
         last_ep, v_ep, r_ep, absorbing_ep = split_episodes(batch.last, v, batch.reward, batch.absorbing)
         ends = episode_ends(batch.last, v_ep.shape[0] if v_ep.ndim > 1 else 1)
         next_ah = batch.next_action_history[ends] if batch.next_action_history is not None else None
-        v_end = V(batch.next_state[ends], action_history=next_ah)
+        v_end = V(batch.critic_next_state[ends], action_history=next_ah)
 
         v_next_ep = torch.zeros_like(v_ep)
         v_next_ep[..., :-1] = v_ep[..., 1:]

@@ -58,26 +58,23 @@ class TD3(DDPG):
             _noise_clip='mushroom'
         )
 
-    def _loss(self, state):
-        action = self.policy.location(state)
-        q = self._critic_approximator(state, action, idx=0, **self._critic_predict_params)
+    def _loss(self, batch):
+        action = self.policy.location(batch.state)
+        q = self._critic_approximator(batch.critic_state, action, idx=0, **self._critic_predict_params)
 
         return -q.mean()
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, batch):
         """
         Args:
-            next_state (torch.Tensor): the states where next action has to be
-                evaluated;
-            absorbing (torch.Tensor): the absorbing flag for the states in
-                ``next_state``.
+            batch (Batch): the fit batch, whose next states are evaluated.
 
         Returns:
-            Action-values returned by the critic for ``next_state`` and the
-            action returned by the actor.
+            Action-values returned by the target critic for the next states and the actions returned by the actor,
+            zero on the absorbing states.
 
         """
-        a = self._target_policy.location(next_state).detach()
+        a = self._target_policy.location(batch.next_state)
 
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())
@@ -86,8 +83,8 @@ class TD3(DDPG):
         high = torch.as_tensor(self.mdp_info.action_space.high, device=self._info.device)
         a_smoothed = torch.clamp(a + eps_clipped, low, high)
 
-        q = self._target_critic_approximator.predict(next_state, a_smoothed,
+        q = self._target_critic_approximator.predict(batch.critic_next_state, a_smoothed,
                                                      prediction='min', **self._critic_predict_params)
-        q *= ~absorbing
+        q *= ~batch.absorbing
 
         return q

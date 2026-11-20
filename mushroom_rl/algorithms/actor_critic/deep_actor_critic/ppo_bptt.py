@@ -95,7 +95,7 @@ class PPO_BPTT(OnPolicyDeepAC):
 
         old_log_p = old_pol_dist.log_prob(batch.action).detach()
 
-        self._V.fit(sequences.state, sequences.policy_state, sequences.lengths, v_target,
+        self._V.fit(sequences.critic_state, sequences.policy_state, sequences.lengths, v_target,
                     action_history=sequences.action_history, **self._critic_fit_params)
 
         kl, entropy = self._update_policy(sequences.state, sequences.policy_state, batch.action, sequences.lengths, adv,
@@ -113,6 +113,8 @@ class PPO_BPTT(OnPolicyDeepAC):
         Advantage Estimation".
         Schulman J. et al.. 2016.
 
+        When the sequences hold a critic input, ``V`` is evaluated on it.
+
         Args:
             V (Approximator): the current value function approximator;
             sequences (SequenceBatch): the sequences ending at each step of whole trajectories, in the order of the
@@ -125,9 +127,9 @@ class PPO_BPTT(OnPolicyDeepAC):
             and the estimated generalized advantage.
         """
         with torch.no_grad():
-            v = V(sequences.state, sequences.policy_state, lengths=sequences.lengths,
+            v = V(sequences.critic_state, sequences.policy_state, lengths=sequences.lengths,
                   action_history=sequences.action_history)
-            v_next = V(sequences.next_state, sequences.next_policy_state, lengths=sequences.lengths,
+            v_next = V(sequences.critic_next_state, sequences.next_policy_state, lengths=sequences.lengths,
                        action_history=sequences.next_action_history)
             r, absorbing, last = sequences.reward, sequences.absorbing, sequences.last
             gen_adv = torch.empty_like(v)
@@ -157,19 +159,7 @@ class PPO_BPTT(OnPolicyDeepAC):
             rows = torch.clamp(begin[:, None] + offsets, max=n_steps - 1)
             valid = offsets < lengths[:, None]
 
-            state, action, next_state, state_old = self._gather_sequences(rows, valid, batch.state, batch.action,
-                                                                          batch.next_state, states_old)
-            action_history = next_action_history = None
-            if self._history_manager.uses_action:
-                action_history, next_action_history = self._gather_sequences(rows, valid, batch.action_history,
-                                                                             batch.next_action_history)
-
-            sequences = SequenceBatch(state, action, batch.reward, next_state, batch.absorbing, batch.last,
-                                      action_history=action_history, next_action_history=next_action_history,
-                                      policy_state=batch.policy_state[begin],
-                                      next_policy_state=batch.next_policy_state[begin], lengths=lengths.cpu())
-
-            return sequences, state_old
+            return self._gather_sequences(batch, states_old, rows, valid, begin, lengths)
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
         tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
@@ -201,15 +191,32 @@ class PPO_BPTT(OnPolicyDeepAC):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
 
-    @staticmethod
-    def _gather_sequences(rows, valid, *arrays):
+    @classmethod
+    def _gather_sequences(cls, batch, states_old, rows, valid, begin, lengths):
         """
-        Gather the sequence of every step from each array, zero-padded after its final step.
+        Cut the state and action arrays of a batch and the old states into the sequence of every step, zero-padded
+        after its final step, and take the policy states at the first step of each sequence.
+
+        Returns:
+            A tuple ``(sequences, state_old)``: the :class:`~mushroom_rl.core.batch.SequenceBatch` and the sequences of
+            the old states.
 
         """
-        sequences = list()
-        for array in arrays:
-            sequence = array[rows]
-            sequence[~valid] = 0
-            sequences.append(sequence)
+        state, next_state, *critic = [cls._pad_sequences(array, rows, valid) for array in batch.state_arrays]
+        action, *history = [cls._pad_sequences(array, rows, valid) for array in batch.action_arrays]
+        policy_state, next_policy_state = [array[begin] for array in batch.policy_state_arrays]
+        critic_state, critic_next_state = critic or (None, None)
+        action_history, next_action_history = history or (None, None)
+
+        sequences = SequenceBatch(state, action, batch.reward, next_state, batch.absorbing, batch.last,
+                                  action_history=action_history, next_action_history=next_action_history,
+                                  policy_state=policy_state, next_policy_state=next_policy_state,
+                                  critic_state=critic_state, critic_next_state=critic_next_state, lengths=lengths.cpu())
+
+        return sequences, cls._pad_sequences(states_old, rows, valid)
+
+    @staticmethod
+    def _pad_sequences(array, rows, valid):
+        sequences = array[rows]
+        sequences[~valid] = 0
         return sequences
