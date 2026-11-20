@@ -2,8 +2,10 @@ Batch
 =====
 
 A ``Batch`` holds the arrays of a set of transitions. It is returned by
-:meth:`Dataset.parse <mushroom_rl.core.dataset.Dataset.parse>`, by the parse methods of the
-:class:`~mushroom_rl.core.history_manager.HistoryManager` and by the ``get`` method of the replay memories.
+:meth:`Dataset.parse <mushroom_rl.core.dataset.Dataset.parse>`, by
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history` and
+:meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_nstep_history`, and by the ``get`` method of the replay
+memories.
 
 Unpacking
 ---------
@@ -29,7 +31,7 @@ The fields of a batch of ``n`` transitions are listed in the following table.
    "``state``, ``next_state``", "The observation, or the window of the ``H`` most recent observations when the history length ``H`` is greater than 1.", "``(n, *obs_shape)``, or ``(n, H, *obs_shape)``"
    "``action``", "The action.", "``(n, *action_shape)``"
    "``reward``", "The reward, or the discounted n-step return.", "``(n,)``"
-   "``absorbing``, ``last``", "The absorbing flag and the flag of the final row of each stored segment.", "``(n,)``"
+   "``absorbing``, ``last``", "The absorbing flag and the episode/segment end flag.", "``(n,)``"
    "``action_history``, ``next_action_history``", "The window of the ``L`` previous actions of the step and of the next step when the previous-action stream is active, ``None`` otherwise.", "``(n, L, *action_shape)``, or ``(n, *action_shape)`` when ``L`` is 1"
    "``policy_state``, ``next_policy_state``", "The policy state before and after the step when requested, ``None`` otherwise.", "``(n, *policy_state_shape)``"
 
@@ -65,7 +67,8 @@ shape ``(n,)``, on the CPU.
 Fixed fields
 ------------
 
-The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place:
+The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place. The arrays may share
+memory with each other and with the dataset they are parsed from:
 
 .. code-block:: python
 

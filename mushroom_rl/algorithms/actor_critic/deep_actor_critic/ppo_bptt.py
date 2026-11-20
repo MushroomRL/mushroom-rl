@@ -10,7 +10,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 
 class PPO_BPTT(OnPolicyDeepAC):
     """
-    Backpropagation trough time extension of the  Proximal Policy Optimization algorithm.
+    Backpropagation through time extension of the Proximal Policy Optimization algorithm.
     "Proximal Policy Optimization Algorithms".
     Schulman J. et al. 2017.
 
@@ -166,40 +166,13 @@ class PPO_BPTT(OnPolicyDeepAC):
             if self._history_manager.uses_action:
                 action_history, next_action_history = self._gather_sequences(rows, valid, batch.action_history,
                                                                              batch.next_action_history)
-            policy_state, next_policy_state = self._gather_sequence_starts(begin, batch.policy_state,
-                                                                           batch.next_policy_state)
 
             sequences = SequenceBatch(state, action, batch.reward, next_state, batch.absorbing, batch.last,
                                       action_history=action_history, next_action_history=next_action_history,
-                                      policy_state=policy_state, next_policy_state=next_policy_state,
-                                      lengths=lengths.cpu())
+                                      policy_state=batch.policy_state[begin],
+                                      next_policy_state=batch.next_policy_state[begin], lengths=lengths.cpu())
 
             return sequences, state_old
-
-    def _gather_sequences(self, rows, valid, *arrays):
-        """
-        Gather the sequence of every step from each array, zero-padded after its final step, into the default dtype
-        on the agent device.
-
-        """
-        sequences = list()
-        for array in arrays:
-            mask = valid.reshape(valid.shape + (1,) * (array.dim() - 1))
-            padded = torch.where(mask, array[rows], 0)
-            sequences.append(torch.empty(padded.shape, device=self._info.device).copy_(padded))
-        return sequences
-
-    def _gather_sequence_starts(self, begin, *arrays):
-        """
-        Gather the entry at the first step of the sequence of every step from each array, into the default dtype on
-        the agent device.
-
-        """
-        starts = list()
-        for array in arrays:
-            start = array[begin]
-            starts.append(torch.empty(start.shape, device=self._info.device).copy_(start))
-        return starts
 
     def _update_policy(self, obs, pi_h, act, lengths, adv, old_log_p, prev_action):
         tensors = (obs, pi_h, act, lengths, adv, old_log_p) if not self._history_manager.uses_action \
@@ -230,3 +203,16 @@ class PPO_BPTT(OnPolicyDeepAC):
     def _post_load(self, device):
         if self._optimizer is not None:
             TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
+
+    @staticmethod
+    def _gather_sequences(rows, valid, *arrays):
+        """
+        Gather the sequence of every step from each array, zero-padded after its final step.
+
+        """
+        sequences = list()
+        for array in arrays:
+            sequence = array[rows]
+            sequence[~valid] = 0
+            sequences.append(sequence)
+        return sequences

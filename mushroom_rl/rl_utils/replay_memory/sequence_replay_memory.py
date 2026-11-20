@@ -51,21 +51,10 @@ class SequenceReplayMemory(ReplayMemory):
 
         """
         backend = self._dataset.backend
-        h = self._history_manager.history_length
-        obs_shape = self._mdp_info.observation_space.shape
-        obs_dtype = backend.to_backend_dtype(self._mdp_info.observation_space.data_type)
-        action_dtype = backend.to_backend_dtype(self._mdp_info.action_space.data_type)
 
         ds = self._dataset
         size = self.size
 
-        stacked_shape = (h, *obs_shape) if h > 1 else obs_shape
-        s = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
-                          device=self._agent_info.device)
-        ss = backend.zeros(n_samples, self._truncation_length, *stacked_shape, dtype=obs_dtype,
-                           device=self._agent_info.device)
-        a = backend.zeros(n_samples, self._truncation_length, *self._mdp_info.action_space.shape,
-                          dtype=action_dtype, device=self._agent_info.device)
         r = backend.zeros(n_samples, device=self._agent_info.device)
         ab = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
         last = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
@@ -87,35 +76,33 @@ class SequenceReplayMemory(ReplayMemory):
 
         sequences = self._history_manager.parse_history(ds, anchor_idxs=positions.reshape(-1), get_policy_state=True)
 
-        def per_sample(x):
-            return x.reshape((n_samples, self._truncation_length) + tuple(x.shape[1:]))
-
-        def padded(x, out):
-            mask = (steps >= 0).reshape(tuple(steps.shape) + (1,) * (len(x.shape) - 1))
-            out[:] = backend.where(mask, per_sample(x), out)
-            return out
-
-        padded(sequences.state, s)
-        padded(sequences.next_state, ss)
-        padded(sequences.action, a)
-        ps[:] = per_sample(sequences.policy_state)[:, 0]
-        nps[:] = per_sample(sequences.next_policy_state)[:, 0]
-        r[:] = per_sample(sequences.reward)[samples, counts - 1]
-        ab[:] = per_sample(sequences.absorbing)[samples, counts - 1]
-        last[:] = per_sample(sequences.last)[samples, counts - 1]
+        s = self._pad_sequences(sequences.state, steps)
+        ss = self._pad_sequences(sequences.next_state, steps)
+        a = self._pad_sequences(sequences.action, steps)
+        final = samples * self._truncation_length + counts - 1
+        ps[:] = sequences.policy_state[::self._truncation_length]
+        nps[:] = sequences.next_policy_state[::self._truncation_length]
+        r[:] = sequences.reward[final]
+        ab[:] = sequences.absorbing[final]
+        last[:] = sequences.last[final]
         lengths[:] = counts
 
         action_history = next_action_history = None
         if sequences.action_history is not None:
-            window_shape = tuple(sequences.action_history.shape[1:])
-            window_dtype = sequences.action_history.dtype
-            action_history = padded(sequences.action_history,
-                                    backend.zeros(n_samples, self._truncation_length, *window_shape,
-                                                  dtype=window_dtype, device=self._agent_info.device))
-            next_action_history = padded(sequences.next_action_history,
-                                         backend.zeros(n_samples, self._truncation_length, *window_shape,
-                                                       dtype=window_dtype, device=self._agent_info.device))
+            action_history = self._pad_sequences(sequences.action_history, steps)
+            next_action_history = self._pad_sequences(sequences.next_action_history, steps)
 
         return SequenceBatch(s, a, r, ss, ab, last, action_history=action_history,
                              next_action_history=next_action_history, policy_state=ps, next_policy_state=nps,
                              lengths=lengths)
+
+    @staticmethod
+    def _pad_sequences(x, steps):
+        """
+        Reshape the per-step array into sequences, with the entries of the padding steps (negative ``steps``) set to
+        zero.
+
+        """
+        x = x.reshape(tuple(steps.shape) + tuple(x.shape[1:]))
+        x[steps < 0] = 0
+        return x

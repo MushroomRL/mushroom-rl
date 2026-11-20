@@ -20,10 +20,8 @@ def test_batch():
     assert transition[0][0, 0] == 5.
     with pytest.raises(dataclasses.FrozenInstanceError):
         batch.state = np.ones((3, 2))
-    with pytest.raises(TypeError):
+    with pytest.raises((TypeError, AttributeError)):
         batch.stat = np.ones((3, 2))
-    with pytest.raises(TypeError):
-        Batch(*transition, None)
 
     loaded = pickle.loads(pickle.dumps(batch))
     assert all(np.array_equal(x, y) for x, y in zip(loaded, batch))

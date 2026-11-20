@@ -1388,7 +1388,7 @@ class TorchBackend(ArrayBackend):
 
     @classmethod
     def to_torch(cls, array, device=None):
-        return array if device is None else array.to(cls.check_device(device))
+        return None if array is None else array.to(cls.check_device(device))
 
     @staticmethod
     def to_list(array):
