@@ -130,7 +130,7 @@ def test_join_empty():
     for joined in (flat + empty, empty + flat, accumulated, extended):
         assert np.array_equal(np.asarray(joined.state), np.asarray(flat.state))
         assert np.array_equal(joined.parse_policy_state()[0], flat.parse_policy_state()[0])
-        assert np.array_equal(joined.parse()[5], flat.parse()[5])
+        assert np.array_equal(joined.parse().last, flat.parse().last)
 
 
 def test_join_consumed():

@@ -8,3 +8,12 @@ manager serves both the online loop and the offline replay of a batch.
 
 .. automodule:: mushroom_rl.core.history_manager
     :private-members:
+
+Asymmetric inputs
+-----------------
+
+The ``AsymmetricHistoryManager`` builds two inputs from different entries of the preprocessed observation, each with
+its own history length: the policy input, online and when parsing a dataset, and the critic input, when parsing a
+dataset only, into the ``critic_state`` and ``critic_next_state`` of the returned batch.
+
+.. automodule:: mushroom_rl.core.asymmetric_history_manager

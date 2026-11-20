@@ -7,6 +7,7 @@ from .vectorized_env import VectorizedEnvironment
 from .multiprocess_environment import MultiprocessEnvironment
 from .agent import Agent, AgentInfo, HasNextAction
 from .core import Core
+from .batch import Batch, PrioritizedBatch, SequenceBatch
 from .dataset import Dataset
 from .vectorized_dataset import VectorizedDataset
 from .dataset_info import DatasetInfo
@@ -23,6 +24,7 @@ __all__ = [
     'VectorizedEnvironment', 'MultiprocessEnvironment',
     'Agent', 'AgentInfo', 'HasNextAction',
     'Core',
+    'Batch', 'PrioritizedBatch', 'SequenceBatch',
     'Dataset', 'VectorizedDataset',
     'DatasetInfo', 'ExtraInfo',
     'Logger',

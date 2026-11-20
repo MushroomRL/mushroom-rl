@@ -12,7 +12,10 @@ For Mushroom 2.1:
     * Port to Mujoco 4.0
     * mushroom-wide graph capture (CUDA graphs / torch.compile) of the training steps: static parameter and input
       buffers, capturable optimizers, no host syncs or Python branching inside the captured region. TorchEnsemble
-      (stacked parameters as the single source of truth, one shared optimizer) is the first capture-ready piece
+      (stacked parameters as the single source of truth, one shared optimizer) is the first capture-ready piece;
+      PPO_BPTT's sequence transform and SequenceReplayMemory.get are vectorized. Known syncs left: the replay candidate
+      sampling (`stored[~cut]` / `idxs[~mask]` + `randint(len)`), PPO_BPTT's own compute_gae loop, and the copy of the
+      sequence lengths to the CPU that pack_padded_sequence requires (inherent)
     * make utils/angles.py backend-agnostic and drop utils/isaac_sim/torch_maths.wrap_to_pi (used by the Isaac
       quadruped commands)
     * Improve the HistoryManager:
@@ -28,7 +31,6 @@ For Mushroom 2.1:
     * Register array backends from the class statement, as the dataset containers do, so adding a backend means
       editing both. fix the similar issue with the to_<backend> method if possible
     * Improve replay memory:
-        - vectorize SequenceReplayMemory.get: build all sequences at once, removing the per-sample host-device syncs
         - drop the stored next_state column, at least on CircularDataset: resolve the next state from the state
           column and keep only boundary rows (episode and segment ends) in a side buffer. Saves storage between
           fits, not peak; worth it only when boundaries are rare (negative at horizon 1)

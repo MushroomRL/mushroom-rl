@@ -1,12 +1,14 @@
-from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
+from copy import deepcopy
+
+import torch
+
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OffPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.rl_utils.parameters import Parameter
 
-from copy import deepcopy
 
-
-class DDPG(DeepAC):
+class DDPG(OffPolicyDeepAC):
     """
     Deep Deterministic Policy Gradient algorithm.
     "Continuous Control with Deep Reinforcement Learning".
@@ -84,16 +86,16 @@ class DDPG(DeepAC):
         self._history_manager.update_preprocessors(dataset)
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
-            state, next_state = self._augment(state), self._augment(next_state)
+            batch = self._replay_memory.get(self._batch_size())
+            batch = self._augment_batch(batch)
 
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info.gamma * q_next
+            with torch.no_grad():
+                q = batch.reward + self.mdp_info.gamma * self._next_q(batch)
 
-            self._critic_approximator.fit(state, action, q.detach(), **self._critic_fit_params)
+            self._critic_approximator.fit(batch.critic_state, batch.action, q, **self._critic_fit_params)
 
             if self._fit_count % self._policy_delay() == 0:
-                loss = self._loss(state)
+                loss = self._loss(batch)
                 self._optimize_actor_parameters(loss)
 
                 if self._logger:
@@ -107,31 +109,25 @@ class DDPG(DeepAC):
             if self._logger:
                 self._logger.advance_step()
 
-    def _loss(self, state):
-        action = self.policy.location(state)
-        q = self._critic_approximator(state, action, **self._critic_predict_params)
+    def _loss(self, batch):
+        action = self.policy.location(batch.state)
+        q = self._critic_approximator(batch.critic_state, action, **self._critic_predict_params)
 
         return -q.mean()
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, batch):
         """
         Args:
-            next_state (torch.Tensor): the states where next action has to be
-                evaluated;
-            absorbing (torch.Tensor): the absorbing flag for the states in
-                ``next_state``.
+            batch (Batch): the fit batch, whose next states are evaluated.
 
         Returns:
-            Action-values returned by the critic for ``next_state`` and the
-            action returned by the actor.
+            Action-values returned by the target critic for the next states and the actions returned by the actor,
+            zero on the absorbing states.
 
         """
-        a = self._target_policy.location(next_state)
+        a = self._target_policy.location(batch.next_state)
 
-        q = self._target_critic_approximator.predict(next_state, a, **self._critic_predict_params)
-        q *= ~absorbing
+        q = self._target_critic_approximator.predict(batch.critic_next_state, a, **self._critic_predict_params)
+        q *= ~batch.absorbing
 
         return q
-
-    def _post_load(self, device):
-        self.overwrite_actor_parameters(self.policy.parameters())

@@ -124,19 +124,19 @@ class AbstractDQN(Agent):
     def _fit_prioritized(self, dataset):
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_, idxs, is_weight = \
-                self._replay_memory.get(self._batch_size())
+            batch = self._replay_memory.get(self._batch_size())
 
+            reward = batch.reward
             if self._clip_reward:
                 reward = torch.clip(reward, -1, 1)
 
             with torch.no_grad():
-                target = self._compute_target(reward, next_state, absorbing)
-                priority = self._compute_priority(state, action, target)
+                target = self._compute_target(reward, batch.next_state, batch.absorbing)
+                priority = self._compute_priority(batch.state, batch.action, target)
 
-            self._replay_memory.update(priority, idxs)
+            self._replay_memory.update(priority, batch.idxs)
 
-            self.approximator.fit(state, action, target, weights=is_weight, **self._fit_params)
+            self.approximator.fit(batch.state, batch.action, target, weights=batch.weights, **self._fit_params)
 
     def _initialize_regressors(self, approximator, approximator_params):
         """

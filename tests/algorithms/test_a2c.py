@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -10,6 +12,7 @@ from helper.cases import devices
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Core
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.environments import CartPole, InvertedPendulum
 from mushroom_rl.algorithms.actor_critic import A2C
 
@@ -19,7 +22,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.utils import TorchUtils
 
 
-def learn_a2c(logger=None, **extra_params):
+def learn_a2c(logger=None, asymmetric=None, **extra_params):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -27,12 +30,17 @@ def learn_a2c(logger=None, **extra_params):
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
+    actor_input_shape = critic_input_shape = mdp.info.observation_space.shape
+    if asymmetric is not None:
+        actor_input_shape = (len(asymmetric['actor_indices']),)
+        critic_input_shape = (asymmetric['critic_history_length'], len(asymmetric['critic_indices']))
+
     critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 1e-5}},
                          loss=F.mse_loss,
                          n_features=None,
                          n_layers=0,
-                         input_shape=mdp.info.observation_space.shape,
+                         input_shape=critic_input_shape,
                          output_shape=())
 
     algorithm_params = dict(critic_params=critic_params,
@@ -41,12 +49,13 @@ def learn_a2c(logger=None, **extra_params):
                             ent_coeff=0.01)
 
     policy = GaussianTorchPolicy(ActorNetwork,
-                                 mdp.info.observation_space.shape,
+                                 actor_input_shape,
                                  mdp.info.action_space.shape,
                                  device=extra_params.get('device'),
                                  **policy_params)
 
-    agent = A2C(mdp.info, policy, **algorithm_params, **extra_params)
+    make = A2C if asymmetric is None else partial(A2C.asymmetric, **asymmetric)
+    agent = make(mdp.info, policy, **algorithm_params, **extra_params)
     if logger is not None:
         agent.set_logger(logger)
 
@@ -175,6 +184,16 @@ def test_a2c(device, tmpdir):
 
     tu.assert_recorded(w, 'test_a2c', device)
 
+    tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
+
+
+@pytest.mark.parametrize('device', devices())
+def test_a2c_asymmetric(device, tmpdir):
+    agent = learn_a2c(asymmetric=dict(actor_indices=[1], critic_indices=[1, 0], critic_history_length=2),
+                      device=device)
+
+    assert type(agent.history_manager) is AsymmetricHistoryManager
+    assert agent.history_manager.critic_history_length == 2
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 
 

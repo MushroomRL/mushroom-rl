@@ -1,10 +1,9 @@
-from mushroom_rl.core import Agent
+from mushroom_rl.algorithms.actor_critic.classic_actor_critic.classic_actor_critic import ClassicAC
 from mushroom_rl.approximators.parametric import LinearApproximator
-
 from mushroom_rl.rl_utils.parameters import Parameter
 
 
-class COPDAC_Q(Agent):
+class COPDAC_Q(ClassicAC):
     """
     Compatible off-policy deterministic actor-critic algorithm.
     "Deterministic Policy Gradient Algorithms"
@@ -30,67 +29,41 @@ class COPDAC_Q(Agent):
 
         """
         self._mu = mu
-        self._psi = value_function_features
-
-        self._alpha_theta = Parameter.make(alpha_theta)
         self._alpha_omega = Parameter.make(alpha_omega)
-        self._alpha_v = Parameter.make(alpha_v)
-
-        if self._psi is not None:
-            input_shape = (self._psi.size,)
-        else:
-            input_shape = mdp_info.observation_space.shape
-
-        self._V = LinearApproximator(input_shape=input_shape, output_shape=())
 
         self._A = LinearApproximator(input_shape=(self._mu.weights_size,), output_shape=())
 
-        super().__init__(mdp_info, policy)
+        super().__init__(mdp_info, policy, alpha_theta, alpha_v, value_function_features)
 
         self._add_save_attr(
             _mu='mushroom',
-            _psi='pickle',
-            _alpha_theta='mushroom',
             _alpha_omega='mushroom',
-            _alpha_v='mushroom',
-            _V='mushroom',
             _A='mushroom'
         )
-        self._add_logger_attr(_alpha_theta='theta', _alpha_omega='omega', _alpha_v='v', group='alpha')
+        self._add_logger_attr(_alpha_omega='omega', group='alpha')
 
-    def fit(self, dataset):
-        for step in dataset:
-            s, a, r, ss, absorbing, _ = step
+    def _update(self, state, action, reward, v_next, state_psi):
+        grad_mu_s = self._mu.diff(state)
+        omega = self._A.get_weights()
 
-            s_psi = self._psi(s) if self._psi is not None else s
-            ss_psi = self._psi(ss) if self._psi is not None else ss
+        delta = reward + self.mdp_info.gamma * v_next - self._Q(state, action)
+        delta_theta = self._alpha_theta(state, action) * (grad_mu_s @ (grad_mu_s.T @ omega))
+        delta_omega = self._alpha_omega(state, action) * delta * self._nu(state, action)
+        delta_v = self._alpha_v(state, action) * delta * state_psi
 
-            q_next = self._V(ss_psi).item() if not absorbing else 0
+        theta_new = self._mu.get_weights() + delta_theta
+        self._mu.set_weights(theta_new)
 
-            grad_mu_s = self._mu.diff(s)
-            omega = self._A.get_weights()
+        omega_new = omega + delta_omega
+        self._A.set_weights(omega_new)
 
-            delta = r + self.mdp_info.gamma * q_next - self._Q(s, a)
-            delta_theta = self._alpha_theta(s, a) * (grad_mu_s @ (grad_mu_s.T @ omega))
-            delta_omega = self._alpha_omega(s, a) * delta * self._nu(s, a)
-            delta_v = self._alpha_v(s, a) * delta * s_psi
-
-            theta_new = self._mu.get_weights() + delta_theta
-            self._mu.set_weights(theta_new)
-
-            omega_new = omega + delta_omega
-            self._A.set_weights(omega_new)
-
-            v_new = self._V.get_weights() + delta_v
-            self._V.set_weights(v_new)
-
-        if self._logger:
-            self._logger.advance_step()
+        v_new = self._V.get_weights() + delta_v
+        self._V.set_weights(v_new)
 
     def _Q(self, state, action):
         state_psi = self._psi(state) if self._psi is not None else state
 
-        return self._V(state_psi).item() + self._A(self._nu(state, action)).item()
+        return self._V(state_psi) + self._A(self._nu(state, action))
 
     def _nu(self, state, action):
         grad_mu = self._mu.diff(state)

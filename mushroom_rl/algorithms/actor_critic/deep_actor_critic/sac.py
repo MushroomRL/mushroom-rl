@@ -3,7 +3,7 @@ import math
 import torch
 import torch.optim as optim
 
-from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OffPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.utils.torch_utils import TorchUtils
@@ -12,7 +12,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from copy import deepcopy
 
 
-class SAC(DeepAC):
+class SAC(OffPolicyDeepAC):
     """
     Soft Actor-Critic algorithm.
     "Soft Actor-Critic Algorithms and Applications".
@@ -102,12 +102,12 @@ class SAC(DeepAC):
         self._history_manager.update_preprocessors(dataset)
         self._replay_memory.add(dataset)
         if self._replay_memory.initialized:
-            state, action, reward, next_state, absorbing, *_ = self._replay_memory.get(self._batch_size())
-            state, next_state = self._augment(state), self._augment(next_state)
+            batch = self._replay_memory.get(self._batch_size())
+            batch = self._augment_batch(batch)
 
             if self._replay_memory.size > self._warmup_transitions():
-                action_new, log_prob = self.policy.draw_with_log_prob(state)
-                loss = self._loss(state, action_new, log_prob)
+                action_new, log_prob = self.policy.draw_with_log_prob(batch.state)
+                loss = self._loss(batch, action_new, log_prob)
                 self._optimize_actor_parameters(loss)
                 alpha_loss = self._update_alpha(log_prob.detach())
 
@@ -115,19 +115,19 @@ class SAC(DeepAC):
                     self._logger.log_training('actor', loss=loss.item(), entropy=-log_prob.mean().item())
                     self._logger.log_training('alpha', value=self._alpha.item(), loss=alpha_loss.item())
 
-            q_next = self._next_q(next_state, absorbing)
-            q = reward + self.mdp_info.gamma * q_next
+            with torch.no_grad():
+                q = batch.reward + self.mdp_info.gamma * self._next_q(batch)
 
-            self._critic_approximator.fit(state, action, q.detach(), **self._critic_fit_params)
+            self._critic_approximator.fit(batch.critic_state, batch.action, q, **self._critic_fit_params)
 
             self._update_target(self._critic_approximator, self._target_critic_approximator)
 
             if self._logger:
                 self._logger.advance_step()
 
-    def _loss(self, state, action_new, log_prob):
-        q_0 = self._critic_approximator(state, action_new, idx=0)
-        q_1 = self._critic_approximator(state, action_new, idx=1)
+    def _loss(self, batch, action_new, log_prob):
+        q_0 = self._critic_approximator(batch.critic_state, action_new, idx=0)
+        q_1 = self._critic_approximator(batch.critic_state, action_new, idx=1)
 
         q = torch.min(q_0, q_1)
 
@@ -144,26 +144,26 @@ class SAC(DeepAC):
 
         return alpha_loss
 
-    def _next_q(self, next_state, absorbing):
+    def _next_q(self, batch):
         """
         Args:
-            next_state (torch.Tensor): the states where next action has to be evaluated;
-            absorbing (torch.Tensor): the absorbing flag for the states in ``next_state``.
+            batch (Batch): the fit batch, whose next states are evaluated.
 
         Returns:
-            Action-values returned by the critic for ``next_state`` and the action returned by the actor.
+            Action-values returned by the target critic for the next states and the actions returned by the actor,
+            zero on the absorbing states.
 
         """
-        with torch.no_grad():
-            a, log_prob_next = self.policy.draw_with_log_prob(next_state)
+        a, log_prob_next = self.policy.draw_with_log_prob(batch.next_state)
 
-        q = self._target_critic_approximator.predict(next_state, a, prediction='min') - self._alpha * log_prob_next
-        q *= ~absorbing
+        q = self._target_critic_approximator.predict(batch.critic_next_state, a, prediction='min') \
+            - self._alpha * log_prob_next
+        q *= ~batch.absorbing
 
         return q
 
     def _post_load(self, device):
-        self.overwrite_actor_parameters(self.policy.parameters())
+        super()._post_load(device)
         self._update_alpha_optimizer_parameters()
 
     def _update_alpha_optimizer_parameters(self):

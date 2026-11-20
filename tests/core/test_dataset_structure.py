@@ -62,12 +62,12 @@ def test_parse():
     dataset = make_dataset([False, False, True, False, False])
     converted = dataset.to_backend('torch')
 
-    assert np.array_equal(dataset.parse()[5], np.array([False, False, True, False, True]))
+    assert np.array_equal(dataset.parse().last, np.array([False, False, True, False, True]))
     assert np.array_equal(dataset.last, np.array([False, False, True, False, False]))
-    assert np.array_equal(make_dataset([False, True, False, True]).parse()[5], np.array([False, True, False, True]))
-    assert np.array_equal(dataset[1:].parse()[5], np.array([False, True, False, True]))
+    assert np.array_equal(make_dataset([False, True, False, True]).parse().last, np.array([False, True, False, True]))
+    assert np.array_equal(dataset[1:].parse().last, np.array([False, True, False, True]))
     assert torch.equal(converted.last, torch.tensor([False, False, True, False, False]))
-    assert torch.equal(converted.parse()[5], torch.tensor([False, False, True, False, True]))
+    assert torch.equal(converted.parse().last, torch.tensor([False, False, True, False, True]))
 
 
 def test_add_stitching():
@@ -81,8 +81,8 @@ def test_add_stitching():
     stitched = first_block + second_block
     unrelated = first_block + first_block.copy()
 
-    assert np.array_equal(stitched.parse()[5], np.array([False, False, False, False, True]))
-    assert np.array_equal(unrelated.parse()[5], np.array([False, False, True, False, False, True]))
+    assert np.array_equal(stitched.parse().last, np.array([False, False, False, False, True]))
+    assert np.array_equal(unrelated.parse().last, np.array([False, False, True, False, False, True]))
     assert np.array_equal(unrelated.last, np.zeros(6, dtype=bool))
 
 
@@ -115,7 +115,7 @@ def test_flat_block_episodes():
 
     flat = dataset.flatten()
 
-    assert np.array_equal(flat.parse()[5], np.array([False, True, False, True, False, True, True, False, True]))
+    assert np.array_equal(flat.parse().last, np.array([False, True, False, True, False, True, True, False, True]))
     assert flat.n_episodes == 2
     assert np.array_equal(flat.compute_J(), np.array([10., 2.]))
     assert np.array_equal(flat.compute_J(skip_incomplete=False), np.array([10., 50., 12., 2., 34.]))
@@ -126,9 +126,9 @@ def test_flat_block_episodes():
     both_episodes = flat.select_first_episodes(2)
 
     assert np.array_equal(first_episode.reward, np.array([0., 10.]))
-    assert np.array_equal(first_episode.parse()[5], np.array([False, True]))
+    assert np.array_equal(first_episode.parse().last, np.array([False, True]))
     assert np.array_equal(both_episodes.reward, np.array([0., 10., 2.]))
-    assert np.array_equal(both_episodes.parse()[5], np.array([False, True, True]))
+    assert np.array_equal(both_episodes.parse().last, np.array([False, True, True]))
     assert both_episodes.n_episodes == 2
 
 
@@ -142,7 +142,7 @@ def test_leftover_row():
     rest = dataset.flatten()
 
     assert n_carry == 1
-    assert np.array_equal(rest.parse()[5], np.array([True, False, True]))
+    assert np.array_equal(rest.parse().last, np.array([True, False, True]))
 
 
 def test_list_flat_block():
@@ -155,7 +155,7 @@ def test_list_flat_block():
     flat = dataset.flatten()
 
     assert flat.backend.get_backend_name() == 'list'
-    assert flat.parse()[5] == [False, True, False, True]
+    assert flat.parse().last == [False, True, False, True]
     assert flat.n_episodes == 1
     assert np.array_equal(flat.compute_J(), np.array([10.]))
     assert np.array_equal(flat.episodes_length, np.array([2]))
@@ -170,15 +170,15 @@ def test_continuing_block():
     first += second
 
     for dataset in (joined, first):
-        assert np.array_equal(dataset.parse()[5], np.array([False, True, False, False, True]))
+        assert np.array_equal(dataset.parse().last, np.array([False, True, False, False, True]))
         assert np.array_equal(dataset.episodes_length, np.array([2, 3]))
         assert np.array_equal(dataset.get_init_states(), np.array([[0.], [2.]]))
-    assert torch.equal(converted.parse()[5], torch.tensor([False, True, False, False, True]))
+    assert torch.equal(converted.parse().last, torch.tensor([False, True, False, False, True]))
     assert torch.equal(converted.episodes_length, torch.tensor([2, 3]))
 
     standalone = make_block([False, True, False], 0) + make_block([False, True], 3)
 
-    assert np.array_equal(standalone.parse()[5], np.array([False, True, True, False, True]))
+    assert np.array_equal(standalone.parse().last, np.array([False, True, True, False, True]))
     assert np.array_equal(standalone.last, np.array([False, True, False, False, True]))
     assert np.array_equal(standalone.episodes_length, np.array([2, 2]))
     assert np.array_equal(standalone.get_init_states(), np.array([[0.], [2.], [3.]]))
@@ -212,10 +212,10 @@ def test_join_empty():
     with_empty_slice = (first + first[0:0]) + second
     with_empty_flat = first_flat + empty_flat + second_flat
 
-    assert np.array_equal(with_empty_slice.parse()[5], np.array([False, True, False, False, True]))
-    assert np.array_equal(with_empty_slice.parse()[5], (first + second).parse()[5])
-    assert np.array_equal(with_empty_flat.parse()[5], np.array([True, True, True, True]))
-    assert np.array_equal(with_empty_flat.parse()[5], (first_flat + second_flat).parse()[5])
+    assert np.array_equal(with_empty_slice.parse().last, np.array([False, True, False, False, True]))
+    assert np.array_equal(with_empty_slice.parse().last, (first + second).parse().last)
+    assert np.array_equal(with_empty_flat.parse().last, np.array([True, True, True, True]))
+    assert np.array_equal(with_empty_flat.parse().last, (first_flat + second_flat).parse().last)
 
 
 def test_slice_standalone():
@@ -227,10 +227,10 @@ def test_slice_standalone():
 
     assert np.array_equal(history_manager.parse_state(mid_episode)[0], np.array([[0.], [0.], [2.]]))
     assert np.array_equal(history_manager.parse_state(dataset[4:])[0], np.array([[0.], [0.], [4.]]))
-    assert np.array_equal(mid_episode.parse()[5], np.array([False, True, False, True]))
+    assert np.array_equal(mid_episode.parse().last, np.array([False, True, False, True]))
     assert np.array_equal(mid_episode.get_init_states(), np.array([[4.]]))
     assert len(mid_episode.history_state) == 0
-    assert np.array_equal(rejoined.parse()[5], np.array([False, True, False, True, False, True]))
+    assert np.array_equal(rejoined.parse().last, np.array([False, True, False, True, False, True]))
     with pytest.raises(ValueError):
         mid_episode + make_block([True], 6, continuing=True)
 
@@ -240,7 +240,7 @@ def test_scattered_view():
 
     view = dataset[np.array([0, 1, 3])]
 
-    assert np.array_equal(view.parse()[5], np.array([True, True, True]))
+    assert np.array_equal(view.parse().last, np.array([True, True, True]))
     assert np.array_equal(view.last, np.array([False, True, False]))
     assert np.array_equal(view.get_init_states(), np.array([[0.]]))
 
@@ -257,7 +257,7 @@ def test_stacked_grids():
 
     assert n_carry == 2
     assert np.array_equal(flat.reward, np.array([0., 10., 20., 1., 11., 21.]))
-    assert np.array_equal(flat.parse()[5], np.array([False, True, True, False, False, True]))
+    assert np.array_equal(flat.parse().last, np.array([False, True, True, False, False, True]))
     assert np.array_equal(flat.get_init_states(), np.array([[0.], [2.], [0.]]))
 
 
@@ -270,7 +270,7 @@ def test_flat_blocks_continuing():
     second = dataset.flatten()
     joined = first + second
 
-    assert np.array_equal(joined.parse()[5], np.array([False, True, False, True, True, True]))
+    assert np.array_equal(joined.parse().last, np.array([False, True, False, True, True, True]))
     assert joined.n_episodes == 1
     assert np.array_equal(joined.get_init_states(), np.array([[0.], [0.], [2.]]))
 
@@ -281,8 +281,10 @@ def test_nstep_segment_end():
     history_manager = make_history_manager(1)
 
     flat = dataset.flatten()
-    _, _, reward, _, _, _, extra = history_manager.parse_nstep_history(flat, gamma=0.5, n_steps_return=2)
+    reward = history_manager.parse_nstep_history(flat, gamma=0.5, n_steps_return=2).reward
+    _, _, step_reward, _, absorbing, last = flat.parse()
+    _, anchor, endpoint = history_manager.build_nstep_return(step_reward, absorbing, last, gamma=0.5, n_steps_return=2)
 
-    assert np.array_equal(extra['anchor'], np.array([0, 1, 3, 4]))
-    assert np.array_equal(extra['endpoint'], np.array([1, 2, 4, 5]))
+    assert np.array_equal(anchor, np.array([0, 1, 3, 4]))
+    assert np.array_equal(endpoint, np.array([1, 2, 4, 5]))
     assert np.array_equal(reward, np.array([5., 20., 6.5, 21.5]))
