@@ -3,9 +3,9 @@ import pytest
 import torch
 
 from helper.cases import needs_cuda
-from helper.dummies import CountingVecEnv
+from helper.dummies import CountingEnv, CountingVecEnv
 
-from mushroom_rl.core import Core, MDPInfo, AgentInfo, Dataset, Environment, Agent
+from mushroom_rl.core import Core, MDPInfo, AgentInfo, Dataset, Agent
 from mushroom_rl.core.circular_dataset import CircularDataset
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.history_manager import HistoryManager
@@ -59,27 +59,6 @@ class BlockRecordingAgent(Agent):
         state = self._history_manager.parse_state(dataset)
         action_history = self._history_manager.parse_history(dataset).action_history
         self.blocks.append(dict(dataset=dataset.copy(), parse_state=np.asarray(state), action_history=action_history))
-
-
-class CountingEnv(Environment):
-    def __init__(self, horizon):
-        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
-        self._t = -1
-        self._ep_t = 0
-        super().__init__(mdp_info)
-
-    def reset(self, state=None):
-        self._t += 1
-        self._ep_t = 0
-        return self._obs(), {}
-
-    def step(self, action):
-        self._t += 1
-        self._ep_t += 1
-        return self._obs(), 0., False, {}
-
-    def _obs(self):
-        return np.array([0., self._t, self._ep_t])
 
 
 def mismatching_rows(agent):

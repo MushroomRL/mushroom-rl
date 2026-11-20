@@ -103,7 +103,7 @@ class TRPO(OnPolicyDeepAC):
                                batch.action_history)
 
         # VF update
-        self._V.fit(batch.state, v_target, action_history=batch.action_history, **self._critic_fit_params)
+        self._V.fit(batch.critic_state, v_target, action_history=batch.action_history, **self._critic_fit_params)
 
         with torch.no_grad():
             entropy = self.policy.entropy(batch.state, action_history=batch.action_history)

@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.history_manager import HistoryManager
@@ -305,6 +307,23 @@ class Agent(MushroomObject):
             state = preprocessor(state)
 
         return state
+
+    def _augment_batch(self, batch):
+        """
+        Method used to apply the fit preprocessors to the actor input of a batch, and to its critic input when it is the
+        actor one.
+
+        Args:
+            batch (Batch): a fit batch.
+
+        Returns:
+            A batch holding the preprocessed inputs and the other arrays of ``batch``.
+
+        """
+        state, next_state = self._augment(batch.state), self._augment(batch.next_state)
+        shared = dict(critic_state=state, critic_next_state=next_state) if batch.critic_state is batch.state else dict()
+
+        return replace(batch, state=state, next_state=next_state, **shared)
 
     def _check_device(self, component, name):
         assert self._agent_backend.same_device(component.device, self._info.device), \

@@ -34,10 +34,28 @@ The fields of a batch of ``n`` transitions are listed in the following table.
    "``absorbing``, ``last``", "The absorbing flag and the episode/segment end flag.", "``(n,)``"
    "``action_history``, ``next_action_history``", "The window of the ``L`` previous actions of the step and of the next step when the previous-action stream is active, ``None`` otherwise.", "``(n, L, *action_shape)``, or ``(n, *action_shape)`` when ``L`` is 1"
    "``policy_state``, ``next_policy_state``", "The policy state before and after the step when requested, ``None`` otherwise.", "``(n, *policy_state_shape)``"
+   "``critic_state``, ``critic_next_state``", "The critic input of the step and of the next step, the same arrays as ``state`` and ``next_state`` when the critic reads the actor input.", "``(n, *critic_shape)``"
+
+The arrays of each kind the batch holds are given by ``state_arrays`` (the state and next state, and the critic input
+when there is one), ``action_arrays`` (the action and the previous-action windows) and ``policy_state_arrays``.
 
 The policy state is requested with ``get_policy_state=True``, or by building a replay memory with
 ``store_policy_state=True``. With an n-step return, ``next_state``, ``next_action_history``, ``absorbing``, ``last``
 and ``next_policy_state`` are taken at the final step of the return.
+
+Critic input
+------------
+
+When the critic of an actor-critic reads different entries of the observation, or a different history length, than
+its actor, ``state`` and ``next_state`` hold the actor input and ``critic_state`` and ``critic_next_state`` the critic
+one. In every other case the critic fields are the actor ones, so an algorithm reads its critic input from them
+unconditionally:
+
+.. code-block:: python
+
+    batch = replay_memory.get(batch_size)
+    q = critic(batch.critic_state, batch.action)
+    batch.critic_state is batch.state  # True unless the actor-critic is asymmetric
 
 Variants
 --------

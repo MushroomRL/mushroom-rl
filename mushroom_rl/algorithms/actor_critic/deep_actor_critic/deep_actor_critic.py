@@ -1,4 +1,5 @@
 from mushroom_rl.core import Agent
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
@@ -7,6 +8,11 @@ class DeepAC(Agent):
     Base class for deep actor-critic algorithms.
 
     """
+    _asymmetric_options = None
+    _parameters = None
+    _optimizer = None
+    _clipping = None
+
     def __init__(self, mdp_info, policy, actor_optimizer=None, parameters=None, backend='torch', history_length=1,
                  action_history_length=0, device=None):
         """
@@ -38,6 +44,10 @@ class DeepAC(Agent):
         super().__init__(mdp_info, policy, backend=backend, device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
+        if self._asymmetric_options is not None:
+            self._history_manager = AsymmetricHistoryManager.default_streams(
+                self.mdp_info, self._info, history_length, action_history_length, **self._asymmetric_options)
+
         self._check_device(policy, 'policy')
 
         if actor_optimizer is not None:
@@ -59,6 +69,35 @@ class DeepAC(Agent):
         self._parameters = list(parameters)
         if self._optimizer is not None:
             TorchUtils.replace_optimizer_parameters(self._optimizer, self._parameters)
+
+    @classmethod
+    def asymmetric(cls, *args, actor_indices=None, critic_indices=None, critic_history_length=1, **kwargs):
+        """
+        Build the algorithm as an asymmetric actor-critic, whose actor and critic read different entries of the
+        observation, each with its own history length. Both read the observation after the agent preprocessors. The
+        actor reads ``actor_indices``, stacked over the ``history_length`` of the algorithm, online and when fitting;
+        the critic reads ``critic_indices``, stacked over ``critic_history_length``, when fitting. The networks must be
+        built for these inputs: the actor for ``(history_length, len(actor_indices))``, the critic for
+        ``(critic_history_length, len(critic_indices))``, without the leading axis when the length is 1.
+
+        Args:
+            *args: the positional parameters of the algorithm constructor;
+            actor_indices (list, None): the entries of the observation the actor reads; all of them when ``None``;
+            critic_indices (list, None): the entries of the observation the critic reads; all of them when ``None``;
+            critic_history_length (int, 1): number of observations stacked as critic input;
+            **kwargs: the keyword parameters of the algorithm constructor.
+
+        Returns:
+            The algorithm instance.
+
+        """
+        agent = cls.__new__(cls)
+        agent._asymmetric_options = dict(actor_indices=actor_indices, critic_indices=critic_indices,
+                                         critic_history_length=critic_history_length)
+        agent.__init__(*args, **kwargs)
+        del agent._asymmetric_options
+
+        return agent
 
     @property
     def actor_parameters(self):
@@ -85,6 +124,10 @@ class DeepAC(Agent):
     def _clip_gradient(self):
         if self._clipping:
             self._clipping(self._parameters, **self._clipping_params)
+
+    def _post_load(self, device):
+        if self._optimizer is not None:
+            self.overwrite_actor_parameters(self.policy.parameters())
 
 
 class OnPolicyDeepAC(DeepAC):
@@ -129,8 +172,7 @@ class OnPolicyDeepAC(DeepAC):
 
     def _log_iteration_start(self):
         """
-        Open the log block of the current iteration. To be called at the beginning of the fit, so that
-        the quantities logged during the fit, e.g. the critic loss, appear under the iteration number.
+        Open the log block of the current iteration. To be called at the beginning of the fit.
 
         """
         if self._logger:
@@ -161,6 +203,18 @@ class OffPolicyDeepAC(DeepAC):
     Base class for off policy deep actor-critic algorithms, such as DDPG, TD3 and SAC.
 
     """
+    def __init__(self, mdp_info, policy, actor_optimizer, parameters, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            actor_optimizer (dict): parameters to specify the actor optimizer algorithm;
+            parameters (list): policy parameters to be optimized by the actor optimizer;
+            **kwargs: parameters forwarded to the ``DeepAC`` constructor.
+
+        """
+        super().__init__(mdp_info, policy, actor_optimizer, parameters, **kwargs)
+
     def fit(self, dataset):
         """
         Fit step.
@@ -175,10 +229,6 @@ class OffPolicyDeepAC(DeepAC):
         weights = self._tau() * online.get_weights()
         weights += (1 - self._tau.get_value()) * target.get_weights()
         target.set_weights(weights)
-
-    def _post_load(self, device):
-        raise NotImplementedError('OffPolicyDeepAC is an abstract class. Subclasses need to implement the '
-                                  '`_post_load` method.')
 
     @staticmethod
     def _init_target(online, target):

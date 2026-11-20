@@ -64,7 +64,7 @@ class A2C(DeepAC):
         batch = self._history_manager.parse_history(dataset)
 
         v, adv = compute_advantage_montecarlo(self._V, batch, self.mdp_info.gamma)
-        self._V.fit(batch.state, v, action_history=batch.action_history, **self._critic_fit_params)
+        self._V.fit(batch.critic_state, v, action_history=batch.action_history, **self._critic_fit_params)
 
         loss = self._loss(batch.state, batch.action, adv, batch.action_history)
         self._optimize_actor_parameters(loss)
@@ -79,6 +79,3 @@ class A2C(DeepAC):
         entropy_loss = -self.policy.entropy(state, action_history=action_history)
 
         return gradient_loss + self._entropy_coeff() * entropy_loss
-
-    def _post_load(self, device):
-        self.overwrite_actor_parameters(self.policy.parameters())

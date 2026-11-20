@@ -50,7 +50,7 @@ class RudinPPO(PPO):
 
         old_log_p = old_pol_dist.log_prob(batch.action).detach()
 
-        self._V.fit(batch.state, v_target, action_history=batch.action_history, **self._critic_fit_params)
+        self._V.fit(batch.critic_state, v_target, action_history=batch.action_history, **self._critic_fit_params)
 
         kl, entropy = self._update_policy(batch.state, batch.action, adv, old_log_p, old_pol_dist,
                                           batch.action_history)

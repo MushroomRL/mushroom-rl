@@ -15,6 +15,7 @@ def test_batch():
     assert all(x is y for x, y in zip(batch, transition)) and len(list(batch)) == 6
     assert batch.action_history is None and batch.next_action_history is None
     assert batch.policy_state is None and batch.next_policy_state is None
+    assert batch.critic_state is batch.state and batch.critic_next_state is batch.next_state
 
     batch.state[0, 0] = 5.
     assert transition[0][0, 0] == 5.
@@ -25,6 +26,14 @@ def test_batch():
 
     loaded = pickle.loads(pickle.dumps(batch))
     assert all(np.array_equal(x, y) for x, y in zip(loaded, batch))
+    assert loaded.critic_state is loaded.state
+
+    critic = Batch(*transition, critic_state=np.ones((3, 4)))
+    assert critic.critic_state.shape == (3, 4) and critic.critic_next_state is critic.next_state
+
+    assert batch.state_arrays == (batch.state, batch.next_state) and batch.action_arrays == (batch.action,)
+    assert critic.state_arrays == (critic.state, critic.next_state, critic.critic_state, critic.next_state)
+    assert batch.policy_state_arrays == ()
 
 
 def test_batch_classes():
@@ -36,6 +45,7 @@ def test_batch_classes():
     assert type(prioritized) is PrioritizedBatch and len(list(prioritized)) == 6 and len(list(sequence)) == 6
     assert all(x is y for x, y in zip(prioritized, batch))
     assert prioritized.action_history is batch.action_history and prioritized.policy_state is batch.policy_state
+    assert prioritized.critic_state is batch.critic_state and sequence.critic_state is sequence.state
     assert np.array_equal(prioritized.idxs, np.array([4, 1, 2])) and np.array_equal(sequence.lengths, [2, 3, 1])
     for cls in (Batch, PrioritizedBatch, SequenceBatch):
         assert '__slots__' in cls.__dict__ and '__eq__' not in cls.__dict__

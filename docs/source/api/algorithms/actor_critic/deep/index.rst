@@ -17,6 +17,16 @@ which is also how their base classes are organized:
   clipping the probability ratio. :class:`PPO_BPTT` extends PPO to recurrent policies, and :class:`RudinPPO` adds
   gradient clipping and a learning rate adapted to the KL divergence.
 
+Every one of them can also be built as an *asymmetric* actor-critic, whose actor and critic read different entries
+of the observation, each with its own history length, e.g. a critic reading privileged information available in
+simulation only. :meth:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.DeepAC.asymmetric` builds it from the
+constructor parameters of the algorithm, the actor entries, the critic entries and the critic history length:
+
+.. code-block:: python
+
+    agent = RudinPPO.asymmetric(mdp.info, policy, critic_params=critic_params, actor_indices=actor_indices,
+                                critic_history_length=1, history_length=8, **ppo_params)
+
 The base classes these algorithms extend, to build a new one on, are listed in the following table and documented in
 :doc:`deep_actor_critic`.
 

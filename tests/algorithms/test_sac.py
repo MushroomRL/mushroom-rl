@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 
@@ -11,6 +13,7 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms.actor_critic import SAC
 from mushroom_rl.core import Core
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
@@ -18,7 +21,7 @@ from mushroom_rl.policy import SquashedGaussianTorchPolicy
 from mushroom_rl.utils import TorchUtils
 
 
-def learn_sac(setup=None, critic_n_models=None, **sac_params):
+def learn_sac(setup=None, critic_n_models=None, asymmetric=None, **sac_params):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -32,6 +35,10 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
     lr_alpha = 3e-4
 
     actor_input_shape = mdp.info.observation_space.shape
+    critic_state_shape = actor_input_shape
+    if asymmetric is not None:
+        actor_input_shape = (len(asymmetric['actor_indices']),)
+        critic_state_shape = (len(asymmetric['critic_indices']),)
     actor_mu_params = dict(network=ActorNetwork,
                            n_features=None,
                            n_layers=0,
@@ -51,7 +58,7 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': 3e-4}}
 
-    critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
+    critic_input_shape = [critic_state_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': 3e-4}},
@@ -63,10 +70,11 @@ def learn_sac(setup=None, critic_n_models=None, **sac_params):
     if critic_n_models is not None:
         critic_params['n_models'] = critic_n_models
 
-    agent = SAC(mdp.info, policy, actor_optimizer,
-                critic_params, batch_size, initial_replay_size, max_replay_size,
-                warmup_transitions, tau, lr_alpha,
-                critic_fit_params=None, **sac_params)
+    make = SAC if asymmetric is None else partial(SAC.asymmetric, **asymmetric)
+    agent = make(mdp.info, policy, actor_optimizer,
+                 critic_params, batch_size, initial_replay_size, max_replay_size,
+                 warmup_transitions, tau, lr_alpha,
+                 critic_fit_params=None, **sac_params)
 
     if setup is not None:
         setup(agent)
@@ -87,6 +95,18 @@ def test_sac(device, tmpdir):
 
     tu.assert_recorded(w, 'test_sac', device)
 
+    tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
+
+
+@pytest.mark.parametrize('device', devices())
+def test_sac_asymmetric(device, tmpdir):
+    preprocessor = RecordingPreprocessor(1.)
+    agent = learn_sac(lambda agent: agent.add_fit_preprocessor(preprocessor),
+                      asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]), device=device)
+
+    assert type(agent.history_manager) is AsymmetricHistoryManager
+    assert agent.history_manager.actor_indices == [1] and agent.history_manager.critic_indices == [1, 0]
+    assert set(preprocessor.shapes) == {(64, 1)}
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 
 
