@@ -14,9 +14,7 @@ class Batch:
     so a batch can be unpacked as ``state, action, reward, next_state, absorbing, last = batch``. Every other field is
     accessed by name.
 
-    The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place. Hence,
-    ``batch.state += x`` modifies ``state`` and then raises ``dataclasses.FrozenInstanceError``. Assigning an
-    attribute that is not a field raises ``TypeError``.
+    The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place.
 
     """
     state: Any

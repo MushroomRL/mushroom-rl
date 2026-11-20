@@ -13,9 +13,9 @@ For Mushroom 2.1:
     * mushroom-wide graph capture (CUDA graphs / torch.compile) of the training steps: static parameter and input
       buffers, capturable optimizers, no host syncs or Python branching inside the captured region. TorchEnsemble
       (stacked parameters as the single source of truth, one shared optimizer) is the first capture-ready piece;
-      PPO_BPTT's sequence transform and SequenceReplayMemory.get are vectorized without host syncs. Known syncs left:
-      the replay candidate sampling (`stored[~cut]` / `idxs[~mask]` + `randint(len)`), PPO_BPTT's own compute_gae
-      loop
+      PPO_BPTT's sequence transform and SequenceReplayMemory.get are vectorized. Known syncs left: the replay candidate
+      sampling (`stored[~cut]` / `idxs[~mask]` + `randint(len)`), PPO_BPTT's own compute_gae loop, and the copy of the
+      sequence lengths to the CPU that pack_padded_sequence requires (inherent)
     * make utils/angles.py backend-agnostic and drop utils/isaac_sim/torch_maths.wrap_to_pi (used by the Isaac
       quadruped commands)
     * Improve the HistoryManager:
