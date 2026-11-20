@@ -1,12 +1,16 @@
 Deep actor-critic interfaces
 ============================
 
-The two bases the deep actor-critic algorithms extend. ``DeepAC`` covers the off-policy, reparametrized ones,
-holding the optimizer over the actor parameters; ``OnPolicyDeepAC`` covers the on-policy ones, adding the
-diagnostics they log at every fit.
+Base classes of the deep actor-critic algorithms. ``DeepAC`` is the base class of every deep actor-critic algorithm
+and holds the optional optimizer of the actor parameters; ``OnPolicyDeepAC`` adds the dataset parsing and the
+diagnostics logged at every fit by the on-policy algorithms; ``OffPolicyDeepAC`` adds the initialization and the soft
+update of the target networks used by the off-policy algorithms.
 
 .. autoclass:: mushroom_rl.algorithms.actor_critic.deep_actor_critic.DeepAC
     :private-members:
 
 .. autoclass:: mushroom_rl.algorithms.actor_critic.deep_actor_critic.OnPolicyDeepAC
+    :private-members:
+
+.. autoclass:: mushroom_rl.algorithms.actor_critic.deep_actor_critic.OffPolicyDeepAC
     :private-members:

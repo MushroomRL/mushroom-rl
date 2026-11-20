@@ -1,8 +1,9 @@
 import numpy as np
+import pytest
 import torch
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms.actor_critic import StochasticAC, StochasticAC_AVG
+from mushroom_rl.algorithms.actor_critic import ClassicAC, StochasticAC, StochasticAC_AVG
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.features import Features
@@ -70,6 +71,9 @@ def test_stochastic_ac(tmpdir):
     assert np.allclose(w, w_test)
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
+
+    with pytest.raises(NotImplementedError):
+        ClassicAC._update(None, None, None, None, None, None)
 
 
 def test_stochastic_ac_avg(tmpdir):

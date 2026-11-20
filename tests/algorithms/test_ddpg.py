@@ -8,7 +8,7 @@ from helper.dummies import FakeLogger
 from helper.cases import devices, needs_cuda
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms.actor_critic import DDPG, TD3, DeepAC
+from mushroom_rl.algorithms.actor_critic import DDPG, TD3, OffPolicyDeepAC
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, GaussianTorchPolicy
@@ -104,9 +104,9 @@ def test_ddpg_options(device):
     assert logger.keys() == {'actor/loss', 'critic/loss'}
 
     with pytest.raises(NotImplementedError):
-        DeepAC.fit(None, None)
+        OffPolicyDeepAC.fit(None, None)
     with pytest.raises(NotImplementedError):
-        DeepAC._post_load(None, None)
+        OffPolicyDeepAC._post_load(None, None)
 
 
 @pytest.mark.parametrize('device', devices())
