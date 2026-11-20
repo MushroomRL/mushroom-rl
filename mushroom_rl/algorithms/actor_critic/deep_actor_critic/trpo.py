@@ -75,10 +75,7 @@ class TRPO(OnPolicyDeepAC):
     def fit(self, dataset):
         self._log_iteration_start()
 
-        state_old = self._history_manager.parse_state(dataset)
-        self._history_manager.update_preprocessors(dataset)
-
-        batch = self._history_manager.parse_history(dataset)
+        batch, state_old = self._parse_dataset(dataset)
 
         v_target, adv = compute_gae(self._V, batch, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)

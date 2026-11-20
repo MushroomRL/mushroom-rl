@@ -3,7 +3,7 @@ import math
 import torch
 import torch.optim as optim
 
-from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OffPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.utils.torch_utils import TorchUtils
@@ -12,7 +12,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from copy import deepcopy
 
 
-class SAC(DeepAC):
+class SAC(OffPolicyDeepAC):
     """
     Soft Actor-Critic algorithm.
     "Soft Actor-Critic Algorithms and Applications".

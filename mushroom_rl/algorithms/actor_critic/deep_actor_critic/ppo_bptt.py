@@ -83,10 +83,7 @@ class PPO_BPTT(OnPolicyDeepAC):
     def fit(self, dataset):
         self._log_iteration_start()
 
-        state_old = self._history_manager.parse_state(dataset)
-        self._history_manager.update_preprocessors(dataset)
-
-        batch = self._history_manager.parse_history(dataset, get_policy_state=True)
+        batch, state_old = self._parse_dataset(dataset, get_policy_state=True)
         sequences, state_old_seq = self._transform_to_sequences(batch, state_old)
 
         v_target, adv = self.compute_gae(self._V, sequences, self.mdp_info.gamma, self._lambda())

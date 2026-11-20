@@ -1,4 +1,4 @@
-from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DeepAC
+from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OffPolicyDeepAC
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory
 from mushroom_rl.rl_utils.parameters import Parameter
@@ -6,7 +6,7 @@ from mushroom_rl.rl_utils.parameters import Parameter
 from copy import deepcopy
 
 
-class DDPG(DeepAC):
+class DDPG(OffPolicyDeepAC):
     """
     Deep Deterministic Policy Gradient algorithm.
     "Continuous Control with Deep Reinforcement Learning".
