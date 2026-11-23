@@ -6,7 +6,7 @@ from helper.arrays import to_numpy
 from helper.cases import devices
 from helper.dummies import CountingEnv, CountingVecEnv
 
-from mushroom_rl.core import Core, Agent, AgentInfo
+from mushroom_rl.core import Core, Agent, AgentInfo, Box, MDPInfo
 from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.core.circular_dataset import CircularDataset
 from mushroom_rl.policy import Policy
@@ -24,8 +24,9 @@ class WindowZeroPolicy(Policy):
 class AsymmetricRecordingAgent(Agent):
     def __init__(self, mdp_info, history_length=1, actor_indices=None, critic_indices=None, critic_history_length=1):
         super().__init__(mdp_info, WindowZeroPolicy(history_length), backend='numpy')
-        self._history_manager = AsymmetricHistoryManager.default_streams(
-            mdp_info, self._info, history_length, None, actor_indices, critic_indices, critic_history_length)
+        self._history_manager = AsymmetricHistoryManager.default_streams(mdp_info, self._info, history_length, None,
+                                                                         actor_indices, critic_indices,
+                                                                         critic_history_length)
         self.online = dict()
         self.blocks = list()
 
@@ -92,6 +93,10 @@ def test_online_offline():
     assert np.array_equal(batch.critic_state[0], np.array([[7.], [8.]]))
     assert np.array_equal(batch.critic_next_state[0], np.array([[8.], [9.]]))
     assert np.array_equal(batch.critic_state[1], batch.critic_next_state[0])
+    states, last = np.asarray(agent.blocks[1][0].state), agent.blocks[1][0].last
+    assert np.array_equal(agent.history_manager.build_history('critic_history', states, last,
+                                                              attachment=agent.blocks[1][0].history_state),
+                          batch.critic_state)
 
 
 def test_parse():
@@ -121,6 +126,10 @@ def test_parse():
                           np.array([[[0., 0.], [0., 0.], [t, 0.]] for t in (0., 5., 10.)]))
     assert np.array_equal(hm.parse_history(dataset, anchor_idxs=np.array([1, 5])).critic_state,
                           full.critic_state[[1, 5]])
+    states = np.asarray(dataset.state)
+    assert np.array_equal(hm.build_history('critic_history', states, dataset.last), full.critic_state)
+    assert np.array_equal(hm.build_history('critic_history', states, dataset.last, anchor_idxs=np.array([1, 5])),
+                          full.critic_state[[1, 5]])
 
     single = AsymmetricHistoryManager.default_streams(env.info, AgentInfo(False, None, 'numpy'), actor_indices=[2],
                                                       critic_indices=[1, 2])
@@ -140,8 +149,33 @@ def test_parse():
     assert np.array_equal(parsed.state, np.asarray(dataset.state))
 
     symmetric = AsymmetricHistoryManager.default_streams(env.info, AgentInfo(False, None, 'numpy'))
-    parsed = symmetric.parse_history(dataset)
-    assert parsed.critic_state is parsed.state and parsed.critic_next_state is parsed.next_state
+    for parsed in (symmetric.parse_history(dataset), symmetric.parse_history(dataset, anchor_idxs=np.array([1, 5])),
+                   symmetric.parse_history(dataset, to='torch'),
+                   symmetric.parse_nstep_history(dataset, gamma=.5, n_steps_return=2)):
+        assert parsed.critic_state is parsed.state and parsed.critic_next_state is parsed.next_state
+
+
+@pytest.mark.parametrize('device', devices())
+def test_indices(device):
+    env = CountingEnv(horizon=4)
+    agent_info = AgentInfo(False, None, 'numpy')
+    for indices in ([], [True, False, True], [0.5], [[0, 1]], [-1], [3], [1, 1]):
+        with pytest.raises(AssertionError):
+            AsymmetricHistoryManager.default_streams(env.info, agent_info, actor_indices=indices)
+        with pytest.raises(AssertionError):
+            AsymmetricHistoryManager.default_streams(env.info, agent_info, critic_indices=indices)
+    with pytest.raises(AssertionError):
+        AsymmetricHistoryManager(env.info, agent_info, streams={'obs_history': dict(length=2, shape=(3,), dtype=float)},
+                                 actor_indices=[0])
+    image = MDPInfo(Box(0., 1., shape=(2, 2)), env.info.action_space, 0.99, 4)
+    with pytest.raises(AssertionError):
+        AsymmetricHistoryManager.default_streams(image, agent_info, critic_indices=[0])
+
+    for indices in (np.array([2, 0]), torch.tensor([2, 0], device=device), (2, 0)):
+        hm = AsymmetricHistoryManager.default_streams(env.info, agent_info, actor_indices=indices,
+                                                      critic_indices=indices)
+        assert hm.actor_indices == [2, 0] and hm.critic_indices == [2, 0]
+        assert all(type(index) is int for index in hm.actor_indices)
 
 
 @pytest.mark.parametrize('device', devices())

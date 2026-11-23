@@ -8,6 +8,7 @@ from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.core.spaces import Box, Discrete
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
@@ -609,6 +610,35 @@ def test_sequence_history():
                     assert np.allclose(prev_actions[k, t, j], rm._dataset.action[src])
                 else:
                     assert np.allclose(prev_actions[k, t, j], 0.0)
+
+
+def test_sequence_critic():
+    rng = np.random.RandomState(0)
+    dataset, states, *_ = make_dataset(10, rng, (4,), (2,), policy_state_shape=(3,), episode_ends=[4, 9])
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info(policy_state_shape=(3,))
+    hm = AsymmetricHistoryManager.default_streams(mdp_info, agent_info, actor_indices=[0], critic_indices=[1, 2, 3])
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100, truncation_length=3,
+                              history_manager=hm)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    batch = rm.get(4)
+
+    assert batch.state.shape == (4, 3, 1) and batch.critic_state.shape == (4, 3, 3)
+    for i in range(4):
+        for t in range(3):
+            if t < batch.lengths[i]:
+                row = np.flatnonzero(states[:, 0] == batch.state[i, t, 0])[0]
+                assert np.array_equal(batch.critic_state[i, t], states[row, 1:])
+            else:
+                assert not batch.critic_state[i, t].any() and not batch.state[i, t].any()
+
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100, truncation_length=3,
+                              history_manager=AsymmetricHistoryManager.default_streams(mdp_info, agent_info))
+    rm.add(dataset)
+    batch = rm.get(2)
+    assert batch.critic_state is batch.state and batch.critic_next_state is batch.next_state
 
 
 @pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))

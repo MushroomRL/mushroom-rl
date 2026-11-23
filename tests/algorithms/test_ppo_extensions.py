@@ -27,14 +27,15 @@ def learn(alg, policy, alg_params, mdp, n_steps=50, asymmetric=None):
     return agent
 
 
-def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1, action_history_length=1):
+def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1, action_history_length=1,
+                    input_shape=(2,)):
     n_features, n_hidden = 4, 4
     dim_env_state, dim_action = 2, 1  # InvertedPendulum
     window_shape = (dim_action,) if action_history_length == 1 else (action_history_length, dim_action)
 
     policy = RecurrentGaussianTorchPolicy(
         network=RecurrentActorNetwork,
-        input_shape=(dim_env_state,),
+        input_shape=input_shape,
         output_shape=(dim_action,),
         n_features=n_features,
         n_hidden_features=n_hidden,
@@ -65,10 +66,10 @@ def make_bptt_setup(use_prev_action=False, rnn_type='gru', num_hidden_layers=1, 
     return policy, alg_params
 
 
-def make_rudin_setup(desired_kl=0.01):
+def make_rudin_setup(desired_kl=0.01, input_shape=(2,)):
     policy = GaussianTorchPolicy(
         ActorNetwork,
-        (2,),
+        input_shape,
         (1,),
         std_0=1., n_features=None, n_layers=0,
     )
@@ -235,20 +236,19 @@ def test_asymmetric(device, tmpdir):
     np.random.seed(1)
     torch.manual_seed(1)
     asymmetric = dict(actor_indices=[1], critic_indices=[1, 0], critic_history_length=2)
-    policy, alg_params = make_rudin_setup()
-    policy = GaussianTorchPolicy(ActorNetwork, (1,), (1,), std_0=1., n_features=None, n_layers=0)
+    policy, alg_params = make_rudin_setup(input_shape=(1,))
     alg_params['critic_params']['input_shape'] = (2, 2)
     agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50), asymmetric=asymmetric)
 
+    tu.assert_recorded(agent.policy.get_weights(), 'test_RudinPPO_asymmetric', device)
     assert type(agent.history_manager) is AsymmetricHistoryManager
     tu.assert_save_load(agent, tmpdir / 'rudin.msh')
 
-    _, alg_params = make_bptt_setup()
-    policy = RecurrentGaussianTorchPolicy(network=RecurrentActorNetwork, input_shape=(1,), output_shape=(1,),
-                                          n_features=4, n_hidden_features=4, rnn_type='gru', num_hidden_layers=1)
-    agent = learn(PPO_BPTT, policy, alg_params, InvertedPendulum(horizon=50),
-                  asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]))
-    dataset = Core(agent, InvertedPendulum(horizon=50)).evaluate(n_steps=20, quiet=True)
+    policy, alg_params = make_bptt_setup(input_shape=(1,))
+    mdp = LQR.generate(s_dim=2, a_dim=1, horizon=50)
+    agent = learn(PPO_BPTT, policy, alg_params, mdp, asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]))
+    tu.assert_recorded(agent.policy.get_weights(), 'test_PPO_BPTT_asymmetric', device)
+    dataset = Core(agent, mdp).evaluate(n_steps=20, quiet=True)
     batch = agent.history_manager.parse_history(dataset, get_policy_state=True)
     sequences, _ = agent._transform_to_sequences(batch, batch.state)
 

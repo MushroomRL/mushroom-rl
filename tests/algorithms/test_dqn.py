@@ -10,7 +10,7 @@ from helper.cases import devices
 from helper.dummies import ChainVecEnv
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.core import Core, Logger
+from mushroom_rl.core import Agent, Core, Logger
 from mushroom_rl.algorithms.value import DQN, DoubleDQN, AveragedDQN, \
     MaxminDQN, DuelingDQN, CategoricalDQN, QuantileDQN, NoisyDQN, Rainbow
 from mushroom_rl.environments import CartPole
@@ -103,6 +103,8 @@ def test_dqn(device, tmpdir):
     tu.assert_recorded(w, 'test_dqn', device)
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
+    loaded = Agent.load(tmpdir / 'agent.msh')
+    assert loaded._replay_memory._history_manager is loaded.history_manager
 
 
 @pytest.mark.parametrize('device', devices())

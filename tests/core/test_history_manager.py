@@ -212,8 +212,8 @@ def test_online_offline():
 
 
 def test_streams():
-    _, agent_info = _make_infos()
-    hm = HistoryManager(agent_info, streams={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
+    mdp_info, agent_info = _make_infos(act_shape=(2,))
+    hm = HistoryManager(mdp_info, agent_info, streams={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
     hm.reset()
 
     state_0, kwargs_0 = hm()
@@ -246,8 +246,8 @@ def test_streams():
     _, kwargs = hm(np.array([3.0, 3.0]))
     assert np.allclose(kwargs['command'], np.array([[7.0], [8.0], [0.0]]))
 
-    _, agent_info = _make_infos()
-    hm = HistoryManager(agent_info, streams={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
+    mdp_info, agent_info = _make_infos()
+    hm = HistoryManager(mdp_info, agent_info, streams={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
     state, kwargs = hm(foo=np.array([5.0]))
@@ -258,8 +258,16 @@ def test_streams():
     hm_action = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=2)
     assert hm_action.uses_action
 
-    hm_other = HistoryManager(agent_info, streams={'command': {'length': 2, 'shape': (1,), 'dtype': float}})
+    hm_other = HistoryManager(mdp_info, agent_info, streams={'command': {'length': 2, 'shape': (1,), 'dtype': float}})
     assert not hm_other.uses_action
+
+    with pytest.raises(AssertionError):
+        HistoryManager(mdp_info, agent_info, streams={'obs_history': {'length': 2, 'shape': (3,), 'dtype': float}})
+    with pytest.raises(AssertionError):
+        HistoryManager(mdp_info, agent_info, streams={'obs_history': {'length': 2, 'shape': (2,), 'dtype': int}})
+    with pytest.raises(AssertionError):
+        HistoryManager(mdp_info, agent_info,
+                       streams={'action_history': {'length': 2, 'shape': (2,), 'dtype': float, 'offset': 1}})
 
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
     hm = HistoryManager.default_streams(mdp_info, agent_info, history_length=3, action_history_length=2)

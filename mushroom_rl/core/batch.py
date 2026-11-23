@@ -12,8 +12,7 @@ class Batch:
 
     Iterating over a batch yields the six transition arrays ``state, action, reward, next_state, absorbing, last``,
     so a batch can be unpacked as ``state, action, reward, next_state, absorbing, last = batch``. Every other field is
-    accessed by name. ``critic_state`` and ``critic_next_state`` hold the critic input when it differs from the actor
-    input, and are the same arrays as ``state`` and ``next_state`` otherwise.
+    accessed by name.
 
     The fields of a batch cannot be reassigned, while the arrays they hold can be modified in place.
 
@@ -104,11 +103,7 @@ class PrioritizedBatch(Batch):
 @batch_dataclass
 class SequenceBatch(Batch):
     """
-    Batch of sequences. ``state``, ``action``, ``next_state``, ``action_history`` and ``next_action_history`` hold one
-    zero-padded sequence per sample, with the time axis after the sample axis; ``reward``, ``absorbing`` and ``last``
-    hold the value of the final step of each sequence; ``policy_state`` and ``next_policy_state`` hold the policy
-    state and policy next state of the first step of each sequence; ``lengths`` holds the number of steps of each
-    sequence, on the CPU.
+    Batch of sequences, one per sample, zero-padded after the final step of each sequence.
 
     """
     _: KW_ONLY

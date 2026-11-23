@@ -76,9 +76,10 @@ class SequenceReplayMemory(ReplayMemory):
 
         sequences = self._history_manager.parse_history(ds, anchor_idxs=positions.reshape(-1), get_policy_state=True)
 
-        s = self._pad_sequences(sequences.state, steps)
-        ss = self._pad_sequences(sequences.next_state, steps)
-        a = self._pad_sequences(sequences.action, steps)
+        s, ss, *critic = [self._pad_sequences(array, steps) for array in sequences.state_arrays]
+        a, *history = [self._pad_sequences(array, steps) for array in sequences.action_arrays]
+        critic_state, critic_next_state = critic or (None, None)
+        action_history, next_action_history = history or (None, None)
         final = samples * self._truncation_length + counts - 1
         ps[:] = sequences.policy_state[::self._truncation_length]
         nps[:] = sequences.next_policy_state[::self._truncation_length]
@@ -87,14 +88,9 @@ class SequenceReplayMemory(ReplayMemory):
         last[:] = sequences.last[final]
         lengths[:] = counts
 
-        action_history = next_action_history = None
-        if sequences.action_history is not None:
-            action_history = self._pad_sequences(sequences.action_history, steps)
-            next_action_history = self._pad_sequences(sequences.next_action_history, steps)
-
         return SequenceBatch(s, a, r, ss, ab, last, action_history=action_history,
                              next_action_history=next_action_history, policy_state=ps, next_policy_state=nps,
-                             lengths=lengths)
+                             critic_state=critic_state, critic_next_state=critic_next_state, lengths=lengths)
 
     @staticmethod
     def _pad_sequences(x, steps):

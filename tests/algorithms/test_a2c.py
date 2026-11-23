@@ -192,6 +192,7 @@ def test_a2c_asymmetric(device, tmpdir):
     agent = learn_a2c(asymmetric=dict(actor_indices=[1], critic_indices=[1, 0], critic_history_length=2),
                       device=device)
 
+    tu.assert_recorded(agent.policy.get_weights(), 'test_a2c_asymmetric', device)
     assert type(agent.history_manager) is AsymmetricHistoryManager
     assert agent.history_manager.critic_history_length == 2
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)

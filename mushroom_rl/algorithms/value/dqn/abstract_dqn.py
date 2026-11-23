@@ -209,6 +209,7 @@ class AbstractDQN(Agent):
         raise NotImplementedError
 
     def _post_load(self, device):
+        self._replay_memory._history_manager = self._history_manager
         if isinstance(self._replay_memory, PrioritizedReplayMemory):
             self._fit = self._fit_prioritized
         else:

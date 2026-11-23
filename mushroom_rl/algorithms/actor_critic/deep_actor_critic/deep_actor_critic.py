@@ -45,8 +45,9 @@ class DeepAC(Agent):
                          action_history_length=action_history_length)
 
         if self._asymmetric_options is not None:
-            self._history_manager = AsymmetricHistoryManager.default_streams(
-                self.mdp_info, self._info, history_length, action_history_length, **self._asymmetric_options)
+            self._history_manager = AsymmetricHistoryManager.default_streams(self.mdp_info, self._info, history_length,
+                                                                             action_history_length,
+                                                                             **self._asymmetric_options)
 
         self._check_device(policy, 'policy')
 
@@ -229,6 +230,10 @@ class OffPolicyDeepAC(DeepAC):
         weights = self._tau() * online.get_weights()
         weights += (1 - self._tau.get_value()) * target.get_weights()
         target.set_weights(weights)
+
+    def _post_load(self, device):
+        super()._post_load(device)
+        self._replay_memory._history_manager = self._history_manager
 
     @staticmethod
     def _init_target(online, target):

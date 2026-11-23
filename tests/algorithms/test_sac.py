@@ -12,7 +12,7 @@ from helper.cases import devices
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms.actor_critic import SAC
-from mushroom_rl.core import Core
+from mushroom_rl.core import Agent, Core
 from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.approximators.parametric import TorchApproximator
@@ -104,10 +104,13 @@ def test_sac_asymmetric(device, tmpdir):
     agent = learn_sac(lambda agent: agent.add_fit_preprocessor(preprocessor),
                       asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]), device=device)
 
+    tu.assert_recorded(agent.policy.get_weights(), 'test_sac_asymmetric', device)
     assert type(agent.history_manager) is AsymmetricHistoryManager
     assert agent.history_manager.actor_indices == [1] and agent.history_manager.critic_indices == [1, 0]
     assert set(preprocessor.shapes) == {(64, 1)}
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
+    loaded = Agent.load(tmpdir / 'agent.msh')
+    assert loaded._replay_memory._history_manager is loaded.history_manager
 
 
 @pytest.mark.parametrize('device', devices())

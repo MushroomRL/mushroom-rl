@@ -37,11 +37,15 @@ class HistoryManager(MushroomBackendObject):
     lengths/offsets are wired up from the MDP and action spaces by the :meth:`default_streams` factory.
 
     """
-    def __init__(self, agent_info, streams=None, preprocessors=None):
+    _actor_selection = None
+
+    def __init__(self, mdp_info, agent_info, streams=None, preprocessors=None):
         """
         Constructor.
 
         Args:
+            mdp_info (MDPInfo): information about the MDP, providing the observation and action spaces the reserved
+                streams are checked against;
             agent_info (AgentInfo): information about the agent, providing the array backend and the device on which
                 the manager keeps its buffers;
             preprocessors (list, None): preprocessors applied to every observation before it is stacked, both online
@@ -54,6 +58,9 @@ class HistoryManager(MushroomBackendObject):
                 the in-band ``state``, returned positionally) and ``action_history`` (from the last recorded action,
                 conventionally ``offset`` 1). These reserved streams, with their shapes and data types read from the
                 MDP and action spaces, are wired up by :meth:`default_streams`.
+
+        Raises:
+            AssertionError: if the entry shape or data type of a reserved stream differs from the one of its space.
 
         """
         super().__init__(agent_info.backend_name, agent_info.device)
@@ -77,6 +84,8 @@ class HistoryManager(MushroomBackendObject):
         for name, spec in (streams or dict()).items():
             self.add_stream(name, **spec)
 
+        self._check_reserved_streams(mdp_info)
+
     def __call__(self, state=None, **extra):
         """
         Append the current entries to the buffers and return the per-timestep context split for the policy call: the
@@ -99,7 +108,8 @@ class HistoryManager(MushroomBackendObject):
 
         """
         obs = None if state is None else self.preprocess(state)
-        entries = {name: None if obs is None else select(obs) for name, select in self._observation_inputs()
+        streams = self._observation_streams()
+        entries = {name: None if obs is None else self._select(obs, selection) for name, selection in streams.items()
                    if name in self._stream_specs}
 
         windows = dict()
@@ -116,7 +126,7 @@ class HistoryManager(MushroomBackendObject):
         if 'obs_history' in windows:
             state = windows['obs_history']
         elif obs is not None:
-            state = self._select_actor(obs)
+            state = self._select(obs, streams['obs_history'])
         return state, {name: window for name, window in windows.items() if name not in entries}
 
     def add_stream(self, name, length, shape, dtype, offset=0, **options):
@@ -257,7 +267,8 @@ class HistoryManager(MushroomBackendObject):
             states, last = self._backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
             state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
         else:
-            state = self._select_actor(self.preprocess(self._backend.convert(dataset.state, device=self._device)))
+            state = self._backend.convert(dataset.state, device=self._device)
+            state = self._select(self.preprocess(state), self._actor_selection)
 
         return self._convert_output(to, state)
 
@@ -282,15 +293,17 @@ class HistoryManager(MushroomBackendObject):
             last = self._backend.ones(len(states), dtype=bool, device=self._device)
             state = self.build_history('obs_history', states, last)
         else:
-            state = self._select_actor(self.preprocess(states))
+            state = self._select(self.preprocess(states), self._actor_selection)
 
         return self._convert_output(to, state)
 
     def parse_history(self, dataset, anchor_idxs=None, to=None, get_policy_state=False):
         """
         Parse a dataset into a batch with the history windows applied, as :meth:`Dataset.parse`: ``state`` and
-        ``next_state`` are the stacked observation windows, and ``action_history`` and ``next_action_history`` hold
-        the previous-action windows of the current and of the next step when that stream is active.
+        ``next_state`` are the policy input of the current and of the next step, ``critic_state`` and
+        ``critic_next_state`` the critic input when it differs from the policy one, and ``action_history`` and
+        ``next_action_history`` the previous-action windows of the current and of the next step when that stream is
+        active.
 
         Args:
             dataset (Dataset): the dataset to parse;
@@ -326,14 +339,14 @@ class HistoryManager(MushroomBackendObject):
 
         obs, next_obs = self.preprocess(states), self.preprocess(next_states)
         windows = list()
-        for name, select in self._observation_inputs():
-            window, next_window = select(obs), select(next_obs)
+        for name, selection in self._observation_streams().items():
+            window, next_window = self._select(obs, selection), self._select(next_obs, selection)
             if name in self._stream_specs:
                 window = self._stack_history(name, window, last, attachment=dataset.history_state)
                 next_window = self._next_window(name, window, next_window, self._backend)
             windows.append((window, next_window))
         (state, next_state), *critic = windows
-        critic_state, critic_next_state = critic[0] if critic else (None, None)
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
 
         action_history = next_action_history = None
         if self.uses_action:
@@ -358,8 +371,8 @@ class HistoryManager(MushroomBackendObject):
                             get_policy_state=False):
         """
         Parse a dataset into a batch of n-step transitions: :meth:`parse_history` with the discounted n-step reward,
-        and the next state, next previous-action window, absorbing and last flags of the n-step endpoint. Transitions
-        whose return crosses a truncation or runs past the newest stored step are dropped.
+        and the next state, next critic input, next previous-action window, absorbing and last flags of the n-step
+        endpoint. Transitions whose return crosses a truncation or runs past the newest stored step are dropped.
 
         Args:
             dataset (Dataset): the dataset to parse;
@@ -402,20 +415,20 @@ class HistoryManager(MushroomBackendObject):
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
                                                                    n_steps_return)
 
-        inputs = self._observation_inputs()
-        stacked = any(name in self._stream_specs for name, _ in inputs)
+        streams = self._observation_streams()
+        stacked = any(name in self._stream_specs for name in streams)
         obs = self.preprocess(states) if stacked else self.preprocess(states[anchor])
         next_obs = self.preprocess(next_states[endpoint])
         windows = list()
-        for name, select in inputs:
+        for name, selection in streams.items():
+            next_window = self._select(next_obs, selection)
             if name in self._stream_specs:
-                stack = self._stack_history(name, select(obs), last, attachment=dataset.history_state)
-                windows.append((stack[anchor], self._next_window(name, stack[endpoint], select(next_obs),
-                                                                 self._backend)))
+                stack = self._stack_history(name, self._select(obs, selection), last, attachment=dataset.history_state)
+                windows.append((stack[anchor], self._next_window(name, stack[endpoint], next_window, self._backend)))
             else:
-                windows.append((select(obs[anchor] if stacked else obs), select(next_obs)))
+                windows.append((self._select(obs[anchor] if stacked else obs, selection), next_window))
         (state, next_state), *critic = windows
-        critic_state, critic_next_state = critic[0] if critic else (None, None)
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
 
         action_history = next_action_history = None
         if self.uses_action:
@@ -452,14 +465,15 @@ class HistoryManager(MushroomBackendObject):
 
         """
         backend = backend or self._backend
-        if anchor_idxs is not None and name == 'obs_history':
+        streams = self._observation_streams()
+        if anchor_idxs is not None and name in streams:
             hops, valid = self._get_preceding_observations(buffer, last, anchor_idxs, self._window_span(name), backend,
                                                            dataset)
-            return self._window_at(name, self._select_actor, hops, valid, backend)
+            return self._window_at(name, streams[name], hops, valid, backend)
         if anchor_idxs is not None:
             return self._build_history_at(name, buffer, last, anchor_idxs, backend, dataset)
-        if name == 'obs_history':
-            buffer = self._select_actor(self.preprocess(buffer))
+        if name in streams:
+            buffer = self._select(self.preprocess(buffer), streams[name])
 
         return self._stack_history(name, buffer, last, backend=backend, attachment=attachment)
 
@@ -584,7 +598,7 @@ class HistoryManager(MushroomBackendObject):
             The :class:`HistoryManager` instance.
 
         """
-        return cls(agent_info, streams=cls._default_specs(mdp_info, history_length, action_history_length))
+        return cls(mdp_info, agent_info, streams=cls._default_specs(mdp_info, history_length, action_history_length))
 
     @property
     def preprocessors(self):
@@ -720,8 +734,8 @@ class HistoryManager(MushroomBackendObject):
     def _transition_history(self, states, next_states, actions, last, anchor_idxs, backend, next_anchor_idxs=None,
                             dataset=None):
         endpoint_idxs = anchor_idxs if next_anchor_idxs is None else next_anchor_idxs
-        inputs = self._observation_inputs()
-        reach = max((self._window_span(name) for name, _ in inputs if name in self._stream_specs), default=1)
+        streams = self._observation_streams()
+        reach = max((self._window_span(name) for name in streams if name in self._stream_specs), default=1)
 
         hops, valid = self._get_preceding_observations(states, last, anchor_idxs, reach, backend, dataset)
         endpoint_hops, endpoint_valid = hops, valid
@@ -731,16 +745,17 @@ class HistoryManager(MushroomBackendObject):
         next_obs = self.preprocess(next_states[endpoint_idxs])
 
         windows = list()
-        for name, select in inputs:
+        for name, selection in streams.items():
+            next_window = self._select(next_obs, selection)
             if name in self._stream_specs:
-                window = self._window_at(name, select, hops, valid, backend)
+                window = self._window_at(name, selection, hops, valid, backend)
                 endpoint_window = window if next_anchor_idxs is None else \
-                    self._window_at(name, select, endpoint_hops, endpoint_valid, backend)
-                windows.append((window, self._next_window(name, endpoint_window, select(next_obs), backend)))
+                    self._window_at(name, selection, endpoint_hops, endpoint_valid, backend)
+                windows.append((window, self._next_window(name, endpoint_window, next_window, backend)))
             else:
-                windows.append((select(hops[0]), select(next_obs)))
+                windows.append((self._select(hops[0], selection), next_window))
         (state, next_state), *critic = windows
-        critic_state, critic_next_state = critic[0] if critic else (None, None)
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
 
         action_history = next_action_history = None
         if self.uses_action:
@@ -763,8 +778,8 @@ class HistoryManager(MushroomBackendObject):
 
     def _get_preceding_observations(self, states, last, anchor_idxs, reach, backend, dataset):
         """
-        Gather and preprocess, once, the observations of the given rows and of the ``reach - 1`` rows preceding each
-        of them, along with whether each preceding row belongs to the same episode.
+        Gather and preprocess the observations of the given rows and of the ``reach - 1`` rows preceding each of them,
+        along with whether each preceding row belongs to the same episode.
 
         """
         if reach == 1:
@@ -772,10 +787,10 @@ class HistoryManager(MushroomBackendObject):
         positions, valid = self._walk_back(dataset, last, anchor_idxs, reach - 1)
         return [self.preprocess(states[positions[:, hop]]) for hop in range(reach)], valid
 
-    def _window_at(self, name, select, hops, valid, backend):
+    def _window_at(self, name, selection, hops, valid, backend):
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
-        entries = [select(hops[hop]) for hop in range(offset, offset + length)]
+        entries = [self._select(hops[hop], selection) for hop in range(offset, offset + length)]
         return self._stack_indexed(entries, valid[:, offset:offset + length], backend)
 
     def _next_window(self, name, window, entry, backend):
@@ -787,21 +802,31 @@ class HistoryManager(MushroomBackendObject):
         spec = self._stream_specs[name]
         return spec['offset'] + spec['length']
 
-    def _observation_inputs(self):
+    def _check_reserved_streams(self, mdp_info):
+        for name, (shape, dtype) in self._reserved_entries(mdp_info).items():
+            if name in self._stream_specs:
+                spec = self._stream_specs[name]
+                dtype = self._backend.to_backend_dtype(dtype)
+                assert spec['shape'] == tuple(shape) and spec['dtype'] == dtype, \
+                    f"The '{name}' stream holds entries of shape {spec['shape']} and data type {spec['dtype']}, but " \
+                    f"its space gives shape {tuple(shape)} and data type {dtype}."
+
+    def _reserved_entries(self, mdp_info):
         """
-        The inputs built from the preprocessed observation, each as the pair ``(name, select)`` of the stream that
-        stacks it and of the selection of its entries: the policy input first, then the critic input when it differs
-        from the policy one. An input whose stream is not registered is not stacked.
+        The shape and data type of an entry of each reserved stream, as given by the spaces of the MDP.
 
         """
-        return (('obs_history', self._select_actor),)
+        return dict(obs_history=(mdp_info.observation_space.shape, mdp_info.observation_space.data_type),
+                    action_history=(mdp_info.action_space.shape, mdp_info.action_space.data_type))
 
-    def _select_actor(self, obs):
+    def _observation_streams(self):
         """
-        Select the entries of the preprocessed observations the policy reads; by default all of them.
+        The streams built from the preprocessed observation, mapping each stream name to the selection of the
+        observation entries it reads (``None`` for all of them): the policy stream first, then the critic stream when
+        there is one. A stream that is not registered is not stacked.
 
         """
-        return obs
+        return {'obs_history': self._actor_selection}
 
     def _select_policy_state(self, dataset, anchor_idxs, endpoint_idxs):
         assert dataset.is_stateful, "The policy state is requested, but the dataset does not store it."
@@ -841,6 +866,10 @@ class HistoryManager(MushroomBackendObject):
 
     def _post_load(self, device):
         self._last_windows = dict()
+
+    @staticmethod
+    def _select(obs, selection):
+        return obs if selection is None else obs[..., selection]
 
     @staticmethod
     def _stack_indexed(entries, valid, backend):
