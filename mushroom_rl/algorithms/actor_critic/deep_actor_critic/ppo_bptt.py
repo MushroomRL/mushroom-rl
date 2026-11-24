@@ -164,7 +164,7 @@ class PPO_BPTT(OnPolicyDeepAC):
         kls = list()
         entropies = list()
         for epoch in range(self._n_epochs_policy()):
-            for batch in minibatch_generator(self._batch_size(), *tensors):
+            for batch in minibatch_generator(self._batch_size(), *tensors, device=self._info.device):
                 obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, *rest = batch
                 prev_action_i = rest[0] if rest else None
                 log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)

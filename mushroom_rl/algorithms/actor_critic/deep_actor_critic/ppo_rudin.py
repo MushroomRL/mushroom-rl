@@ -61,7 +61,7 @@ class RudinPPO(PPO):
         kls = list()
         entropies = list()
         for epoch in range(self._n_epochs_policy()):
-            for batch in minibatch_generator(self._batch_size(), *tensors):
+            for batch in minibatch_generator(self._batch_size(), *tensors, device=self._info.device):
                 obs_i, act_i, adv_i, old_log_p_i, old_dist_i, *rest = batch
                 action_history_i = rest[0] if rest else None
 

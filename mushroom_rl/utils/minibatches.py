@@ -3,7 +3,7 @@ import torch
 
 from torch.distributions import Distribution
 
-from mushroom_rl.utils.torch_utils import DistHelperWrapper
+from mushroom_rl.utils.torch_utils import DistHelperWrapper, TorchUtils
 
 
 def minibatch_number(size, batch_size):
@@ -21,13 +21,14 @@ def minibatch_number(size, batch_size):
     return math.ceil(size / batch_size)
 
 
-def minibatch_generator(batch_size, *dataset_vectors):
+def minibatch_generator(batch_size, *dataset_vectors, device=None):
     """
     Generator that creates a minibatch from the full dataset.
 
     Args:
         batch_size (int): the maximum size of each minibatch;
-        dataset_vectors: the torch tensors and the torch distributions to be split.
+        dataset_vectors: the torch tensors and the torch distributions to be split;
+        device (str, None): device the shuffle is drawn on, or ``None`` for the default one.
 
     Returns:
         The current minibatch.
@@ -37,7 +38,7 @@ def minibatch_generator(batch_size, *dataset_vectors):
                        for vector in dataset_vectors]
     size = len(dataset_vectors[0])
     num_batches = minibatch_number(size, batch_size)
-    indexes = _indexes_per_vector(torch.randperm(size), dataset_vectors)
+    indexes = _indexes_per_vector(torch.randperm(size, device=TorchUtils.get_device(device)), dataset_vectors)
     batches = [(i * batch_size, min(size, (i + 1) * batch_size))
                for i in range(0, num_batches)]
 
@@ -48,7 +49,7 @@ def minibatch_generator(batch_size, *dataset_vectors):
         yield batch
 
 
-def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
+def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors, device=None):
     """
     Generator that creates independently-shuffled minibatches for ensemble training.
     Each model gets its own shuffle of the dataset; batches are
@@ -57,7 +58,8 @@ def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
     Args:
         batch_size (int): the maximum size of each minibatch;
         n_models (int): number of ensemble models;
-        dataset_vectors: the torch tensors to be split.
+        dataset_vectors: the torch tensors to be split;
+        device (str, None): device the shuffles are drawn on, or ``None`` for the default one.
 
     Returns:
         For each batch index, a list of stacked arrays with shape (n_models, batch_size, ...).
@@ -67,7 +69,8 @@ def ensemble_minibatch_generator(batch_size, n_models, *dataset_vectors):
     num_batches = minibatch_number(size, batch_size)
     batches = [(i * batch_size, min(size, (i + 1) * batch_size)) for i in range(num_batches)]
 
-    all_indexes = [_indexes_per_vector(torch.randperm(size), dataset_vectors) for _ in range(n_models)]
+    device = TorchUtils.get_device(device)
+    all_indexes = [_indexes_per_vector(torch.randperm(size, device=device), dataset_vectors) for _ in range(n_models)]
 
     for batch_start, batch_end in batches:
         yield [
@@ -81,7 +84,7 @@ def _indexes_per_vector(indexes, dataset_vectors):
     Place a permutation on the device of every vector it indexes.
 
     Args:
-        indexes (torch.Tensor): the permutation, on the CPU;
+        indexes (torch.Tensor): the permutation;
         dataset_vectors (list): the vectors to index.
 
     Returns:

@@ -1,3 +1,5 @@
+from functools import cached_property
+
 import torch
 
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import DDPG
@@ -79,12 +81,18 @@ class TD3(DDPG):
         eps = torch.randn_like(a) * self._noise_std()
         eps_clipped = torch.clamp(eps, -self._noise_clip(), self._noise_clip.get_value())
 
-        low = torch.as_tensor(self.mdp_info.action_space.low, device=self._info.device)
-        high = torch.as_tensor(self.mdp_info.action_space.high, device=self._info.device)
-        a_smoothed = torch.clamp(a + eps_clipped, low, high)
+        a_smoothed = torch.clamp(a + eps_clipped, self._action_low, self._action_high)
 
         q = self._target_critic_approximator.predict(batch.critic_next_state, a_smoothed,
                                                      prediction='min', **self._critic_predict_params)
         q *= ~batch.absorbing
 
         return q
+
+    @cached_property
+    def _action_low(self):
+        return torch.as_tensor(self.mdp_info.action_space.low, device=self._info.device)
+
+    @cached_property
+    def _action_high(self):
+        return torch.as_tensor(self.mdp_info.action_space.high, device=self._info.device)

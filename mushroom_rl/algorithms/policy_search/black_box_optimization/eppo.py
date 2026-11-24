@@ -60,7 +60,7 @@ class ePPO(BlackBoxOptimization):
             full_batch = (theta, Jep, old_dist)
 
         for epoch in range(self._n_epochs_policy()):
-            for minibatch in minibatch_generator(self._batch_size(), *full_batch):
+            for minibatch in minibatch_generator(self._batch_size(), *full_batch, device=self._info.device):
 
                 theta_i, context_i, Jep_i, old_dist_i = self._unpack(minibatch)
 

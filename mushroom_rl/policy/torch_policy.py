@@ -1,4 +1,5 @@
-import numpy as np
+import math
+from itertools import chain
 
 import torch
 import torch.nn as nn
@@ -7,8 +8,6 @@ from mushroom_rl.policy import Policy, HasLocation
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.utils.torch_utils import TorchUtils, CategoricalWrapper, SquashedGaussian, DiagonalGaussian
 from mushroom_rl.rl_utils.parameters import Parameter
-
-from itertools import chain
 
 
 class TorchPolicy(Policy):
@@ -215,8 +214,7 @@ class GaussianTorchPolicy(HasLocation, TorchPolicy):
         return dist.log_prob(action)
 
     def entropy(self, state=None, action_history=None):
-        return self._action_dim / 2 * torch.log(TorchUtils.to_float_tensor(2 * np.pi * np.e, self._device))\
-               + torch.sum(self._log_sigma)
+        return self._action_dim / 2 * math.log(2 * math.pi * math.e) + torch.sum(self._log_sigma)
 
     def distribution(self, state, action_history=None):
         return DiagonalGaussian(self.location(state, action_history), torch.exp(self._log_sigma),
