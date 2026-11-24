@@ -14,8 +14,16 @@ which is also how their base classes are organized:
   advantage of the actions taken, and take the policy from the caller, so the action space is the one their policy
   supports. :class:`A2C` estimates the advantage from Monte Carlo returns; :class:`TRPO` and :class:`PPO` use
   generalized advantage estimation, and keep every policy update small, TRPO within a trust region and PPO by
-  clipping the probability ratio. :class:`PPO_BPTT` extends PPO to recurrent policies, and :class:`RudinPPO` adds
-  gradient clipping and a learning rate adapted to the KL divergence.
+  clipping the probability ratio. :class:`PPO_BPTT` extends PPO to recurrent policies, and :class:`RudinPPO` adds a
+  learning rate adapted to the KL divergence.
+
+Every algorithm but TRPO takes its actor optimizer as a dictionary of the optimizer class and its parameters. Gradient
+clipping is added with a ``'clipping'`` entry, holding the clipping function and its parameters:
+
+.. code-block:: python
+
+    actor_optimizer = {'class': optim.Adam, 'params': {'lr': 1e-3},
+                       'clipping': {'method': torch.nn.utils.clip_grad_norm_, 'params': {'max_norm': 1.}}}
 
 Every one of them can also be built as an *asymmetric* actor-critic, whose actor and critic read different entries
 of the observation, each with its own history length, e.g. a critic reading privileged information available in

@@ -7,7 +7,7 @@ from mushroom_rl.rl_utils.value_functions import compute_gae
 
 class RudinPPO(PPO):
     """
-    Extended PPO algorithm Introducing gradient clipping and adaptive learning rate based on KL divergence.
+    Extended PPO algorithm, with a learning rate adapted to the KL divergence.
     "Learning to walk in minutes using massively parallel deep reinforcement learning"
     Rudin N. et al. 2022.
 

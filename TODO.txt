@@ -38,6 +38,9 @@ For Mushroom 2.1:
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
       - render a single window by default instead of one per active env; optionally a grid viewer compositing all envs
+    * Gradient clipping in TorchApproximator: accept the same optional 'clipping' entry ({'method', 'params'}) in
+      the `optimizer` dict as the deep actor-critic actor optimizer, applied between backward and step. Today only
+      DeepAC reads it, so a 'clipping' entry in critic_params['optimizer'] is silently ignored
     * Implement diff for recurrent approximators
       - RecurrentTorchApproximator.diff currently raises NotImplementedError. The inherited TorchApproximator.diff
         follows the feedforward calling convention: an implementation must pass `lengths` 1-D to

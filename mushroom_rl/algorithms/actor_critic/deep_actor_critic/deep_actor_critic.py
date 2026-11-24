@@ -16,8 +16,10 @@ class DeepAC(Agent):
         Constructor.
 
         Args:
-            actor_optimizer (dict, None): parameters to specify the actor optimizer algorithm; when ``None``, no actor
-                optimizer is built;
+            actor_optimizer (dict, None): the actor optimizer: ``'class'``, the torch optimizer class, ``'params'``,
+                its constructor parameters, and optionally ``'clipping'``, the gradient clipping applied before each
+                step, as a dictionary of the clipping function ``'method'``, called on the optimized parameters, and of
+                its ``'params'``; when ``None``, no actor optimizer is built;
             parameters (list, None): policy parameters to be optimized by the actor optimizer;
             backend (str, 'torch'): the backend used by the agent;
             history_length (int, 1): number of consecutive observations stacked as policy input;
