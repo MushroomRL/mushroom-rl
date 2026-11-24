@@ -216,17 +216,17 @@ def test_streams():
     hm = HistoryManager(mdp_info, agent_info, streams={'action_history': {'length': 2, 'shape': (2,), 'dtype': float}})
     hm.reset()
 
-    state_0, kwargs_0 = hm()
-    assert state_0 is None
+    state_0, kwargs_0 = hm(np.array([.5, -.5]))
+    assert np.array_equal(state_0, np.array([.5, -.5]))
     assert kwargs_0['action_history'].shape == (2, 2)
     assert np.allclose(kwargs_0['action_history'], 0.0)
 
     hm.record_action(np.array([1.0, 1.0]))
-    _, kwargs_1 = hm()
+    _, kwargs_1 = hm(np.zeros(2))
     assert np.allclose(kwargs_1['action_history'], np.array([[0.0, 0.0], [1.0, 1.0]]))
 
     hm.record_action(np.array([2.0, 2.0]))
-    _, kwargs_2 = hm()
+    _, kwargs_2 = hm(np.zeros(2))
     assert np.allclose(kwargs_2['action_history'], np.array([[1.0, 1.0], [2.0, 2.0]]))
 
     mdp_info, agent_info = _make_infos(obs_shape=(2,))
@@ -250,8 +250,8 @@ def test_streams():
     hm = HistoryManager(mdp_info, agent_info, streams={'foo': {'length': 2, 'shape': (1,), 'dtype': float}})
     hm.reset()
 
-    state, kwargs = hm(foo=np.array([5.0]))
-    assert state is None
+    state, kwargs = hm(np.array([.5, -.5]), foo=np.array([5.0]))
+    assert np.array_equal(state, np.array([.5, -.5]))
     assert np.allclose(kwargs['foo'], np.array([[0.0], [5.0]]))
 
     mdp_info, agent_info = _make_infos()
@@ -297,7 +297,7 @@ def test_previous_action():
     hm.reset()
     online = []
     for t in range(5):
-        _, kwargs = hm()
+        _, kwargs = hm(np.zeros(2))
         online.append(kwargs['action_history'])
         hm.record_action(actions[t])
     online = np.stack(online)
@@ -329,7 +329,7 @@ def test_previous_action():
     for t in range(5):
         if t > 0 and last[t - 1]:       # a new episode starts: the agent resets the manager
             hm.reset()
-        _, kwargs = hm()
+        _, kwargs = hm(np.zeros(2))
         online.append(kwargs['action_history'])
         hm.record_action(actions[t])
     online = np.stack(online)
@@ -350,7 +350,7 @@ def test_previous_action():
     hm.reset()
     online = []
     for t in range(4):
-        _, kwargs = hm()
+        _, kwargs = hm(np.zeros(2))
         online.append(kwargs['action_history'])
         hm.record_action(actions[t])
     online = np.stack(online)

@@ -44,8 +44,9 @@ def learn_a2c(logger=None, asymmetric=None, **extra_params):
                          output_shape=())
 
     algorithm_params = dict(critic_params=critic_params,
-                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3}},
-                            max_grad_norm=0.5,
+                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3},
+                                             'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                          'params': {'max_norm': 0.5}}},
                             ent_coeff=0.01)
 
     policy = GaussianTorchPolicy(ActorNetwork,
@@ -84,8 +85,9 @@ def learn_a2c_history(history_length):
                          output_shape=())
 
     algorithm_params = dict(critic_params=critic_params,
-                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3}},
-                            max_grad_norm=0.5,
+                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3},
+                                             'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                          'params': {'max_norm': 0.5}}},
                             ent_coeff=0.01,
                             history_length=history_length)
 
@@ -119,8 +121,9 @@ def learn_a2c_action_history(action_history_length):
                          action_history_shape=action_history_shape)
 
     algorithm_params = dict(critic_params=critic_params,
-                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3}},
-                            max_grad_norm=0.5,
+                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3},
+                                             'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                          'params': {'max_norm': 0.5}}},
                             ent_coeff=0.01,
                             action_history_length=action_history_length)
 
@@ -155,8 +158,9 @@ def learn_a2c_boltzmann():
                          action_history_shape=action_history_shape)
 
     algorithm_params = dict(critic_params=critic_params,
-                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3}},
-                            max_grad_norm=0.5,
+                            actor_optimizer={'class': optim.RMSprop, 'params': {'lr': 7e-4, 'eps': 3e-3},
+                                             'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                          'params': {'max_norm': 0.5}}},
                             ent_coeff=0.01,
                             action_history_length=1)
 

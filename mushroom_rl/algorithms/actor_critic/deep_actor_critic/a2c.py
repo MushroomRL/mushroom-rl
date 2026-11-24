@@ -5,8 +5,6 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.value_functions import compute_advantage_montecarlo
 from mushroom_rl.rl_utils.parameters import Parameter
 
-from copy import deepcopy
-
 
 class A2C(DeepAC):
     """
@@ -17,8 +15,8 @@ class A2C(DeepAC):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, ent_coeff, max_grad_norm=None,
-                 critic_fit_params=None, history_length=1, action_history_length=0, device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, ent_coeff, critic_fit_params=None,
+                 history_length=1, action_history_length=0, device=None):
         """
         Constructor.
 
@@ -27,8 +25,6 @@ class A2C(DeepAC):
             actor_optimizer (dict): parameters to specify the actor optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to build;
             ent_coeff ([float, Parameter], 0): coefficient for the entropy penalty;
-            max_grad_norm (float, None): maximum norm for gradient clipping. If None, no clipping will be performed,
-                unless specified otherwise in actor_optimizer;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
             action_history_length (int, 0): number of previous actions fed to the actor and critic;
@@ -42,11 +38,6 @@ class A2C(DeepAC):
         if device is not None:
             critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
-
-        if 'clipping' not in actor_optimizer and max_grad_norm is not None:
-            actor_optimizer = deepcopy(actor_optimizer)
-            clipping_params = dict(max_norm=max_grad_norm, norm_type=2)
-            actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
 
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters(), history_length=history_length,
                          action_history_length=action_history_length, device=device)

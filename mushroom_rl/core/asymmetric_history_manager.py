@@ -138,9 +138,7 @@ class AsymmetricHistoryManager(HistoryManager):
         return entries
 
     def _observation_streams(self):
-        streams = super()._observation_streams()
-        streams.update(critic_history=self._critic_selection)
-        return streams
+        return {'obs_history': self._actor_selection, 'critic_history': self._critic_selection}
 
     def _build_selection(self, indices):
         if indices is None:

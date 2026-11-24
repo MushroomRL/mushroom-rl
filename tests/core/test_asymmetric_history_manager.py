@@ -23,10 +23,9 @@ class WindowZeroPolicy(Policy):
 
 class AsymmetricRecordingAgent(Agent):
     def __init__(self, mdp_info, history_length=1, actor_indices=None, critic_indices=None, critic_history_length=1):
-        super().__init__(mdp_info, WindowZeroPolicy(history_length), backend='numpy')
-        self._history_manager = AsymmetricHistoryManager.default_streams(mdp_info, self._info, history_length, None,
-                                                                         actor_indices, critic_indices,
-                                                                         critic_history_length)
+        super().__init__(mdp_info, WindowZeroPolicy(history_length), backend='numpy', history_length=history_length,
+                         actor_indices=actor_indices, critic_indices=critic_indices,
+                         critic_history_length=critic_history_length)
         self.online = dict()
         self.blocks = list()
 
@@ -41,6 +40,9 @@ class AsymmetricRecordingAgent(Agent):
 
     def fit(self, dataset):
         self.blocks.append((dataset.copy(), self._history_manager.parse_history(dataset)))
+
+    def _build_history_manager(self, **history_params):
+        return AsymmetricHistoryManager.default_streams(self.mdp_info, self._info, **history_params)
 
 
 def mismatching_rows(agent, actor_indices, critic_indices, critic_history_length):

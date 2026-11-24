@@ -307,14 +307,15 @@ if __name__ == '__main__':
     batch_size = n_steps_per_fit // n_minibatches
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 1e-3, 'fused': True}},
+                                       'params': {'lr': 1e-3, 'fused': True},
+                                       'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                    'params': {'max_norm': 1.}}},
                       n_epochs_policy=5,
                       batch_size=batch_size,
                       eps_ppo=.2,
                       lam=.95,
                       ent_coeff=0.01,
                       critic_fit_params=dict(n_epochs=5),
-                      clip_grad_norm=1.,
                       schedule='adaptive',
                       desired_kl=0.01,
                       history_length=8)

@@ -14,20 +14,18 @@ class RudinPPO(PPO):
     """
 
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
-                 ent_coeff=0.0, critic_fit_params=None, clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
-                 history_length=1, action_history_length=0, device=None):
+                 ent_coeff=0.0, critic_fit_params=None, schedule='adaptive', desired_kl=0.01, history_length=1,
+                 action_history_length=0, device=None):
         super().__init__(mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo,
                          lam, ent_coeff, critic_fit_params, history_length=history_length,
                          action_history_length=action_history_length, device=device)
 
-        self._clip_grad_norm = clip_grad_norm
         self._schedule = schedule
         self._desired_kl = desired_kl
         self._actor_learning_rate = actor_optimizer['params']['lr']
         self._critic_learning_rate = critic_params['optimizer']['params']['lr']
 
         self._add_save_attr(
-            _clip_grad_norm='primitive',
             _schedule='primitive',
             _desired_kl='primitive',
             _actor_learning_rate='primitive',
@@ -73,24 +71,17 @@ class RudinPPO(PPO):
                     kl = torch.mean(torch.distributions.kl.kl_divergence(old_dist_i, dist))
                     self._adapt_learning_rate(kl)
 
-                self._optimizer.zero_grad()
                 prob_ratio = torch.exp(dist.log_prob(act_i) - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 entropy = self.policy.entropy(obs_i, action_history=action_history_i)
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
                 loss -= self._ent_coeff() * entropy
-                loss.backward()
-                self._clip_gradient()
-                self._optimizer.step()
+                self._optimize_actor_parameters(loss)
 
                 kls.append(kl)
                 entropies.append(entropy.detach())
 
         return torch.stack(kls).mean(), torch.stack(entropies).mean()
-
-    def _clip_gradient(self):
-        if self._clip_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self._clip_grad_norm)
 
     def _adapt_learning_rate(self, kl):
         if self._schedule == 'adaptive' and self._desired_kl:

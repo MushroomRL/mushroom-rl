@@ -75,7 +75,8 @@ def make_rudin_setup(desired_kl=0.01, input_shape=(2,)):
     )
 
     alg_params = dict(
-        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4},
+                         'clipping': {'method': torch.nn.utils.clip_grad_norm_, 'params': {'max_norm': 1.}}},
         critic_params=dict(
             network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
@@ -84,7 +85,7 @@ def make_rudin_setup(desired_kl=0.01, input_shape=(2,)):
             input_shape=(2,), output_shape=(),
         ),
         n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-        clip_grad_norm=1., schedule='adaptive', desired_kl=desired_kl,
+        schedule='adaptive', desired_kl=desired_kl,
     )
 
     return policy, alg_params
@@ -102,7 +103,8 @@ def make_rudin_history_setup(history_length):
     )
 
     alg_params = dict(
-        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4},
+                         'clipping': {'method': torch.nn.utils.clip_grad_norm_, 'params': {'max_norm': 1.}}},
         critic_params=dict(
             network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
@@ -111,7 +113,7 @@ def make_rudin_history_setup(history_length):
             n_features=None, n_layers=0,
         ),
         n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        schedule='adaptive', desired_kl=0.01,
         history_length=history_length,
     )
 
@@ -131,7 +133,8 @@ def make_rudin_action_history_setup(action_history_length):
     )
 
     alg_params = dict(
-        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
+        actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4},
+                         'clipping': {'method': torch.nn.utils.clip_grad_norm_, 'params': {'max_norm': 1.}}},
         critic_params=dict(
             network=FeedForwardNetwork,
             optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}},
@@ -141,7 +144,7 @@ def make_rudin_action_history_setup(action_history_length):
             action_history_shape=action_history_shape,
         ),
         n_epochs_policy=4, batch_size=64, eps_ppo=.2, lam=.95,
-        clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
+        schedule='adaptive', desired_kl=0.01,
         action_history_length=action_history_length,
     )
 

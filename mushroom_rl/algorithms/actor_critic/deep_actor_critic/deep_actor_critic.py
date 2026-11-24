@@ -9,9 +9,6 @@ class DeepAC(Agent):
 
     """
     _asymmetric_options = None
-    _parameters = None
-    _optimizer = None
-    _clipping = None
 
     def __init__(self, mdp_info, policy, actor_optimizer=None, parameters=None, backend='torch', history_length=1,
                  action_history_length=0, device=None):
@@ -28,6 +25,11 @@ class DeepAC(Agent):
             device (str, None): device the agent data is stored on, or ``None`` for the default one.
 
         """
+        self._parameters = None
+        self._optimizer = None
+        self._clipping = None
+        self._clipping_params = None
+
         if actor_optimizer is not None:
             if parameters is not None and not isinstance(parameters, list):
                 parameters = list(parameters)
@@ -35,28 +37,24 @@ class DeepAC(Agent):
 
             self._optimizer = actor_optimizer['class'](parameters, **actor_optimizer['params'])
 
-            self._clipping = None
-
             if 'clipping' in actor_optimizer:
                 self._clipping = actor_optimizer['clipping']['method']
                 self._clipping_params = actor_optimizer['clipping']['params']
 
-        super().__init__(mdp_info, policy, backend=backend, device=device, history_length=history_length,
-                         action_history_length=action_history_length)
+        asymmetric_options = self._asymmetric_options or dict()
+        history_params = dict(history_length=history_length, action_history_length=action_history_length)
+        history_params.update(asymmetric_options)
 
-        if self._asymmetric_options is not None:
-            self._history_manager = AsymmetricHistoryManager.default_streams(self.mdp_info, self._info, history_length,
-                                                                             action_history_length,
-                                                                             **self._asymmetric_options)
+        super().__init__(mdp_info, policy, backend=backend, device=device, **history_params)
 
         self._check_device(policy, 'policy')
 
-        if actor_optimizer is not None:
-            self._add_save_attr(
-                _optimizer='torch',
-                _clipping='torch',
-                _clipping_params='pickle'
-            )
+        self._add_save_attr(
+            _parameters='none',
+            _optimizer='torch',
+            _clipping='torch',
+            _clipping_params='pickle'
+        )
 
     def overwrite_actor_parameters(self, parameters):
         """
@@ -125,6 +123,14 @@ class DeepAC(Agent):
     def _clip_gradient(self):
         if self._clipping:
             self._clipping(self._parameters, **self._clipping_params)
+
+    def _build_history_manager(self, history_length=None, action_history_length=None, **asymmetric_params):
+        if asymmetric_params:
+            return AsymmetricHistoryManager.default_streams(self.mdp_info, self._info, history_length,
+                                                            action_history_length, **asymmetric_params)
+        else:
+            return super()._build_history_manager(history_length=history_length,
+                                                  action_history_length=action_history_length)
 
     def _post_load(self, device):
         if self._optimizer is not None:

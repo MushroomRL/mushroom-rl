@@ -30,8 +30,7 @@ class Agent(MushroomObject):
 
     """
 
-    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', device=None, history_length=None,
-                 action_history_length=None, history_manager=None):
+    def __init__(self, mdp_info, policy, is_episodic=False, backend='numpy', device=None, **history_params):
         """
         Constructor.
 
@@ -41,19 +40,10 @@ class Agent(MushroomObject):
             is_episodic (bool, False): whether the agent is learning in an episodic fashion or not;
             backend (str, 'numpy'): array backend to be used by the algorithm;
             device (str, None): device the agent data is stored on, only allowed with the torch backend;
-            history_length (int, None): number of observations stacked as input to the policy. When greater than 1 the
-                agent builds a :class:`~mushroom_rl.core.history_manager.HistoryManager` that assembles the stacked
-                observation on the fly; the history is reconstructable and never stored as policy state.
-            action_history_length (int, None): number of previous actions stacked as input to the policy. When greater
-                than 0 the :class:`~mushroom_rl.core.history_manager.HistoryManager` also assembles the stacked
-                previous actions on the fly.
-            history_manager (HistoryManager, None): an already built history manager to use, mutually exclusive with
-                ``history_length`` and ``action_history_length``.
+            **history_params: parameters of the history manager of the agent, such as ``history_length`` and
+                ``action_history_length``; see :meth:`~mushroom_rl.core.history_manager.HistoryManager.default_streams`.
 
         """
-        assert history_manager is None or (history_length is None and action_history_length is None), \
-            "Pass either a history_manager or the history lengths, not both."
-
         self.mdp_info = mdp_info
         self._info = AgentInfo(
             is_episodic=is_episodic,
@@ -63,11 +53,7 @@ class Agent(MushroomObject):
         )
         self.policy = policy
 
-        if history_manager is not None:
-            self._history_manager = history_manager
-        else:
-            self._history_manager = HistoryManager.default_streams(self.mdp_info, self._info, history_length,
-                                                                   action_history_length)
+        self._history_manager = self._build_history_manager(**history_params)
 
         self._core_preprocessors = list()
         self._fit_preprocessors = list()
@@ -291,6 +277,19 @@ class Agent(MushroomObject):
         self._history_manager.record_action(action)
 
         return self._convert_to_env_backend(action)
+
+    def _build_history_manager(self, **history_params):
+        """
+        Build the history manager of the agent. Called by the constructor, after ``mdp_info`` and ``info`` are set.
+
+        Args:
+            **history_params: the parameters of the history manager given to the constructor.
+
+        Returns:
+            The :class:`~mushroom_rl.core.history_manager.HistoryManager` of the agent.
+
+        """
+        return HistoryManager.default_streams(self.mdp_info, self._info, **history_params)
 
     def _augment(self, state):
         """

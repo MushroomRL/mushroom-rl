@@ -101,8 +101,9 @@ if __name__ == '__main__':
     policy_params = dict(std_0=1., n_features=64, activation='tanh')
 
     a2c_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 7e-4, 'eps': 3e-3}},
-                      max_grad_norm=0.5,
+                                       'params': {'lr': 7e-4, 'eps': 3e-3},
+                                       'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                    'params': {'max_norm': 0.5}}},
                       ent_coeff=0.0)
 
     experiment(env_id='Pendulum-v1', horizon=200, gamma=.99, n_epochs=40, n_steps=30000,

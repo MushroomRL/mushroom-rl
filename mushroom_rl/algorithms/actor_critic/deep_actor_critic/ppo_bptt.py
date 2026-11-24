@@ -3,7 +3,6 @@ import torch
 from mushroom_rl.algorithms.actor_critic.deep_actor_critic import OnPolicyDeepAC
 from mushroom_rl.core import SequenceBatch
 from mushroom_rl.approximators.parametric import RecurrentTorchApproximator
-from mushroom_rl.utils.torch_utils import TorchUtils
 from mushroom_rl.utils.minibatches import minibatch_generator
 from mushroom_rl.rl_utils.parameters import Parameter
 
@@ -51,8 +50,6 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._batch_size = Parameter.make(batch_size, backend='torch', device=device)
         self._eps_ppo = Parameter.make(eps_ppo, backend='torch', device=device)
 
-        self._optimizer = actor_optimizer['class'](policy.parameters(), **actor_optimizer['params'])
-
         self._lambda = Parameter.make(lam, backend='torch', device=device)
         self._ent_coeff = Parameter.make(ent_coeff, backend='torch', device=device)
 
@@ -63,7 +60,8 @@ class PPO_BPTT(OnPolicyDeepAC):
         self._truncation_length = truncation_length
         self._dim_env_state = dim_env_state
 
-        super().__init__(mdp_info, policy, backend='torch', device=device, history_length=history_length,
+        super().__init__(mdp_info, policy, actor_optimizer=actor_optimizer, parameters=policy.parameters(),
+                         backend='torch', device=device, history_length=history_length,
                          action_history_length=action_history_length)
 
         self._add_save_attr(
@@ -72,7 +70,6 @@ class PPO_BPTT(OnPolicyDeepAC):
             _batch_size='mushroom',
             _eps_ppo='mushroom',
             _ent_coeff='mushroom',
-            _optimizer='torch',
             _lambda='mushroom',
             _V='mushroom',
             _dim_env_state='primitive',
@@ -170,7 +167,6 @@ class PPO_BPTT(OnPolicyDeepAC):
             for batch in minibatch_generator(self._batch_size(), *tensors):
                 obs_i, pi_h_i, act_i, length_i, adv_i, old_log_p_i, *rest = batch
                 prev_action_i = rest[0] if rest else None
-                self._optimizer.zero_grad()
                 log_p = self.policy.log_prob(obs_i, act_i, pi_h_i, length_i, action_history=prev_action_i)
                 log_ratio = log_p - old_log_p_i
                 prob_ratio = torch.exp(log_ratio)
@@ -178,18 +174,13 @@ class PPO_BPTT(OnPolicyDeepAC):
                 entropy = self.policy.entropy(obs_i)
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
                 loss -= self._ent_coeff() * entropy
-                loss.backward()
-                self._optimizer.step()
+                self._optimize_actor_parameters(loss)
 
                 kl_est = ((prob_ratio - 1) - log_ratio).detach()
                 kls.append(kl_est.mean())
                 entropies.append(entropy.detach())
 
         return torch.stack(kls).mean(), torch.stack(entropies).mean()
-
-    def _post_load(self, device):
-        if self._optimizer is not None:
-            TorchUtils.update_optimizer_parameters(self._optimizer, list(self.policy.parameters()))
 
     @classmethod
     def _gather_sequences(cls, batch, states_old, rows, valid, begin, lengths):

@@ -115,7 +115,9 @@ if __name__ == '__main__':
     TorchUtils.set_default_device('cuda:0')
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 1e-3}},
+                                       'params': {'lr': 1e-3},
+                                       'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                    'params': {'max_norm': 1.}}},
                       n_epochs_policy=5,
                       batch_size=int((4096 * 24) / 16),
                       eps_ppo=.2,

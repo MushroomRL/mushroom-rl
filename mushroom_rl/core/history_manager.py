@@ -37,8 +37,6 @@ class HistoryManager(MushroomBackendObject):
     lengths/offsets are wired up from the MDP and action spaces by the :meth:`default_streams` factory.
 
     """
-    _actor_selection = None
-
     def __init__(self, mdp_info, agent_info, streams=None, preprocessors=None):
         """
         Constructor.
@@ -86,7 +84,7 @@ class HistoryManager(MushroomBackendObject):
 
         self._check_reserved_streams(mdp_info)
 
-    def __call__(self, state=None, **extra):
+    def __call__(self, state, **extra):
         """
         Append the current entries to the buffers and return the per-timestep context split for the policy call: the
         observation input to be passed positionally as ``state`` and a dictionary of the additional conditioning
@@ -107,15 +105,13 @@ class HistoryManager(MushroomBackendObject):
             squeezed along the ``length`` axis when the stream length is 1.
 
         """
-        obs = None if state is None else self.preprocess(state)
+        obs = self.preprocess(state)
         streams = self._observation_streams()
-        entries = {name: None if obs is None else self._select(obs, selection) for name, selection in streams.items()
-                   if name in self._stream_specs}
 
         windows = dict()
         for name in self._stream_specs:
-            if name in entries:
-                value = entries[name]
+            if name in streams:
+                value = self._select(obs, streams[name])
             elif name == 'action_history':
                 value = self._last_action
             else:
@@ -125,9 +121,9 @@ class HistoryManager(MushroomBackendObject):
 
         if 'obs_history' in windows:
             state = windows['obs_history']
-        elif obs is not None:
+        else:
             state = self._select(obs, streams['obs_history'])
-        return state, {name: window for name, window in windows.items() if name not in entries}
+        return state, {name: window for name, window in windows.items() if name not in streams}
 
     def add_stream(self, name, length, shape, dtype, offset=0, **options):
         """
@@ -268,7 +264,7 @@ class HistoryManager(MushroomBackendObject):
             state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
         else:
             state = self._backend.convert(dataset.state, device=self._device)
-            state = self._select(self.preprocess(state), self._actor_selection)
+            state = self._select(self.preprocess(state), self._observation_streams()['obs_history'])
 
         return self._convert_output(to, state)
 
@@ -293,7 +289,7 @@ class HistoryManager(MushroomBackendObject):
             last = self._backend.ones(len(states), dtype=bool, device=self._device)
             state = self.build_history('obs_history', states, last)
         else:
-            state = self._select(self.preprocess(states), self._actor_selection)
+            state = self._select(self.preprocess(states), self._observation_streams()['obs_history'])
 
         return self._convert_output(to, state)
 
@@ -826,7 +822,7 @@ class HistoryManager(MushroomBackendObject):
         there is one. A stream that is not registered is not stacked.
 
         """
-        return {'obs_history': self._actor_selection}
+        return {'obs_history': None}
 
     def _select_policy_state(self, dataset, anchor_idxs, endpoint_idxs):
         assert dataset.is_stateful, "The policy state is requested, but the dataset does not store it."
