@@ -549,12 +549,15 @@ def test_parse_nstep():
     one_row = _make_dataset(np.array([[0.]]), np.zeros((1, 1)), np.ones(1), np.array([[1.]]),
                             np.array([True]), np.array([True]))
 
-    reward = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3).reward
-    indexed_reward = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3, anchor_idxs=np.arange(2)).reward
+    batch = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3)
+    indexed_batch = hm.parse_nstep_history(two_rows, gamma=0.5, n_steps_return=3, anchor_idxs=np.arange(2))
     single_reward = hm.parse_nstep_history(one_row, gamma=0.5, n_steps_return=2).reward
 
-    assert np.array_equal(reward, np.array([1.5, 1.]))
-    assert np.array_equal(indexed_reward, reward)
+    for b in (batch, indexed_batch):
+        assert np.array_equal(b.state.ravel(), np.array([0., 1.]))
+        assert np.array_equal(b.reward, np.array([1.5, 1.]))
+        assert np.array_equal(b.next_state.ravel(), np.array([2., 2.]))
+        assert np.array_equal(b.absorbing, np.array([True, True])) and np.array_equal(b.last, np.array([True, True]))
     assert np.array_equal(single_reward, np.array([1.]))
 
     mdp_info, agent_info = _make_infos(obs_shape=(1,), act_shape=(1,))

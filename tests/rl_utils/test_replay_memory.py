@@ -188,6 +188,11 @@ def test_initialization():
     with pytest.raises(AssertionError):
         PrioritizedReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, alpha=0.6,
                                 beta=LinearParameter(1.0, threshold_value=0.0, n=100), n_steps_return=3)
+    with pytest.raises(AssertionError):
+        ReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, store_policy_state=True)
+    with pytest.raises(AssertionError):
+        PrioritizedReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, alpha=0.6,
+                                beta=LinearParameter(1.0, threshold_value=0.0, n=100), store_policy_state=True)
 
     assert not ReplayMemory(mdp_info, agent_info, initial_size=3, max_size=50, n_steps_return=3).initialized
 
@@ -494,6 +499,7 @@ def test_sequence():
     assert a_seq.shape == (n_samples, truncation_length, *act_shape)
     assert r_seq.shape == (n_samples,)
     assert ps_seq.shape == (n_samples, *policy_state_shape)
+    assert ab_seq.dtype == bool and last_seq.dtype == bool
     assert np.array_equal(lengths, expected_lengths)
 
     assert np.allclose(r_seq, rm._dataset.reward[expected_idxs])

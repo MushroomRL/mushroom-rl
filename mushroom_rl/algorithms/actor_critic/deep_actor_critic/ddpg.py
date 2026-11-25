@@ -117,6 +117,8 @@ class DDPG(OffPolicyDeepAC):
 
     def _next_q(self, batch):
         """
+        Target value of the next states of a batch.
+
         Args:
             batch (Batch): the fit batch, whose next states are evaluated.
 

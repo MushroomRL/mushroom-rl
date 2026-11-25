@@ -243,14 +243,14 @@ def test_asymmetric(device, tmpdir):
     alg_params['critic_params']['input_shape'] = (2, 2)
     agent = learn(RudinPPO, policy, alg_params, InvertedPendulum(horizon=50), asymmetric=asymmetric)
 
-    tu.assert_recorded(agent.policy.get_weights(), 'test_RudinPPO_asymmetric', device)
+    tu.assert_recorded(agent.policy.get_weights(), 'test_asymmetric_RudinPPO', device)
     assert type(agent.history_manager) is AsymmetricHistoryManager
     tu.assert_save_load(agent, tmpdir / 'rudin.msh')
 
     policy, alg_params = make_bptt_setup(input_shape=(1,))
     mdp = LQR.generate(s_dim=2, a_dim=1, horizon=50)
     agent = learn(PPO_BPTT, policy, alg_params, mdp, asymmetric=dict(actor_indices=[1], critic_indices=[1, 0]))
-    tu.assert_recorded(agent.policy.get_weights(), 'test_PPO_BPTT_asymmetric', device)
+    tu.assert_recorded(agent.policy.get_weights(), 'test_asymmetric_PPO_BPTT', device)
     dataset = Core(agent, mdp).evaluate(n_steps=20, quiet=True)
     batch = agent.history_manager.parse_history(dataset, get_policy_state=True)
     sequences, _ = agent._transform_to_sequences(batch, batch.state)

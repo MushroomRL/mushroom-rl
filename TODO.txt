@@ -34,6 +34,9 @@ For Mushroom 2.1:
         - drop the stored next_state column, at least on CircularDataset: resolve the next state from the state
           column and keep only boundary rows (episode and segment ends) in a side buffer. Saves storage between
           fits, not peak; worth it only when boundaries are rare (negative at horizon 1)
+    * Save/load keeps shared references: an object reachable from two attributes of one save is loaded back as a
+      single object, not two copies. Then drop the manual re-links of the replay memory history manager in
+      OffPolicyDeepAC._post_load and AbstractDQN._post_load
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering

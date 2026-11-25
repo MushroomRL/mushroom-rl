@@ -155,18 +155,20 @@ class AsymmetricHistoryManager(HistoryManager):
 
     @staticmethod
     def _validated_indices(indices, mdp_info, name):
-        if indices is None:
-            return None
-        shape = mdp_info.observation_space.shape
-        values = indices.tolist() if hasattr(indices, 'tolist') else list(indices)
-        assert len(shape) == 1, f"{name}: entries can be selected only from a vector observation, got shape {shape}."
-        assert len(values) > 0, f"{name}: no observation entry is selected."
-        assert all(isinstance(value, Integral) and not isinstance(value, bool) for value in values), \
-            f"{name}: the indices must be integers, got {values}."
-        assert all(0 <= value < shape[0] for value in values), \
-            f"{name}: the indices must lie in [0, {shape[0]}), got {values}."
-        assert len(set(values)) == len(values), f"{name}: an index is repeated in {values}."
-        return [int(value) for value in values]
+        if indices is not None:
+            shape = mdp_info.observation_space.shape
+            values = indices.tolist() if hasattr(indices, 'tolist') else list(indices)
+            assert len(shape) == 1, \
+                f"{name}: entries can be selected only from a vector observation, got shape {shape}."
+            assert len(values) > 0, f"{name}: no observation entry is selected."
+            assert all(isinstance(value, Integral) and not isinstance(value, bool) for value in values), \
+                f"{name}: the indices must be integers, got {values}."
+            assert all(0 <= value < shape[0] for value in values), \
+                f"{name}: the indices must lie in [0, {shape[0]}), got {values}."
+            assert len(set(values)) == len(values), f"{name}: an index is repeated in {values}."
+            indices = [int(value) for value in values]
+
+        return indices
 
     @staticmethod
     def _selected_shape(mdp_info, indices):

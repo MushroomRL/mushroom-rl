@@ -206,7 +206,9 @@ the agent backend: :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse
 stored transition, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_initial_state` builds the
 windows of the episode starts, which have no history behind them and are therefore zero-padded. They are what an
 on-policy algorithm uses to snapshot the states before updating the statistics, and what a script should use to
-feed stored observations back to the policy or the critic, e.g. to log an entropy or a value estimate.
+feed stored observations back to the policy or the critic, e.g. to log an entropy or a value estimate. With an
+asymmetric actor-critic, the critic input of the episode starts comes from
+:meth:`~mushroom_rl.core.asymmetric_history_manager.AsymmetricHistoryManager.parse_initial_critic_state` instead.
 
 .. literalinclude:: code/history_manager.py
    :lines: 71-79

@@ -175,7 +175,7 @@ def test_asymmetric(device, tmpdir):
     for alg, params in cases:
         agent = learn(alg, dict(params, device=device), asymmetric=asymmetric)
 
-        tu.assert_recorded(agent.policy.get_weights(), f'test_{alg.__name__}_asymmetric', device)
+        tu.assert_recorded(agent.policy.get_weights(), f'test_asymmetric_{alg.__name__}', device)
         assert type(agent.history_manager) is AsymmetricHistoryManager
         assert agent.history_manager.critic_history_length == 2
         tu.assert_save_load(agent, tmpdir / f'{alg.__name__}.msh')

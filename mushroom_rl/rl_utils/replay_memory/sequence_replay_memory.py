@@ -56,8 +56,8 @@ class SequenceReplayMemory(ReplayMemory):
         size = self.size
 
         r = backend.zeros(n_samples, device=self._agent_info.device)
-        ab = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
-        last = backend.zeros(n_samples, dtype=int, device=self._agent_info.device)
+        ab = backend.zeros(n_samples, dtype=bool, device=self._agent_info.device)
+        last = backend.zeros(n_samples, dtype=bool, device=self._agent_info.device)
         ps = backend.zeros(n_samples, *self._agent_info.policy_state_shape, device=self._agent_info.device)
         nps = backend.zeros(n_samples, *self._agent_info.policy_state_shape, device=self._agent_info.device)
         lengths = backend.zeros(n_samples, dtype=int,

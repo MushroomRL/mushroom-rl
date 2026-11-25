@@ -32,6 +32,8 @@ class ReplayMemory(MushroomObject):
             f"{agent_info.backend_name} backend currently not supported in the replay memory class."
         assert initial_size >= n_steps_return, \
             f"The initial size {initial_size} is smaller than the {n_steps_return} steps of the n-step return."
+        assert not store_policy_state or agent_info.policy_state_shape is not None, \
+            "The policy state cannot be stored, as the policy is stateless."
 
         self._initial_size = initial_size
         self._max_size = max_size

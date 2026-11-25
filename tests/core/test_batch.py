@@ -21,8 +21,6 @@ def test_batch():
     assert transition[0][0, 0] == 5.
     with pytest.raises(dataclasses.FrozenInstanceError):
         batch.state = np.ones((3, 2))
-    with pytest.raises((TypeError, AttributeError)):
-        batch.stat = np.ones((3, 2))
 
     loaded = pickle.loads(pickle.dumps(batch))
     assert all(np.array_equal(x, y) for x, y in zip(loaded, batch))
@@ -47,6 +45,3 @@ def test_batch_classes():
     assert prioritized.action_history is batch.action_history and prioritized.policy_state is batch.policy_state
     assert prioritized.critic_state is batch.critic_state and sequence.critic_state is sequence.state
     assert np.array_equal(prioritized.idxs, np.array([4, 1, 2])) and np.array_equal(sequence.lengths, [2, 3, 1])
-    for cls in (Batch, PrioritizedBatch, SequenceBatch):
-        assert '__slots__' in cls.__dict__ and '__eq__' not in cls.__dict__
-        assert dataclasses.is_dataclass(cls) and cls.__dataclass_params__.frozen

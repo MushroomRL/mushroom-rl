@@ -177,7 +177,7 @@ def test_ddpg_asymmetric(device, tmpdir):
         agent = learn(alg, lambda agent: agent.add_fit_preprocessor(preprocessor), asymmetric=asymmetric,
                       device=device)
 
-        tu.assert_recorded(agent.policy.get_weights(), f'test_{alg.__name__.lower()}_asymmetric', device)
+        tu.assert_recorded(agent.policy.get_weights(), f'test_ddpg_asymmetric_{alg.__name__.lower()}', device)
         assert type(agent.history_manager) is AsymmetricHistoryManager
         assert agent.history_manager.critic_indices == [1, 0] and '_asymmetric_options' not in vars(agent)
         assert preprocessor.shapes == [(200, 1)] * 4
