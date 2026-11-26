@@ -17,13 +17,13 @@ class ZeroPolicy(Policy):
         return np.zeros(np.shape(state)[:-1] + (self._dim,))
 
 
-class RecordingAgent(Agent):
-    def __init__(self, mdp_info):
-        super().__init__(mdp_info, ZeroPolicy(mdp_info.action_space.shape[0]), backend='numpy')
-        self.fit_rewards = list()
+class DummyAgent(Agent):
+    def __init__(self, mdp_info, policy, backend='numpy', **agent_params):
+        super().__init__(mdp_info, policy, backend=backend, **agent_params)
+        self.fits = list()
 
     def fit(self, dataset):
-        self.fit_rewards += np.asarray(dataset.reward).tolist()
+        self.fits.append(dataset.copy())
 
 
 class CountingVecEnv(VectorizedEnvironment):

@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 
-class LinearNetwork(nn.Module):
+class BiasedLinearNetwork(nn.Module):
     def __init__(self, input_shape, output_shape, **kwargs):
         super().__init__()
 
@@ -57,7 +57,7 @@ def test_deterministic_policy():
 def test_deterministic_policy_torch(device):
     torch.manual_seed(42)
 
-    approximator = TorchApproximator(network=LinearNetwork, input_shape=(5,), output_shape=(2,), device=device)
+    approximator = TorchApproximator(network=BiasedLinearNetwork, input_shape=(5,), output_shape=(2,), device=device)
 
     pi = DeterministicPolicy(approximator)
 

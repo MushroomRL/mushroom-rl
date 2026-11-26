@@ -3,9 +3,9 @@ import pytest
 import torch
 
 from helper.cases import needs_cuda
-from helper.dummies import ZeroPolicy
+from helper.dummies import DummyAgent, ZeroPolicy
 
-from mushroom_rl.core import Agent, Core, Dataset, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core import Core, Dataset, MDPInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.extra_info import ExtraInfo
@@ -584,8 +584,8 @@ def test_list_layout():
     assert converted._layout.array().dtype == torch.int8
     assert torch.equal(glued.state[:, 0], torch.tensor([0., 1., 2., 3.]))
 
-    env = CountingVecEnv()
-    agent = StatelessFitCollectingAgent(env.info)
+    env = StaggeredCountingVecEnv()
+    agent = DummyAgent(env.info, ZeroPolicy())
     Core(agent, env).learn(n_steps=27, n_steps_per_fit=9, quiet=True)
 
     joined = agent.fits[1].to_backend('list') + agent.fits[2].to_backend('list')
@@ -642,19 +642,10 @@ class StateTrackingPolicy(StatefulPolicy):
         return state[:, :1], state[:, :1].copy()
 
 
-class FitCollectingAgent(Agent):
-    def __init__(self, mdp_info):
-        super().__init__(mdp_info, StateTrackingPolicy(), backend='numpy')
-        self.fits = list()
-
-    def fit(self, dataset):
-        self.fits.append(dataset)
-
-
 @needs_cuda()
 def test_policy_states_cross_device():
     env = CudaCountingVecEnv()
-    agent = FitCollectingAgent(env.info)
+    agent = DummyAgent(env.info, StateTrackingPolicy())
     Core(agent, env).learn(n_steps=30, n_steps_per_fit=7, quiet=True)
 
     view = agent.fits[1][torch.tensor([3, 0], device='cuda')]
@@ -693,7 +684,7 @@ def test_integer_index():
         dataset[-4]
 
 
-class CountingVecEnv(VectorizedEnvironment):
+class StaggeredCountingVecEnv(VectorizedEnvironment):
     def __init__(self):
         super().__init__(MDPInfo(Box(-1000, 1000, shape=(1,)), Box(-1000, 1000, shape=(1,)), 0.9, 100), 3)
         self._s = np.zeros((3, 1))
@@ -708,12 +699,3 @@ class CountingVecEnv(VectorizedEnvironment):
         self._s[env_mask] += 1
         self._t[env_mask] += 1
         return self._s.copy(), np.ones(3), (self._t >= 3 + np.arange(3)) & env_mask, [{}] * 3
-
-
-class StatelessFitCollectingAgent(Agent):
-    def __init__(self, mdp_info):
-        super().__init__(mdp_info, ZeroPolicy(), backend='numpy')
-        self.fits = list()
-
-    def fit(self, dataset):
-        self.fits.append(dataset)

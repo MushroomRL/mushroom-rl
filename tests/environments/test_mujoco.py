@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from mushroom_rl.core import Core, Agent
+from helper.dummies import DummyAgent, ZeroPolicy
+
+from mushroom_rl.core import Core
 from mushroom_rl.environments import MuJoCo, MultiMuJoCo
 from mushroom_rl.environments.assets import asset_path
-from mushroom_rl.policy import Policy
 
 mujoco = pytest.importorskip('mujoco')
 
@@ -44,15 +45,7 @@ def test_multi_mujoco():
     np.random.seed(2)
     mdp = make_multi_hopper()
 
-    class ZeroPolicy(Policy):
-        def draw_action(self, state):
-            return np.zeros(3)
-
-    class DummyAgent(Agent):
-        def fit(self, dataset):
-            pass
-
-    dataset = Core(DummyAgent(mdp.info, ZeroPolicy('numpy')), mdp).evaluate(n_episodes=2, quiet=True)
+    dataset = Core(DummyAgent(mdp.info, ZeroPolicy(3)), mdp).evaluate(n_episodes=2, quiet=True)
 
     assert len(dataset) == 100
     assert dataset.n_episodes == 2

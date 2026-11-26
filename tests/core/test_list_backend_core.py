@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from helper.dummies import DummyAgent
+
 from mushroom_rl.core import Agent, AgentInfo, Core, Dataset, Environment, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.environments import Gymnasium
@@ -258,29 +260,21 @@ class ListActionPolicy(Policy):
         return [np.array([float(s[0])]) for s in state]
 
 
-class FitRecorderAgent(Agent):
-    def __init__(self, mdp_info, policy, backend='list', history_length=None):
-        super().__init__(mdp_info, policy, backend=backend, history_length=history_length)
-        self.fit_actions = list()
-
-    def fit(self, dataset):
-        self.fit_actions.append([float(a[0]) for a in dataset.action])
-
-
 def test_learn_through_resets():
     mdp = ListVecEnv(with_info=False)
-    agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
+    agent = DummyAgent(mdp.info, ListActionPolicy('numpy'), backend='list')
     core = Core(agent, mdp)
 
     core.learn(n_steps=30, n_steps_per_fit=6, quiet=True)
 
-    assert agent.fit_actions == [[0., 1., 0., 1., 0., 1.], [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.],
-                                 [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.]]
+    fit_actions = [[float(a[0]) for a in dataset.action] for dataset in agent.fits]
+    assert fit_actions == [[0., 1., 0., 1., 0., 1.], [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.],
+                           [2., 3., 2., 3., 2., 3.], [0., 1., 0., 1., 0., 1.]]
 
 
 def test_unsupported():
     mdp = ListVecEnv(with_info=False)
-    agent = FitRecorderAgent(mdp.info, ListActionPolicy('numpy'))
+    agent = DummyAgent(mdp.info, ListActionPolicy('numpy'), backend='list')
     list_dataset = Dataset.from_array([[0.], [1.]], [[0.], [0.]], [1., 1.], [[1.], [2.]], [False, False],
                                       [False, True], gamma=0.9, backend='list')
 
@@ -296,7 +290,7 @@ def test_unsupported():
     plain = Dataset.from_array(states, actions, rewards, states + 1, absorbings, lasts, gamma=0.9)
 
     with pytest.raises(NotImplementedError):
-        FitRecorderAgent(mdp.info, ListActionPolicy('numpy'), history_length=2)
+        DummyAgent(mdp.info, ListActionPolicy('numpy'), backend='list', history_length=2)
     with pytest.raises(NotImplementedError):
         agent.history_manager.parse_nstep_history(list_dataset, gamma=0.9, n_steps_return=1)
     with pytest.raises(NotImplementedError):

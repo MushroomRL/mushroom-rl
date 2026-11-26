@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from helper.dummies import ZeroPolicy
+from helper.dummies import DummyAgent, ZeroPolicy
 
-from mushroom_rl.core import Core, Agent, MDPInfo, Box, VectorizedEnvironment
+from mushroom_rl.core import Core, MDPInfo, Box, VectorizedEnvironment
 from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.environments import GridWorld
 from mushroom_rl.algorithms.value import SARSA, DoubleQLearning
@@ -21,15 +21,6 @@ def episode_lengths_from_flags(last_flags):
             lengths.append(length)
             length = 0
     return lengths
-
-
-class CountdownAgent(Agent):
-    def __init__(self, mdp_info):
-        policy = ZeroPolicy(mdp_info.action_space.shape[0])
-        super().__init__(mdp_info, policy, backend='numpy')
-
-    def fit(self, dataset):
-        pass
 
 
 class CountdownVectorizedEnv(VectorizedEnvironment):
@@ -157,7 +148,7 @@ def test_collect_dataset_vectorized():
     reference = RecordFlattenedLast()
 
     env = CountdownVectorizedEnv()
-    agent = CountdownAgent(env.info)
+    agent = DummyAgent(env.info, ZeroPolicy(env.info.action_space.shape[0]))
 
     core = Core(agent, env, callbacks_fit=[callback, reference])
 

@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 
-from helper.dummies import FrameRecorder
+from helper.dummies import DummyAgent, FrameRecorder, ZeroPolicy
 
 from mushroom_rl.core import Agent, Core, Environment, Logger, MDPInfo, AgentInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box, Discrete
@@ -22,15 +22,6 @@ class RandomDiscretePolicy(Policy):
         return [np.random.randint(self._n)]
 
 
-class DummyAgent(Agent):
-    def __init__(self, mdp_info):
-        policy = RandomDiscretePolicy(mdp_info.action_space.n)
-        super().__init__(mdp_info, policy)
-
-    def fit(self, dataset):
-        pass
-
-
 def test_history_manager_exclusive():
     obs_space = Box(np.full((4,), -1.0), np.full((4,), 1.0), (4,))
     act_space = Discrete(3)
@@ -47,7 +38,7 @@ def test_history_manager_exclusive():
         Agent(mdp_info, policy, history_length=3, history_manager=history_manager)
 
 
-class GreedyDummyPolicy(Policy):
+class DiscreteGreedyPolicy(Policy):
     def draw_action(self, state):
         return np.array([np.random.randint(4)])
 
@@ -55,33 +46,26 @@ class GreedyDummyPolicy(Policy):
         return np.array([1])
 
 
-class GreedyDummyAgent(Agent):
-    def __init__(self, mdp_info):
-        super().__init__(mdp_info, GreedyDummyPolicy('numpy'))
-
-    def fit(self, dataset):
-        pass
-
-
 def test_greedy():
     from mushroom_rl.environments import GridWorld
 
     mdp = GridWorld.from_size(height=3, width=3, goal=(2, 2), start=(0, 0))
-    core = Core(GreedyDummyAgent(mdp.info), mdp)
+    core = Core(DummyAgent(mdp.info, DiscreteGreedyPolicy('numpy')), mdp)
 
     assert np.all(np.array(core.evaluate(n_steps=10, quiet=True, greedy=True).action) == 1)
 
     np.random.seed(0)
     assert not np.all(np.array(core.evaluate(n_steps=10, quiet=True).action) == 1)
 
+    agent = DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n))
     with pytest.raises(NotImplementedError):
-        Core(DummyAgent(mdp.info), mdp).evaluate(n_steps=5, quiet=True, greedy=True)
+        Core(agent, mdp).evaluate(n_steps=5, quiet=True, greedy=True)
 
 
 def test_atari_info():
     pytest.importorskip('ale_py')
     mdp = Atari(name='ALE/Breakout-v5', repeat_action_probability=0.0)
-    core = Core(DummyAgent(mdp.info), mdp)
+    core = Core(DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n)), mdp)
 
     np.random.seed(2)
     mdp.seed(2)
@@ -118,7 +102,7 @@ class RenderingEnv(Environment):
 def test_record():
     mdp = RenderingEnv(horizon=5)
     logger = Logger('test_core_record_evaluate', results_dir=None, recorder_class=FrameRecorder)
-    core = Core(DummyAgent(mdp.info), mdp, logger=logger)
+    core = Core(DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n)), mdp, logger=logger)
 
     assert core.agent.logger is logger
 
@@ -133,8 +117,8 @@ def test_record():
 
     mdp = RenderingEnv(horizon=4)
     logger = Logger('test_core_record_learn', results_dir=None, recorder_class=FrameRecorder)
-    Core(DummyAgent(mdp.info), mdp, logger=logger).learn(n_steps=4, n_steps_per_fit=4, render=True, record=True,
-                                                         quiet=True)
+    agent = DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n))
+    Core(agent, mdp, logger=logger).learn(n_steps=4, n_steps_per_fit=4, render=True, record=True, quiet=True)
 
     assert len(logger.video_recorder.frames) == 4
     assert logger.video_recorder.n_stops == 1
@@ -142,9 +126,9 @@ def test_record():
 
 def test_record_errors():
     mdp = RenderingEnv(horizon=5)
-    core = Core(DummyAgent(mdp.info), mdp)
+    core = Core(DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n)), mdp)
     logger = Logger('test_core_record_without_render', results_dir=None, recorder_class=FrameRecorder)
-    core_with_logger = Core(DummyAgent(mdp.info), mdp, logger=logger)
+    core_with_logger = Core(DummyAgent(mdp.info, RandomDiscretePolicy(mdp.info.action_space.n)), mdp, logger=logger)
 
     assert core.agent.logger is None
 
@@ -184,23 +168,10 @@ class RenderingVecEnv(VectorizedEnvironment):
                          for env in range(self._n_envs) if env_mask[env]])
 
 
-class VecRandomPolicy(Policy):
-    def draw_action(self, state):
-        return np.zeros((state.shape[0], 1))
-
-
-class VecDummyAgent(Agent):
-    def __init__(self, mdp_info):
-        super().__init__(mdp_info, VecRandomPolicy('numpy'), backend='numpy')
-
-    def fit(self, dataset):
-        pass
-
-
 def test_vectorized_record(tmpdir):
     mdp = RenderingVecEnv(n_envs=3, horizon=3)
     logger = Logger('test_vectorized_core_record', results_dir=tmpdir, fps=30)
-    core = Core(VecDummyAgent(mdp.info), mdp, logger=logger)
+    core = Core(DummyAgent(mdp.info, ZeroPolicy()), mdp, logger=logger)
 
     core.evaluate(n_episodes=3, render=True, record=True, quiet=True)
 
@@ -222,7 +193,7 @@ def test_vectorized_record(tmpdir):
 def test_vectorized_record_mask():
     mdp = RenderingVecEnv(n_envs=3, horizon=3)
     logger = Logger('test_vectorized_core_record_single', results_dir=None, recorder_class=FrameRecorder)
-    core = Core(VecDummyAgent(mdp.info), mdp, logger=logger)
+    core = Core(DummyAgent(mdp.info, ZeroPolicy()), mdp, logger=logger)
 
     core.evaluate(n_episodes=1, render=True, record=True, quiet=True)
 
@@ -233,7 +204,7 @@ def test_vectorized_record_mask():
 
     mdp = RenderingVecEnv(n_envs=3, horizon=3)
     logger = Logger('test_vectorized_core_record_multi', results_dir=None, recorder_class=FrameRecorder)
-    core = Core(VecDummyAgent(mdp.info), mdp, logger=logger)
+    core = Core(DummyAgent(mdp.info, ZeroPolicy()), mdp, logger=logger)
 
     core.evaluate(n_episodes=2, render=True, record=True, quiet=True)
 
@@ -309,41 +280,36 @@ class InfoVecEnv(VectorizedEnvironment):
                 [{'t': t} for t in self._t])
 
 
-class InfoAgent(Agent):
-    def __init__(self, mdp_info):
-        self.seen = list()
-        super().__init__(mdp_info, RandomDiscretePolicy(mdp_info.action_space.n))
-
-    def fit(self, dataset):
-        self.seen.append(np.asarray(dataset.info['t']).copy())
-
-
 def test_info():
     np.random.seed(42)
-    agent = InfoAgent(InfoEnv().info)
+    agent = DummyAgent(InfoEnv().info, RandomDiscretePolicy(InfoEnv().info.action_space.n))
     Core(agent, InfoEnv()).learn(n_steps=8, n_steps_per_fit=4, quiet=True)
 
-    assert len(agent.seen) == 2
-    assert np.array_equal(agent.seen[0], np.array([1., 2., 3., 4.]))
-    assert np.array_equal(agent.seen[1], np.array([1., 2., 3., 4.]))
+    seen = [np.asarray(dataset.info['t']) for dataset in agent.fits]
+    assert len(seen) == 2
+    assert np.array_equal(seen[0], np.array([1., 2., 3., 4.]))
+    assert np.array_equal(seen[1], np.array([1., 2., 3., 4.]))
 
     np.random.seed(42)
-    vec_agent = InfoAgent(InfoVecEnv().info)
+    vec_agent = DummyAgent(InfoVecEnv().info, RandomDiscretePolicy(InfoVecEnv().info.action_space.n))
     Core(vec_agent, InfoVecEnv()).learn(n_steps=8, n_steps_per_fit=4, quiet=True)
 
-    assert len(vec_agent.seen) == 2
-    assert np.array_equal(vec_agent.seen[0], np.array([1., 2., 1., 2.]))
-    assert np.array_equal(vec_agent.seen[1], np.array([3., 4., 3., 4.]))
+    vec_seen = [np.asarray(dataset.info['t']) for dataset in vec_agent.fits]
+    assert len(vec_seen) == 2
+    assert np.array_equal(vec_seen[0], np.array([1., 2., 1., 2.]))
+    assert np.array_equal(vec_seen[1], np.array([3., 4., 3., 4.]))
 
     np.random.seed(42)
-    dataset = Core(InfoAgent(InfoEnv().info), InfoEnv()).evaluate(n_episodes=3, quiet=True)
+    agent = DummyAgent(InfoEnv().info, RandomDiscretePolicy(InfoEnv().info.action_space.n))
+    dataset = Core(agent, InfoEnv()).evaluate(n_episodes=3, quiet=True)
 
     assert np.array_equal(dataset.episode_info['episode'], np.array([1., 2., 3.]))
     assert dataset[2:6].episode_info == {}
     assert np.array_equal(np.asarray(dataset[2:6].info['t']), np.array([3., 4., 1., 2.]))
 
     np.random.seed(42)
-    vec_dataset = Core(InfoAgent(InfoVecEnv().info), InfoVecEnv()).evaluate(n_steps=8, quiet=True)
+    vec_agent = DummyAgent(InfoVecEnv().info, RandomDiscretePolicy(InfoVecEnv().info.action_space.n))
+    vec_dataset = Core(vec_agent, InfoVecEnv()).evaluate(n_steps=8, quiet=True)
 
     assert np.array_equal(vec_dataset.episode_info['episode'], np.array([1., 1.]))
     assert np.array_equal(np.asarray(vec_dataset.info['t']), np.array([1., 2., 3., 4., 1., 2., 3., 4.]))

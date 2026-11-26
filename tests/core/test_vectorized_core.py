@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from helper.cases import needs_cuda
+from helper.dummies import DummyAgent
 
 from mushroom_rl.core import Agent, ArrayBackend, Core, VectorizedEnvironment, MDPInfo, Box
 from mushroom_rl.core.core import SequentialCore
@@ -15,7 +16,7 @@ from mushroom_rl.utils import TorchUtils
 from mushroom_rl.core._impl.core import VectorizedCoreLogic
 
 
-class DummyPolicy(Policy):
+class RandomContinuousPolicy(Policy):
     def __init__(self, action_shape, backend):
         super().__init__(backend)
         self._dim = action_shape[0]
@@ -30,19 +31,18 @@ class DummyPolicy(Policy):
             raise NotImplementedError
 
 
-class DummyAgent(Agent):
+class RandomContinuousAgent(DummyAgent):
     def __init__(self, mdp_info, backend):
-        policy = DummyPolicy(mdp_info.action_space.shape, backend)
-        super().__init__(mdp_info, policy, backend=backend)
+        super().__init__(mdp_info, RandomContinuousPolicy(mdp_info.action_space.shape, backend), backend=backend)
 
     def fit(self, dataset):
         assert len(dataset.episodes_length) in (1, 20) or len(dataset) == 150
 
 
-class DummyEpisodicAgent(Agent):
+class RandomContinuousEpisodicAgent(DummyAgent):
     def __init__(self, mdp_info, backend):
-        policy = DummyPolicy(mdp_info.action_space.shape, backend)
-        super().__init__(mdp_info, policy, is_episodic=True, backend=backend)
+        super().__init__(mdp_info, RandomContinuousPolicy(mdp_info.action_space.shape, backend), backend=backend,
+                         is_episodic=True)
         self._counter = 0
 
     def fit(self, dataset):
@@ -60,7 +60,7 @@ class DummyEpisodicAgent(Agent):
             raise NotImplementedError
 
 
-class GreedyDummyPolicy(Policy):
+class ContinuousGreedyPolicy(Policy):
     def __init__(self, action_shape, backend):
         super().__init__(backend)
         self._dim = action_shape[0]
@@ -80,15 +80,6 @@ class GreedyDummyPolicy(Policy):
             return np.ones((state.shape[0], self._dim))
         else:
             raise NotImplementedError
-
-
-class GreedyDummyAgent(Agent):
-    def __init__(self, mdp_info, backend):
-        policy = GreedyDummyPolicy(mdp_info.action_space.shape, backend)
-        super().__init__(mdp_info, policy, backend=backend)
-
-    def fit(self, dataset):
-        pass
 
 
 class CountingPreprocessor(Preprocessor):
@@ -175,7 +166,7 @@ def run_exp(env_backend, agent_backend):
     torch.random.manual_seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
 
     core = Core(agent, env)
 
@@ -211,7 +202,7 @@ def run_exp_episodic(env_backend, agent_backend):
     torch.random.manual_seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyEpisodicAgent(env.info, agent_backend)
+    agent = RandomContinuousEpisodicAgent(env.info, agent_backend)
 
     core = Core(agent, env)
 
@@ -227,7 +218,7 @@ def run_exp_initial_states(env_backend, agent_backend):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
 
     core = Core(agent, env)
 
@@ -257,7 +248,8 @@ def run_exp_greedy(env_backend, agent_backend):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = GreedyDummyAgent(env.info, agent_backend)
+    policy = ContinuousGreedyPolicy(env.info.action_space.shape, agent_backend)
+    agent = DummyAgent(env.info, policy, backend=agent_backend)
 
     core = Core(agent, env)
 
@@ -292,7 +284,7 @@ def run_exp_reset_preprocessing(env_backend, agent_backend, n_observations):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
     preprocessor = CountingPreprocessor()
     agent.add_core_preprocessor(preprocessor)
 
@@ -313,7 +305,7 @@ def run_exp_reset_preprocessing(env_backend, agent_backend, n_observations):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
     preprocessor = CountingPreprocessor()
     agent.add_core_preprocessor(preprocessor)
 
@@ -328,7 +320,7 @@ def run_exp_step_preprocessing(env_backend, agent_backend, n_observations):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
     preprocessor = CountingPreprocessor()
     agent.add_core_preprocessor(preprocessor)
 
@@ -345,7 +337,7 @@ def run_exp_partial_first_batch_preprocessing(env_backend, agent_backend, n_obse
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
     preprocessor = CountingPreprocessor()
     agent.add_core_preprocessor(preprocessor)
 
@@ -444,7 +436,7 @@ def test_single_env_routing():
     np.random.seed(42)
 
     env = DummyVecEnv('numpy', n_envs=1)
-    agent = DummyAgent(env.info, 'numpy')
+    agent = RandomContinuousAgent(env.info, 'numpy')
     core = Core(agent, env)
 
     assert isinstance(core, SequentialCore)
@@ -458,7 +450,7 @@ def test_single_env_routing():
 def test_inactive_absorbing():
     for n_episodes, n_samples in [(7, 24), (12, 43), (14, 48)]:
         env = StaleAbsorbingVecEnv()
-        agent = DummyAgent(env.info, 'numpy')
+        agent = RandomContinuousAgent(env.info, 'numpy')
         core = Core(agent, env)
 
         dataset = core.evaluate(n_episodes=n_episodes, quiet=True)
@@ -473,7 +465,7 @@ def test_empty_dataset():
         torch.random.manual_seed(42)
 
         env = DummyVecEnv(env_backend)
-        agent = DummyAgent(env.info, env_backend)
+        agent = RandomContinuousAgent(env.info, env_backend)
         core = Core(agent, env)
 
         dataset = core.evaluate(n_steps=0, quiet=True)
@@ -490,7 +482,7 @@ def test_exact_n_steps():
         np.random.seed(42)
 
         env = DummyVecEnv('numpy')
-        agent = DummyAgent(env.info, 'numpy')
+        agent = RandomContinuousAgent(env.info, 'numpy')
         core = Core(agent, env)
 
         dataset = core.evaluate(n_steps=n_steps, quiet=True)
@@ -502,7 +494,7 @@ def test_no_fit_below_n_steps_per_fit():
     np.random.seed(42)
 
     env = DummyVecEnv('numpy')
-    agent = GreedyDummyAgent(env.info, 'numpy')
+    agent = DummyAgent(env.info, ContinuousGreedyPolicy(env.info.action_space.shape, 'numpy'), backend='numpy')
     fits = list()
 
     core = Core(agent, env, callbacks_fit=[lambda dataset: fits.append(1)])
@@ -518,7 +510,7 @@ def test_no_fit_below_n_steps_per_fit():
 
 def test_steps_per_fit_below_n_envs():
     env = DummyVecEnv('numpy')
-    agent = DummyAgent(env.info, 'numpy')
+    agent = RandomContinuousAgent(env.info, 'numpy')
     core = Core(agent, env)
 
     with pytest.raises(AssertionError):
@@ -532,7 +524,7 @@ def test_env_device():
     torch.random.manual_seed(42)
 
     env = DummyVecEnv('torch', device='cuda')
-    agent = DummyAgent(env.info, 'torch')
+    agent = RandomContinuousAgent(env.info, 'torch')
     core = Core(agent, env)
 
     dataset = core.evaluate(n_steps=100, quiet=True)
@@ -579,7 +571,7 @@ def run_exp_evaluate_after_learn(env_backend, agent_backend):
     np.random.seed(42)
 
     env = DummyVecEnv(env_backend)
-    agent = DummyAgent(env.info, agent_backend)
+    agent = RandomContinuousAgent(env.info, agent_backend)
 
     core = Core(agent, env)
 

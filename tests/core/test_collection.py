@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from helper.dummies import CountingVecEnv, RecordingAgent
+from helper.dummies import CountingVecEnv, DummyAgent, ZeroPolicy
 
 from mushroom_rl.core import Core, MDPInfo, Box, Environment, VectorizedEnvironment, VectorizedDataset
 from mushroom_rl.utils.callbacks import CollectDataset
@@ -68,7 +68,7 @@ class IdentifiableVecEnv(VectorizedEnvironment):
 
 
 def run(env, **budget):
-    agent = RecordingAgent(env.info)
+    agent = DummyAgent(env.info, ZeroPolicy(env.info.action_space.shape[0]))
     seen = list()
     collector = CollectDataset(initial_capacity=2)
 
@@ -78,7 +78,7 @@ def run(env, **budget):
 
     Core(agent, env, callback_step=record_step, callbacks_fit=[collector]).learn(quiet=True, **budget)
 
-    return agent.fit_rewards, seen, collector.get()
+    return [r for dataset in agent.fits for r in np.asarray(dataset.reward).tolist()], seen, collector.get()
 
 
 @pytest.mark.parametrize('budget', [dict(n_steps=200, n_steps_per_fit=5), dict(n_episodes=32, n_episodes_per_fit=4)])
@@ -123,7 +123,8 @@ def test_fit_callbacks():
     env = CountingVecEnv(3, horizon=10)
     kinds = list()
     collector = CollectDataset(initial_capacity=8)
-    core = Core(RecordingAgent(env.info), env, callbacks_fit=[lambda dataset: kinds.append(type(dataset)), collector])
+    agent = DummyAgent(env.info, ZeroPolicy(env.info.action_space.shape[0]))
+    core = Core(agent, env, callbacks_fit=[lambda dataset: kinds.append(type(dataset)), collector])
 
     core.learn(n_steps=60, n_steps_per_fit=30, quiet=True)
     collected = collector.get()
