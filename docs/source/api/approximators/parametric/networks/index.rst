@@ -15,9 +15,12 @@ the shapes are passed by the approximator itself.
    ~mushroom_rl.approximators.parametric.networks.critic_network.CriticNetwork
    ~mushroom_rl.approximators.parametric.networks.q_network.QNetwork
    ~mushroom_rl.approximators.parametric.networks.atari_network.AtariNetwork
+   ~mushroom_rl.approximators.parametric.networks.atari_network.AtariFeatureNetwork
+   ~mushroom_rl.approximators.parametric.networks.atari_network.AtariNoisyFeatureNetwork
    ~mushroom_rl.approximators.parametric.networks.recurrent_network.RecurrentActorNetwork
    ~mushroom_rl.approximators.parametric.networks.recurrent_network.RecurrentCriticNetwork
    ~mushroom_rl.approximators.parametric.networks.dueling_network.DuelingNetwork
+   ~mushroom_rl.approximators.parametric.networks.noisy_linear.NoisyLinear
    ~mushroom_rl.approximators.parametric.networks.noisy_network.NoisyNetwork
    ~mushroom_rl.approximators.parametric.networks.categorical_network.CategoricalNetwork
    ~mushroom_rl.approximators.parametric.networks.quantile_network.QuantileNetwork

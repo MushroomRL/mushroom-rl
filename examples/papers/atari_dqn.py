@@ -152,8 +152,8 @@ def build_beta(settings):
 def build_approximator_params(alg, args, mdp):
     """
     Build the approximator parameters. The variants replacing the output layer of the network build on
-    the feature extractor alone, and the ones predicting a distribution instead of an action value bring
-    their own loss.
+    the feature extractor alone, the noisy ones on a feature extractor with a noisy fully connected layer,
+    and the ones predicting a distribution instead of an action value bring their own loss.
 
     Any variant can be run on an ensemble of approximators, which for most of them only averages
     independently initialized networks. The two variants building the ensemble themselves are excluded,

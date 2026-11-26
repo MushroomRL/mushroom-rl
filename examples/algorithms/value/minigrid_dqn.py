@@ -11,6 +11,7 @@ import torch.nn.functional as F
 
 from mushroom_rl.algorithms.value import AveragedDQN, CategoricalDQN, DQN, \
     DoubleDQN, MaxminDQN, DuelingDQN, NoisyDQN, Rainbow
+from mushroom_rl.approximators.parametric.networks import NoisyLinear
 from mushroom_rl.core import Core, Logger
 from mushroom_rl.environments import MiniGrid, MiniGridRGB
 from mushroom_rl.policy import EpsGreedy
@@ -59,22 +60,22 @@ class FeatureNetwork(nn.Module):
 
         conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
                                                             input_shape)
-        self._h4 = nn.Linear(conv_out_size, n_output)
+        self._h4 = self._build_hidden_layer(conv_out_size, n_output, **kwargs)
 
-        nn.init.xavier_uniform_(self._h1.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h2.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h3.weight,
-                                gain=nn.init.calculate_gain('relu'))
-        nn.init.xavier_uniform_(self._h4.weight,
-                                gain=nn.init.calculate_gain('relu'))
+        self._init_weights()
 
     def forward(self, state, action=None):
         h = F.relu(self._h1(state.float() / self._obs_high))
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         return F.relu(self._h4(h.view(state.shape[0], -1)))
+
+    def _init_weights(self):
+        for layer in (self._h1, self._h2, self._h3, self._h4):
+            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, **kwargs):
+        return nn.Linear(in_features, out_features)
 
 
 class SymbolicFeatureNetwork(nn.Module):
@@ -89,10 +90,9 @@ class SymbolicFeatureNetwork(nn.Module):
         self._h1 = nn.Conv2d(n_input, 32, kernel_size=3, padding=1)
         self._h2 = nn.Conv2d(32, 64, kernel_size=3)
         self._h3 = nn.Conv2d(64, 64, kernel_size=3)
-        self._h4 = nn.Linear(64 * 3 * 3, n_output)
+        self._h4 = self._build_hidden_layer(64 * 3 * 3, n_output, **kwargs)
 
-        for layer in (self._h1, self._h2, self._h3, self._h4):
-            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+        self._init_weights()
 
     def forward(self, state, action=None):
         h = state.float().reshape(state.shape[0], -1, *state.shape[-2:]) / self._obs_high
@@ -100,6 +100,31 @@ class SymbolicFeatureNetwork(nn.Module):
         h = F.relu(self._h2(h))
         h = F.relu(self._h3(h))
         return F.relu(self._h4(h.flatten(1)))
+
+    def _init_weights(self):
+        for layer in (self._h1, self._h2, self._h3, self._h4):
+            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, **kwargs):
+        return nn.Linear(in_features, out_features)
+
+
+class NoisyFeatureNetwork(FeatureNetwork):
+    def _init_weights(self):
+        for layer in (self._h1, self._h2, self._h3):
+            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, sigma_coeff=.5, **kwargs):
+        return NoisyLinear(in_features, out_features, sigma_coeff)
+
+
+class NoisySymbolicFeatureNetwork(SymbolicFeatureNetwork):
+    def _init_weights(self):
+        for layer in (self._h1, self._h2, self._h3):
+            nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, sigma_coeff=.5, **kwargs):
+        return NoisyLinear(in_features, out_features, sigma_coeff)
 
 
 def get_algorithms():
@@ -137,8 +162,8 @@ def build_beta(settings):
 def build_approximator_params(alg, args, mdp):
     """
     Build the approximator parameters. The variants replacing the output layer of the network build on
-    the feature extractor alone, and the ones predicting a distribution instead of an action value bring
-    their own loss.
+    the feature extractor alone, the noisy ones on a feature extractor with a noisy fully connected layer,
+    and the ones predicting a distribution instead of an action value bring their own loss.
 
     Any variant can be run on an ensemble of approximators, which for most of them only averages
     independently initialized networks. The two variants building the ensemble themselves are excluded,
@@ -149,7 +174,11 @@ def build_approximator_params(alg, args, mdp):
     distributional_algorithms = [CategoricalDQN, Rainbow]
     ensemble_algorithms = [AveragedDQN, MaxminDQN]
 
-    feature_network = SymbolicFeatureNetwork if args.observation == 'symbolic' else FeatureNetwork
+    noisy = alg in [NoisyDQN, Rainbow]
+    if args.observation == 'symbolic':
+        feature_network = NoisySymbolicFeatureNetwork if noisy else SymbolicFeatureNetwork
+    else:
+        feature_network = NoisyFeatureNetwork if noisy else FeatureNetwork
 
     approximator_params = dict(
         network=feature_network if alg in feature_algorithms else Network,
