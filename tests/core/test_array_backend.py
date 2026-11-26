@@ -267,6 +267,8 @@ def test_random(backend, device):
     assert_equal(ops.multinomial(make_array(backend, [[1., 0., 0.], [0., 0., 1.], [0., 1., 0.]], device)),
                  [[0], [2], [1]])
     assert ListBackend.multinomial(np.array([1.0, 0.0, 0.0])) == 0
+    assert_equal(ListBackend.multinomial([0.0, 1.0, 0.0]), [1])
+    assert_equal(ListBackend.multinomial([[0.0, 1.0], [1.0, 0.0]]), [[1], [0]])
 
 
 def test_dtype():

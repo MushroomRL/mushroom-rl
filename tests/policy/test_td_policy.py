@@ -6,7 +6,7 @@ import pytest
 
 from helper.arrays import assert_backend, assert_equal, make_array, to_numpy
 from helper.cases import backend_devices
-from helper.dummies import FixedQ
+from helper.dummies import FakeLogger, FixedQ
 
 from mushroom_rl.policy.td_policy import EpsGreedy, Boltzmann, Mellowmax
 from mushroom_rl.approximators.table import Table
@@ -246,6 +246,30 @@ def test_mellowmax():
     p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
     assert np.allclose(p_s, p_s_test)
 
+    np.random.seed(42)
+    pi = Mellowmax(Parameter(3), beta_max=1.)
+
+    Q = Table((10, 3))
+    Q.table = np.random.randn(10, 3)
+
+    pi.set_q(Q)
+
+    s = np.array([2])
+
+    p_s = pi(s)
+    p_s_test = np.array([0.63573931, 0.28231134, 0.08194935])
+    assert np.allclose(p_s, p_s_test)
+
+    pi = Mellowmax(Parameter(1.))
+    pi.set_q(FixedQ(np.array([[1., 3., 2.], [.3, -.2, .1]], dtype=np.float32)))
+
+    s = np.array([[0], [1]])
+
+    p_s = pi(s)
+    assert p_s.dtype == np.float32
+    for i in range(2):
+        assert np.array_equal(p_s[i], pi(s[i]))
+
 
 @pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))
 def test_td_policy_batch(backend, device):
@@ -303,11 +327,14 @@ def test_td_policy_batch(backend, device):
     torch.manual_seed(3)
     mellowmax = Mellowmax(Parameter(1.), **kw)
     mellowmax.set_q(FixedQ(q))
+    logger = FakeLogger()
+    mellowmax.set_logger(logger)
 
     draws = dict(numpy=[[1, 1, 0, 1], [2, 1, 0, 1], [0, 0, 0, 1]], cpu=[[0, 0, 0, 1], [1, 0, 1, 1], [1, 1, 2, 1]],
                  cuda=[[0, 1, 0, 1], [1, 1, 1, 2], [2, 2, 2, 1]])[case]
     for expected in draws:
         assert_equal(mellowmax.draw_action(state)[:, 0], expected)
+    assert logger.calls == [{'policy/omega': 1.}] * 3
 
     probs = mellowmax(state)
     for i in range(4):

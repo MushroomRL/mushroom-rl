@@ -125,11 +125,10 @@ def test_dqn_vectorized(device, tmpdir):
     assert agent._n_updates > 0
     assert np.isclose(epsilon.get_value(), .1)
 
-    for greedy in [False, True]:
-        action = core.evaluate(n_episodes=8, greedy=greedy).action
-        assert action.shape == (80, 1)
-        assert action.min() >= 0 and action.max() < 3
+    actions = torch.stack([core.evaluate(n_episodes=8, greedy=greedy).action[:, 0] for greedy in [False, True]])
+    assert actions.shape == (2, 80)
 
+    tu.assert_recorded(actions, 'test_dqn_vectorized_actions', device)
     tu.assert_recorded(agent.approximator.get_weights(), 'test_dqn_vectorized', device)
     tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
 

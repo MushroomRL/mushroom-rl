@@ -313,6 +313,7 @@ class Mellowmax(TDPolicy):
         self._beta_max = beta_max
 
         self._add_save_attr(_omega='mushroom', _beta_min='primitive', _beta_max='primitive')
+        self._add_logger_attr(_omega='omega', group='policy')
 
     def __call__(self, *args):
         """
@@ -337,7 +338,7 @@ class Mellowmax(TDPolicy):
         if q.ndim == 1:
             beta = self._find_beta(q_numpy, omega)
         else:
-            beta = ArrayBackend.convert(np.array([self._find_beta(q_i, omega) for q_i in q_numpy]),
+            beta = ArrayBackend.convert(np.array([self._find_beta(q_i, omega) for q_i in q_numpy], dtype=q_numpy.dtype),
                                         to=self.backend_name, device=self._device)
             beta = self._backend.expand_dims(beta, -1)
 

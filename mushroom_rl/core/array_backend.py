@@ -1908,7 +1908,7 @@ class ListBackend(ArrayBackend):
 
     @staticmethod
     def multinomial(p):
-        return NumpyBackend.multinomial(p)
+        return NumpyBackend.multinomial(np.asarray(p))
 
     @classmethod
     def uniform(cls, low, high, device=None):
