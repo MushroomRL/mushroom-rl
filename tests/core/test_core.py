@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from pathlib import Path
 
+from helper.dummies import FrameRecorder
+
 from mushroom_rl.core import Agent, Core, Environment, Logger, MDPInfo, AgentInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.core.history_manager import HistoryManager
@@ -111,21 +113,6 @@ class RenderingEnv(Environment):
         self.render_flags.append(record)
 
         return np.full((2, 2, 3), len(self.render_flags), dtype=np.uint8) if record else None
-
-
-class FrameRecorder:
-    def __init__(self, fps=None, **kwargs):
-        self.fps = fps
-        self.frames = list()
-        self.masks = list()
-        self.n_stops = 0
-
-    def __call__(self, frame, mask=None):
-        self.frames.append(frame)
-        self.masks.append(mask)
-
-    def stop(self):
-        self.n_stops += 1
 
 
 def test_record():

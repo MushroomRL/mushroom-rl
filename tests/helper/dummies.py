@@ -1,7 +1,11 @@
 import numpy as np
+import torch
+from sklearn.ensemble import ExtraTreesRegressor
 
-from mushroom_rl.core import Agent, Box, MDPInfo, VectorizedEnvironment
+from mushroom_rl.approximators import Approximator
+from mushroom_rl.core import Agent, Box, Discrete, MDPInfo, VectorizedEnvironment
 from mushroom_rl.policy import Policy
+from mushroom_rl.rl_utils.preprocessors import Preprocessor
 
 
 class ZeroPolicy(Policy):
@@ -41,6 +45,81 @@ class CountingVecEnv(VectorizedEnvironment):
 
     def _obs(self):
         return np.stack([np.arange(self._n_envs), self._t, self._ep_t], axis=1).astype(float)
+
+
+class ChainVecEnv(VectorizedEnvironment):
+    def __init__(self, n_envs, device):
+        super().__init__(MDPInfo(Box(-10., 10., shape=(2,)), Discrete(3), .9, 10, backend='torch', device=device),
+                         n_envs)
+        self._state = torch.zeros(n_envs, 2, device=device)
+        self._t = torch.zeros(n_envs, device=device)
+
+    def reset_all(self, env_mask, state=None):
+        self._state[env_mask] = torch.rand(self.number, 2, device=self._state.device)[env_mask]
+        self._t[env_mask] = 0
+        return self._state.clone(), [{}] * self.number
+
+    def step_all(self, env_mask, action):
+        self._state[env_mask] += .1 * (action[env_mask].float() - 1.)
+        self._t[env_mask] += 1
+        return self._state.clone(), (action[:, 0] == 2).float(), (self._t >= 10) & env_mask, [{}] * self.number
+
+
+class FixedQ:
+    def __init__(self, table):
+        self.table = table
+        self.n_actions = table.shape[1]
+
+    def predict(self, state):
+        return self.table[state[..., 0]]
+
+
+class FlattenExtraTrees(Approximator):
+    def __init__(self, input_shape, output_shape, **params):
+        super().__init__(input_shape, output_shape)
+        self._models = [ExtraTreesRegressor(**params) for _ in range(output_shape[0])]
+        self.fit_state = None
+
+    def fit(self, x, a, q):
+        self.fit_state = x
+        x = x.reshape(len(x), -1)
+        for i, m in enumerate(self._models):
+            mask = a[:, 0] == i
+            m.fit(x[mask], q[mask])
+
+    def predict(self, x):
+        if self.fit_state is None:
+            return np.zeros((len(x), len(self._models)))
+        else:
+            x = x.reshape(len(x), -1)
+            return np.stack([m.predict(x) for m in self._models], axis=-1)
+
+
+class RecordingPreprocessor(Preprocessor):
+    def __init__(self, scale):
+        super().__init__('torch')
+        self.scale = scale
+        self.shapes = list()
+
+    def __call__(self, state):
+        self.shapes.append(tuple(state.shape))
+
+        return state * self.scale
+
+
+class FrameRecorder:
+    def __init__(self, fps=None, **kwargs):
+        self.fps = fps
+        self.frames = list()
+        self.masks = list()
+        self.n_stops = 0
+
+    def __call__(self, frame, mask=None):
+        self.frames.append(frame)
+        self.masks.append(mask)
+
+    def stop(self):
+        self.n_stops += 1
 
 
 class FakeLogger:

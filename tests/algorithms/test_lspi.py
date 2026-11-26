@@ -47,7 +47,7 @@ def learn_lspi(logger=None):
 def test_lspi(tmpdir):
     agent = learn_lspi()
     w = agent.approximator.get_weights()
-    w_test = np.array([-1.67115903, -1.43755615, -1.67115903])
+    w_test = np.array([-2.16560510, -2.14549112, -2.39790184])
 
     assert np.allclose(w, w_test)
 

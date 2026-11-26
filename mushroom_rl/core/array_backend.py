@@ -1023,10 +1023,12 @@ class ArrayBackend(object):
     def multinomial(p):
         """
         Args:
-            p: a 1D array of (unnormalized) probabilities.
+            p: the probabilities of the categories, summing to one along the last dimension: a 1D array, or a 2D
+                array holding one distribution per row.
 
         Returns:
-            A single index sampled according to the probabilities in ``p``.
+            The sampled indices: an array of shape ``(1,)`` for a 1D ``p``, of shape ``(n, 1)`` for a ``p`` with
+            ``n`` rows, one index per row.
 
         """
         raise NotImplementedError
@@ -1321,7 +1323,10 @@ class NumpyBackend(ArrayBackend):
 
     @staticmethod
     def multinomial(p):
-        return np.array([np.random.choice(len(p), p=p)])
+        if p.ndim == 1:
+            return np.array([np.random.choice(len(p), p=p)])
+        else:
+            return np.array([[np.random.choice(p.shape[-1], p=p_i)] for p_i in p])
 
     @classmethod
     def uniform(cls, low, high, device=None):

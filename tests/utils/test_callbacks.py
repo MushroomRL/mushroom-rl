@@ -219,7 +219,7 @@ def test_collect_parameter():
 
     core.learn(n_steps=30, n_steps_per_fit=1, quiet=True)
 
-    eps_test = np.array([1.0] * 14 + [0.7071067811865475] * 10 + [0.5773502691896258] * 3 + [0.5] * 3)
+    eps_test = np.array([1.0] * 19 + [0.7071067811865475] * 7 + [0.5773502691896258] * 4)
     eps = callback_eps.get()
 
     assert np.allclose(eps, eps_test)

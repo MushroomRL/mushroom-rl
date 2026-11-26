@@ -7,6 +7,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from pathlib import Path
 from pytest import fixture, importorskip, raises, warns
+
+from helper.dummies import FrameRecorder
+
 from mushroom_rl.algorithms.value import QLearning
 from mushroom_rl.core import Logger
 from mushroom_rl.core.dataset import Dataset
@@ -313,16 +316,6 @@ def test_video_lazy(tmpdir):
 
 
 def test_video_recorder_class():
-    class FrameRecorder:
-        def __init__(self, fps=None, **kwargs):
-            self.frames = []
-
-        def __call__(self, frame, mask=None):
-            self.frames.append(frame)
-
-        def stop(self):
-            pass
-
     logger = Logger('test_video_logger_custom_recorder', results_dir=None, recorder_class=FrameRecorder, fps=30)
 
     frame_1 = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -336,16 +329,6 @@ def test_video_recorder_class():
     assert np.array_equal(logger.video_recorder.frames[1], frame_2)
 
     logger.stop_recording()
-
-    class FrameRecorder:
-        def __init__(self, fps=None, **kwargs):
-            self.fps = fps
-
-        def __call__(self, frame, mask=None):
-            pass
-
-        def stop(self):
-            pass
 
     logger = Logger('test_video_logger_set_fps', results_dir=None, recorder_class=FrameRecorder)
 

@@ -4,7 +4,7 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 
-from helper.dummies import FakeLogger
+from helper.dummies import FakeLogger, RecordingPreprocessor
 from helper.cases import devices, needs_cuda
 from helper.utils import TestUtils as tu
 
@@ -14,20 +14,7 @@ from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, GaussianTorchPolicy
 from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNetwork
-from mushroom_rl.rl_utils.preprocessors import Preprocessor
 from mushroom_rl.utils import TorchUtils
-
-
-class RecordingPreprocessor(Preprocessor):
-    def __init__(self, scale):
-        super().__init__('torch')
-        self.scale = scale
-        self.shapes = list()
-
-    def __call__(self, state):
-        self.shapes.append(tuple(state.shape))
-
-        return state * self.scale
 
 
 def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):

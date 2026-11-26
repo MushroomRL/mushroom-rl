@@ -101,9 +101,19 @@ def test_sklearn_approximator_forwards_estimator_param():
 
 def test_sklearn_approximator_not_fitted():
     approximator = SklearnApproximator(LinearRegression, input_shape=(2,), output_shape=())
+    multi = SklearnApproximator(LinearRegression, input_shape=(2,), output_shape=(3,))
+    std = SklearnApproximator(BayesianRidge, input_shape=(2,), output_shape=[(), ()])
+    x = np.ones((4, 2))
+
+    assert np.array_equal(approximator.predict(x), np.zeros(4))
+    assert np.array_equal(approximator.predict(x[0]), np.zeros(()))
+    assert np.array_equal(multi.predict(x), np.zeros((4, 3)))
+    assert np.array_equal(multi.predict(x[0]), np.zeros(3))
 
     with pytest.raises(NotFittedError):
-        approximator.predict(np.zeros((1, 2)))
+        std.predict(x, return_std=True)
+    with pytest.raises(NotFittedError):
+        std.predict(x)
 
 
 def test_sklearn_approximator_requires_input_shape():
@@ -124,8 +134,7 @@ def test_sklearn_approximator_ensemble():
     assert ensemble.backend_name == 'numpy'
     assert all(isinstance(m, SklearnApproximator) for m in ensemble)
 
-    with pytest.raises(NotFittedError):
-        ensemble.predict(x, idx=0)
+    assert np.array_equal(ensemble.predict(x, idx=0), np.zeros(30))
 
     ensemble.fit(x, y)
     predictions = ensemble.predict(x, prediction='all')

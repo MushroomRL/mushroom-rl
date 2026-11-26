@@ -7,6 +7,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from helper.cases import devices
+from helper.dummies import ChainVecEnv
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.core import Core, Logger
@@ -105,6 +106,35 @@ def test_dqn(device, tmpdir):
 
 
 @pytest.mark.parametrize('device', devices())
+def test_dqn_vectorized(device, tmpdir):
+    np.random.seed(1)
+    torch.manual_seed(1)
+    torch.cuda.manual_seed(1)
+
+    mdp = ChainVecEnv(8, device)
+    epsilon = LinearParameter(1., .1, 20)
+    pi = EpsGreedy(epsilon, backend='torch')
+    approximator_params = dict(network=QNetwork, optimizer={'class': optim.Adam, 'params': {'lr': .001}},
+                               loss=F.smooth_l1_loss, input_shape=(2,), output_shape=(3,), n_actions=3, n_features=2,
+                               n_layers=0)
+    agent = DQN(mdp.info, pi, approximator_params=approximator_params, batch_size=16, initial_replay_size=32,
+                max_replay_size=200, target_update_frequency=10)
+    core = Core(agent, mdp)
+
+    core.learn(n_steps=160, n_steps_per_fit=8)
+    assert agent._n_updates > 0
+    assert np.isclose(epsilon.get_value(), .1)
+
+    for greedy in [False, True]:
+        action = core.evaluate(n_episodes=8, greedy=greedy).action
+        assert action.shape == (80, 1)
+        assert action.min() >= 0 and action.max() < 3
+
+    tu.assert_recorded(agent.approximator.get_weights(), 'test_dqn_vectorized', device)
+    tu.assert_save_load(agent, tmpdir / 'agent.msh', full_save=True)
+
+
+@pytest.mark.parametrize('device', devices())
 def test_dqn_logger(device, tmpdir):
     logger = Logger(f'dqn_logger_{device}', results_dir=tmpdir, use_timestamp=True, force_numpy=True)
 
@@ -116,7 +146,7 @@ def test_dqn_logger(device, tmpdir):
 
     assert loss_file.shape == (81,)
 
-    loss_test = dict(cpu=[0.6862927079200745, 0.6281029582023621], cuda=[0.6408013105392456, 0.3261929154396057])
+    loss_test = dict(cpu=[0.8876506090164185, 0.49032533168792725], cuda=[0.6354612708091736, 0.4743150472640991])
 
     assert np.allclose(loss_file[[0, -1]], loss_test[device], rtol=1e-6, atol=1e-6)
 
@@ -261,7 +291,7 @@ def test_categorical_dqn_prioritized(device):
     tu.assert_recorded(w, 'test_categorical_dqn_prioritized', device)
 
     priorities = agent._replay_memory._sampler._priorities
-    assert len(torch.unique(priorities)) == dict(cpu=494, cuda=495)[device]
+    assert len(torch.unique(priorities)) == dict(cpu=493, cuda=495)[device]
 
 
 @pytest.mark.parametrize('device', devices())
@@ -292,7 +322,7 @@ def test_quantile_dqn_prioritized(device):
     tu.assert_recorded(w, 'test_quantile_dqn_prioritized', device)
 
     priorities = agent._replay_memory._sampler._priorities
-    assert len(torch.unique(priorities)) == dict(cpu=487, cuda=486)[device]
+    assert len(torch.unique(priorities)) == dict(cpu=482, cuda=487)[device]
 
 
 @pytest.mark.parametrize('device', devices())

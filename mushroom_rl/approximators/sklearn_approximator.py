@@ -25,8 +25,9 @@ class SklearnApproximator(Approximator):
         super().__init__(input_shape, output_shape, backend='numpy')
 
         self._model = model_class(**model_params)
+        self._fitted = False
 
-        self._add_save_attr(_model='pickle')
+        self._add_save_attr(_model='pickle', _fitted='primitive')
 
     def fit(self, x, y, **fit_params):
         """
@@ -38,8 +39,7 @@ class SklearnApproximator(Approximator):
             **fit_params: parameters passed to the ``fit`` method of the estimator.
 
         """
-        output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
-        n_targets = int(np.prod(output_shape))
+        n_targets = int(np.prod(self._plain_output_shape))
         target_shape = () if n_targets == 1 else (n_targets,)
 
         x = self._flatten_inputs(np.asarray(x))
@@ -47,6 +47,7 @@ class SklearnApproximator(Approximator):
         y = y.reshape((len(y),) + target_shape)
 
         self._model.fit(x, y, **fit_params)
+        self._fitted = True
 
     def predict(self, x, **predict_params):
         """
@@ -57,26 +58,27 @@ class SklearnApproximator(Approximator):
             **predict_params: parameters passed to the ``predict`` method of the estimator.
 
         Returns:
-            The prediction, or a tuple of predictions when the estimator returns one.
+            The prediction, or a tuple of predictions when the estimator returns one. Before the estimator is
+            fitted, the prediction is zero when ``output_shape`` is a single shape.
 
         Raises:
-            NotFittedError: if the estimator has not been fitted yet.
+            NotFittedError: if the estimator has not been fitted yet and ``output_shape`` is a list of shapes.
 
         """
         x = np.asarray(x)
         single = self._is_single(x)
-        if single:
-            x = x[None]
-        x = self._flatten_inputs(x)
+        x = self._flatten_inputs(x[None] if single else x)
 
-        prediction = self._model.predict(x, **predict_params)
+        if self._fitted or isinstance(self._output_shape, list):
+            prediction = self._model.predict(x, **predict_params)
+        else:
+            prediction = np.zeros((len(x), *self._output_shape))
 
         if isinstance(prediction, tuple):
             prediction = tuple(y.reshape(len(y), *shape)
                                for y, shape in zip(prediction, self._output_shape, strict=True))
         else:
-            output_shape = self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape
-            prediction = prediction.reshape(len(prediction), *output_shape)
+            prediction = prediction.reshape(len(prediction), *self._plain_output_shape)
 
         return self._unbatch(prediction, single)
 
@@ -92,3 +94,7 @@ class SklearnApproximator(Approximator):
     def _flatten_inputs(self, x):
         assert x.shape[1:] == tuple(self._input_shape)
         return x.reshape(len(x), -1)
+
+    @property
+    def _plain_output_shape(self):
+        return self._output_shape[0] if isinstance(self._output_shape, list) else self._output_shape

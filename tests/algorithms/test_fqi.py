@@ -2,33 +2,15 @@ import numpy as np
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.linear_model import LinearRegression
 
+from helper.dummies import FlattenExtraTrees
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.approximators import Approximator
 from mushroom_rl.approximators.sklearn_approximator import SklearnApproximator
 from mushroom_rl.algorithms.value import BoostedFQI, DoubleFQI, FQI
 from mushroom_rl.core import Core
 from mushroom_rl.environments import CarOnHill
 from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import Parameter
-
-
-class FlattenExtraTrees(Approximator):
-    def __init__(self, input_shape, output_shape, **params):
-        super().__init__(input_shape, output_shape)
-        self._models = [ExtraTreesRegressor(**params) for _ in range(output_shape[0])]
-        self.fit_state = None
-
-    def fit(self, x, a, q):
-        self.fit_state = x
-        x = x.reshape(len(x), -1)
-        for i, m in enumerate(self._models):
-            mask = a[:, 0] == i
-            m.fit(x[mask], q[mask])
-
-    def predict(self, x):
-        x = x.reshape(len(x), -1)
-        return np.stack([m.predict(x) for m in self._models], axis=-1)
 
 
 def learn(alg, alg_params):
@@ -68,7 +50,7 @@ def learn(alg, alg_params):
 def test_fqi(tmpdir):
     params = dict(n_iterations=10)
     agent, j = learn(FQI, params)
-    j_test = -0.06763797713952796
+    j_test = -0.036548863256438746
 
     assert j == j_test
 
@@ -92,7 +74,7 @@ def test_fqi_linear(tmpdir):
 def test_fqi_boosted(tmpdir):
     params = dict(n_iterations=10)
     agent, j = learn(BoostedFQI, params)
-    j_test = -0.04487241596542538
+    j_test = -0.034721420093616805
 
     assert j == j_test
 
@@ -102,7 +84,7 @@ def test_fqi_boosted(tmpdir):
 def test_double_fqi(tmpdir):
     params = dict(n_iterations=10)
     agent, j = learn(DoubleFQI, params)
-    j_test = -0.19933233708925654
+    j_test = -0.27805444497588544
 
     assert j == j_test
 

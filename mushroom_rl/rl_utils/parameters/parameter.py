@@ -152,6 +152,9 @@ class Parameter(MushroomBackendObject):
         if self._is_scalar:
             return args
 
+        assert not any(self._is_array(a) and a.ndim > 1 for a in args), \
+            'Parameters indexed by state or state-action support a single point only, not a batch.'
+
         return tuple(ArrayBackend.convert(a, to='numpy') if self._is_array(a) else a for a in args)
 
     def _to_backend(self, array):

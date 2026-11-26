@@ -9,6 +9,10 @@ from mushroom_rl.rl_utils.parameters import Parameter
 
 
 class TDPolicy(Policy):
+    """
+    Base class for the policies built on a Q-function.
+
+    """
     def __init__(self, backend='numpy', device=None):
         """
         Constructor.
@@ -48,19 +52,33 @@ class TDPolicy(Policy):
         """
         return self._approximator
 
-    def _greedy_action(self, state):
+    def draw_action_greedy(self, state):
         """
-        Return the greedy action in ``state``, i.e. the argmax of the Q-function, breaking ties uniformly at random.
+        Return the action maximizing the Q-function in ``state``, or in each row of a batch of states, ties broken
+        uniformly at random.
+
+        Args:
+            state: a single state, or a batch of ``n`` states.
+
+        Returns:
+            The greedy action, of shape ``(1,)``, or the greedy actions, of shape ``(n, 1)``.
 
         """
         with torch.no_grad():
             q = self._approximator.predict(state, **self._predict_params)
-        max_a = self._backend.nonzero(q == q.max())
 
-        if len(max_a) > 1:
-            max_a = max_a[self._backend.randint(0, len(max_a), (1,), device=self._device)]
+        return self._sample_greedy(q)
 
-        return max_a
+    def _sample_greedy(self, q):
+        """
+        Returns:
+            The action maximizing each row of ``q``, ties broken uniformly at random: shape ``(1,)`` for a single
+            state, ``(n, 1)`` for a batch of ``n`` states.
+
+        """
+        greedy = q == self._backend.expand_dims(self._backend.max(q, dim=-1), -1)
+
+        return self._backend.multinomial(greedy / self._backend.expand_dims(self._backend.sum(greedy, dim=-1), -1))
 
 
 class EpsGreedy(TDPolicy):
@@ -88,33 +106,58 @@ class EpsGreedy(TDPolicy):
         self._add_logger_attr(_epsilon='epsilon', group='policy')
 
     def __call__(self, *args):
+        """
+        Compute the probabilities of the actions in a state, or in each row of a batch of states.
+
+        Args:
+            *args: the state, of shape ``(n_state,)``, or the batch of ``n`` states, of shape ``(n, n_state)``;
+                optionally followed by the action, of shape ``(1,)``, or the actions, of shape ``(n, 1)``.
+
+        Returns:
+            Without an action, the probabilities of all actions: shape ``(n_actions,)`` for a single state,
+            ``(n, n_actions)`` for a batch. With an action, the probability of that action, of shape ``()``, for a
+            single state, the probability of each row's action, of shape ``(n,)``, for a batch.
+
+        """
         state = args[0]
         with torch.no_grad():
-            q = self._approximator.predict(self._backend.expand_dims(state, 0), **self._predict_params).ravel()
-        max_a = self._backend.nonzero(q == q.max())
+            q = self._approximator.predict(state, **self._predict_params)
 
-        p = self._epsilon.get_value(state) / self._n_actions
+        greedy = q == self._backend.expand_dims(self._backend.max(q, dim=-1), -1)
+        n_greedy = self._backend.expand_dims(self._backend.sum(greedy, dim=-1), -1)
+        epsilon = self._epsilon.get_value(state)
+        probs = epsilon / self._n_actions + greedy * (1. - epsilon) / n_greedy
 
         if len(args) == 2:
             action = args[1]
-            if action in max_a:
-                return p + (1. - self._epsilon.get_value(state)) / len(max_a)
+            if probs.ndim == 1:
+                return probs[action][0]
             else:
-                return p
-        else:
-            probs = self._backend.ones(self._n_actions, device=self._device) * p
-            probs[max_a] += (1. - self._epsilon.get_value(state)) / len(max_a)
+                return probs[self._backend.arange(0, len(probs), device=self._device), action[:, 0]]
 
-            return probs
+        return probs
 
     def draw_action(self, state):
-        if not self._backend.rand(device=self._device) < self._epsilon(state):
-            return self._greedy_action(state)
+        """
+        Sample an action in ``state``, or one action per row of a batch of states. The exploration coefficient is
+        updated once per call, whatever the number of states.
 
-        return self._backend.randint(0, self._n_actions, (1,), device=self._device)
+        Args:
+            state: a single state, or a batch of ``n`` states.
 
-    def draw_action_greedy(self, state):
-        return self._greedy_action(state)
+        Returns:
+            The sampled action, of shape ``(1,)``, or the sampled actions, of shape ``(n, 1)``.
+
+        """
+        with torch.no_grad():
+            q = self._approximator.predict(state, **self._predict_params)
+        epsilon = self._epsilon(state)
+
+        greedy = self._sample_greedy(q)
+        explore = self._backend.rand(*greedy.shape, device=self._device) < epsilon
+        random = self._backend.randint(0, self._n_actions, greedy.shape, device=self._device)
+
+        return self._backend.where(explore, random, greedy)
 
     def set_epsilon(self, epsilon):
         """
@@ -165,27 +208,52 @@ class Boltzmann(TDPolicy):
         self._add_logger_attr(_beta='beta', group='policy')
 
     def __call__(self, *args):
+        """
+        Compute the probabilities of the actions in a state, or in each row of a batch of states.
+
+        Args:
+            *args: the state, of shape ``(n_state,)``, or the batch of ``n`` states, of shape ``(n, n_state)``;
+                optionally followed by the action, of shape ``(1,)``, or the actions, of shape ``(n, 1)``.
+
+        Returns:
+            Without an action, the probabilities of all actions: shape ``(n_actions,)`` for a single state,
+            ``(n, n_actions)`` for a batch. With an action, the probability of that action, of shape ``()``, for a
+            single state, the probability of each row's action, of shape ``(n,)``, for a batch.
+
+        """
         state = args[0]
         with torch.no_grad():
             q = self._approximator.predict(state, **self._predict_params)
+
         q_beta = q * self._beta.get_value(state)
-        q_beta -= q_beta.max()
+        q_beta -= self._backend.expand_dims(self._backend.max(q_beta, dim=-1), -1)
         qs = self._backend.exp(q_beta)
+        probs = qs / self._backend.expand_dims(self._backend.sum(qs, dim=-1), -1)
 
         if len(args) == 2:
             action = args[1]
+            if probs.ndim == 1:
+                return probs[action][0]
+            else:
+                return probs[self._backend.arange(0, len(probs), device=self._device), action[:, 0]]
 
-            return qs[action] / qs.sum()
-        else:
-            return qs / qs.sum()
+        return probs
 
     def draw_action(self, state):
+        """
+        Sample an action in ``state``, or one action per row of a batch of states. The inverse temperature is
+        updated once per call, whatever the number of states.
+
+        Args:
+            state: a single state, or a batch of ``n`` states.
+
+        Returns:
+            The sampled action, of shape ``(1,)``, or the sampled actions, of shape ``(n, 1)``.
+
+        """
         self._beta.update(state)
 
         return self._backend.multinomial(self(state))
-
-    def draw_action_greedy(self, state):
-        return self._greedy_action(state)
 
     def set_beta(self, beta):
         """
@@ -210,58 +278,13 @@ class Boltzmann(TDPolicy):
         self._beta.update(*args)
 
 
-class Mellowmax(Boltzmann):
+class Mellowmax(TDPolicy):
     """
     Mellowmax policy.
     "An Alternative Softmax Operator for Reinforcement Learning". Asadi K. and
     Littman M.L. 2017.
 
     """
-    class MellowmaxParameter(Parameter):
-        def __init__(self, outer, omega, beta_min, beta_max, backend='numpy', device=None):
-            super().__init__(0., backend=backend, device=device)
-
-            self._omega = Parameter.make(omega, backend=backend, device=device)
-            self._outer = outer
-            self._beta_min = beta_min
-            self._beta_max = beta_max
-
-            self._add_save_attr(
-                _omega='primitive',
-                _outer='primitive',
-                _beta_min='primitive',
-                _beta_max='primitive',
-            )
-
-        def update(self, *args, **kwargs):
-            self._omega.update(*args, **kwargs)
-
-            super().update(*args, **kwargs)
-
-        def _compute(self, *args, **kwargs):
-            state = args[0]
-            omega = self._omega.get_value(state)
-
-            with torch.no_grad():
-                q = self._outer._approximator.predict(state, **self._outer._predict_params)
-            q = ArrayBackend.convert(q, to='numpy')
-            mm = (logsumexp(q * omega) - np.log(q.size)) / omega
-
-            def f(beta):
-                v = q - mm
-                beta_v = beta * v
-                beta_v -= beta_v.max()
-
-                return np.sum(np.exp(beta_v) * v)
-
-            try:
-                beta = brentq(f, a=self._beta_min, b=self._beta_max)
-                assert not (np.isnan(beta) or np.isinf(beta))
-
-                return beta
-            except ValueError:
-                return self._beta_max if f(self._beta_max) < 0. else self._beta_min
-
     def __init__(self, omega, beta_min=0., beta_max=10., backend='numpy', device=None):
         """
         Constructor.
@@ -283,12 +306,91 @@ class Mellowmax(Boltzmann):
             device (str, None): device the policy is stored on, or ``None`` for the default one.
 
         """
-        beta_mellow = self.MellowmaxParameter(self, omega, beta_min, beta_max, backend, device)
+        super().__init__(backend, device)
 
-        super().__init__(beta_mellow, backend, device)
+        self._omega = Parameter.make(omega, backend=backend, device=self._device)
+        self._beta_min = beta_min
+        self._beta_max = beta_max
 
-    def set_beta(self, beta):
-        raise RuntimeError('Cannot change the beta parameter of Mellowmax policy')
+        self._add_save_attr(_omega='mushroom', _beta_min='primitive', _beta_max='primitive')
 
-    def update(self, *args):
-        raise RuntimeError('Cannot update the beta parameter of Mellowmax policy')
+    def __call__(self, *args):
+        """
+        Compute the probabilities of the actions in a state, or in each row of a batch of states.
+
+        Args:
+            *args: the state, of shape ``(n_state,)``, or the batch of ``n`` states, of shape ``(n, n_state)``;
+                optionally followed by the action, of shape ``(1,)``, or the actions, of shape ``(n, 1)``.
+
+        Returns:
+            Without an action, the probabilities of all actions: shape ``(n_actions,)`` for a single state,
+            ``(n, n_actions)`` for a batch. With an action, the probability of that action, of shape ``()``, for a
+            single state, the probability of each row's action, of shape ``(n,)``, for a batch.
+
+        """
+        state = args[0]
+        with torch.no_grad():
+            q = self._approximator.predict(state, **self._predict_params)
+        q_numpy = ArrayBackend.convert(q, to='numpy')
+        omega = self._omega.get_value(state)
+
+        if q.ndim == 1:
+            beta = self._find_beta(q_numpy, omega)
+        else:
+            beta = ArrayBackend.convert(np.array([self._find_beta(q_i, omega) for q_i in q_numpy]),
+                                        to=self.backend_name, device=self._device)
+            beta = self._backend.expand_dims(beta, -1)
+
+        q_beta = q * beta
+        q_beta -= self._backend.expand_dims(self._backend.max(q_beta, dim=-1), -1)
+        qs = self._backend.exp(q_beta)
+        probs = qs / self._backend.expand_dims(self._backend.sum(qs, dim=-1), -1)
+
+        if len(args) == 2:
+            action = args[1]
+            if probs.ndim == 1:
+                return probs[action][0]
+            else:
+                return probs[self._backend.arange(0, len(probs), device=self._device), action[:, 0]]
+
+        return probs
+
+    def draw_action(self, state):
+        """
+        Sample an action in ``state``, or one action per row of a batch of states. The omega parameter is updated
+        once per call, whatever the number of states.
+
+        Args:
+            state: a single state, or a batch of ``n`` states.
+
+        Returns:
+            The sampled action, of shape ``(1,)``, or the sampled actions, of shape ``(n, 1)``.
+
+        """
+        self._omega.update(state)
+
+        return self._backend.multinomial(self(state))
+
+    def _find_beta(self, q, omega):
+        """
+        Returns:
+            The inverse temperature of the Boltzmann policy matching the mellowmax of the Q-values ``q`` of a
+            single state.
+
+        """
+        mm = (logsumexp(q * omega) - np.log(q.size)) / omega
+
+        def f(beta):
+            v = q - mm
+            beta_v = beta * v
+            beta_v -= beta_v.max()
+
+            return np.sum(np.exp(beta_v) * v)
+
+        try:
+            beta = brentq(f, a=self._beta_min, b=self._beta_max)
+            assert not (np.isnan(beta) or np.isinf(beta))
+
+            return beta
+        except ValueError:
+            return self._beta_max if f(self._beta_max) < 0. else self._beta_min

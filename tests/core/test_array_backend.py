@@ -264,6 +264,8 @@ def test_random(backend, device):
     assert_equal(ops.randint(0, 5, (10,), device=device), randint)
     assert_equal(ops.multinomial(probabilities), multinomial)
     assert_equal(ops.uniform(2.0, 4.0, device=device), uniform)
+    assert_equal(ops.multinomial(make_array(backend, [[1., 0., 0.], [0., 0., 1.], [0., 1., 0.]], device)),
+                 [[0], [2], [1]])
     assert ListBackend.multinomial(np.array([1.0, 0.0, 0.0])) == 0
 
 

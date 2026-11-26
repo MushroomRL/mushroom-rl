@@ -4,6 +4,10 @@ import numpy as np
 
 import pytest
 
+from helper.arrays import assert_backend, assert_equal, make_array, to_numpy
+from helper.cases import backend_devices
+from helper.dummies import FixedQ
+
 from mushroom_rl.policy.td_policy import EpsGreedy, Boltzmann, Mellowmax
 from mushroom_rl.approximators.table import Table
 from mushroom_rl.approximators import QApproximator
@@ -203,26 +207,6 @@ def test_mellowmax():
     a_test = 1
     assert a.item() == a_test
 
-    with pytest.raises(RuntimeError):
-        beta = Parameter(0.1)
-        pi.set_beta(beta)
-
-    with pytest.raises(RuntimeError):
-        pi.update(s, a)
-
-    np.random.seed(42)
-    pi = Mellowmax(Parameter(3))
-
-    Q = Table((10, 3))
-    Q.table = np.random.randn(10, 3)
-
-    pi.set_q(Q)
-
-    s = np.array([2])
-
-    assert np.allclose(pi._beta.get_value(s), 1.1733686853432355)
-    assert np.allclose(pi._beta(s), 1.1733686853432355)
-
     pi = Mellowmax(Parameter(2.5))
 
     Q = Table((1, 4))
@@ -231,8 +215,6 @@ def test_mellowmax():
     pi.set_q(Q)
 
     s = np.array([0])
-
-    assert pi._beta.get_value(s) == 10.
 
     p_s = pi(s)
     p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
@@ -248,8 +230,6 @@ def test_mellowmax():
 
     s = np.array([2])
 
-    assert pi._beta.get_value(s) == 1.
-
     p_s = pi(s)
     p_s_test = np.array([0.63573931, 0.28231134, 0.08194935])
     assert np.allclose(p_s, p_s_test)
@@ -262,8 +242,73 @@ def test_mellowmax():
 
     s = np.array([0])
 
-    assert pi._beta.get_value(s) == 0.
-
     p_s = pi(s)
     p_s_test = np.array([0.25, 0.25, 0.25, 0.25])
     assert np.allclose(p_s, p_s_test)
+
+
+@pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))
+def test_td_policy_batch(backend, device):
+    np.random.seed(1)
+    torch.manual_seed(1)
+    kw = dict(backend=backend) if backend == 'numpy' else dict(backend=backend, device=device)
+    case = device or backend
+    q = make_array(backend, [[1., 3., 2.], [4., 4., 0.], [0., 0., 0.], [-1., 2., -3.]], device)
+    state = make_array(backend, [[0], [1], [2], [3]], device)
+    action = make_array(backend, [[1], [0], [2], [0]], device)
+
+    eps = EpsGreedy(Parameter(.5), **kw)
+    eps.set_q(FixedQ(q))
+
+    greedy = dict(numpy=[[1, 1, 0, 1], [1, 0, 0, 1], [1, 1, 1, 1]], cpu=[[1, 0, 0, 1], [1, 0, 0, 1], [1, 1, 0, 1]],
+                  cuda=[[1, 1, 2, 1], [1, 1, 2, 1], [1, 0, 2, 1]])[case]
+    for expected in greedy:
+        a = eps.draw_action_greedy(state)
+        assert_backend(a, backend, device)
+        assert a.shape == (4, 1)
+        assert_equal(a[:, 0], expected)
+
+    draws = dict(numpy=[[1, 1, 1, 1], [2, 1, 2, 1], [1, 2, 0, 1]], cpu=[[1, 1, 0, 1], [1, 0, 1, 1], [2, 1, 0, 1]],
+                 cuda=[[0, 0, 1, 1], [0, 2, 1, 2], [2, 0, 1, 2]])[case]
+    for expected in draws:
+        assert_equal(eps.draw_action(state)[:, 0], expected)
+
+    probs = eps(state)
+    assert probs.shape == (4, 3)
+    assert np.allclose(to_numpy(probs), [[1 / 6, 2 / 3, 1 / 6], [5 / 12, 5 / 12, 1 / 6], [1 / 3] * 3,
+                                         [1 / 6, 2 / 3, 1 / 6]])
+    assert np.allclose(to_numpy(eps(state, action)), [2 / 3, 5 / 12, 1 / 3, 1 / 6])
+    for i in range(4):
+        assert_equal(eps(state, action)[i], eps(state[i], action[i]))
+    assert eps(state[0], action[0]).shape == ()
+    assert eps.draw_action(state[:1]).shape == (1, 1)
+
+    np.random.seed(2)
+    torch.manual_seed(2)
+    boltzmann = Boltzmann(Parameter(1.), **kw)
+    boltzmann.set_q(FixedQ(q))
+
+    draws = dict(numpy=[[1, 0, 1, 1], [1, 0, 0, 1], [1, 0, 1, 1]], cpu=[[1, 0, 0, 1], [1, 0, 1, 1], [1, 0, 0, 1]],
+                 cuda=[[1, 0, 2, 1], [1, 0, 0, 1], [2, 0, 2, 1]])[case]
+    for expected in draws:
+        assert_equal(boltzmann.draw_action(state)[:, 0], expected)
+
+    probs = boltzmann(state)
+    for i in range(4):
+        assert_equal(probs[i], boltzmann(state[i]))
+        assert_equal(boltzmann(state, action)[i], boltzmann(state[i], action[i]))
+    assert boltzmann(state[0], action[0]).shape == ()
+
+    np.random.seed(3)
+    torch.manual_seed(3)
+    mellowmax = Mellowmax(Parameter(1.), **kw)
+    mellowmax.set_q(FixedQ(q))
+
+    draws = dict(numpy=[[1, 1, 0, 1], [2, 1, 0, 1], [0, 0, 0, 1]], cpu=[[0, 0, 0, 1], [1, 0, 1, 1], [1, 1, 2, 1]],
+                 cuda=[[0, 1, 0, 1], [1, 1, 1, 2], [2, 2, 2, 1]])[case]
+    for expected in draws:
+        assert_equal(mellowmax.draw_action(state)[:, 0], expected)
+
+    probs = mellowmax(state)
+    for i in range(4):
+        assert_equal(probs[i], mellowmax(state[i]))

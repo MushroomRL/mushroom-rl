@@ -306,3 +306,8 @@ def test_torch_index():
 
     assert np.isclose(float(np.ravel(p.get_value(torch.tensor([1])))[0]), 0.8)
     assert np.isclose(float(np.ravel(p.get_value(torch.tensor([0])))[0]), 1.0)
+
+    with pytest.raises(AssertionError):
+        p.get_value(torch.tensor([[1], [2]]))
+    with pytest.raises(AssertionError):
+        DecayParameter(1., shape=(3,)).update(np.array([[0], [2]]))

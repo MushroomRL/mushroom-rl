@@ -41,7 +41,7 @@ def test_dataset():
     assert np.allclose(J, J_test)
 
     L = dataset.episodes_length
-    L_test = np.array([7, 7, 5, 36, 18, 11, 22, 10, 19, 55])
+    L_test = np.array([15, 42, 49, 5, 6, 77, 51, 13, 65, 94])
     assert np.array_equal(L, L_test)
 
     dataset_ep = dataset.select_first_episodes(3)
@@ -53,11 +53,11 @@ def test_dataset():
 
     samples = dataset.select_random_samples(2)
     s, a, r, ss, ab, last = samples.parse()
-    s_test = np.array([[1.], [2.]])
-    a_test = np.array([[0.], [3.]])
-    r_test = np.zeros(2)
-    ss_test = np.array([[1], [2]])
-    ab_test = np.zeros(2)
+    s_test = np.array([[5.], [2.]])
+    a_test = np.array([[1.], [1.]])
+    r_test = np.array([10., 0.])
+    ss_test = np.array([[8], [5]])
+    ab_test = np.array([1., 0.])
     last_test = np.ones(2)
     assert np.array_equal(s, s_test)
     assert np.array_equal(a, a_test)
@@ -72,10 +72,10 @@ def test_dataset():
 
     index = np.sum(L_test[:3]) + L_test[3]//2
     metrics = dataset[:index].compute_metrics(mdp.info.gamma)
-    assert metrics['min_J'] == 5.3144100000000005
-    assert metrics['max_J'] == 6.561
-    assert metrics['mean_J'] == 5.72994
-    assert metrics['median_J'] == 5.3144100000000005
+    assert metrics['min_J'] == 0.0636268544113595
+    assert metrics['max_J'] == 2.287679245496101
+    assert metrics['mean_J'] == 0.8281113487934574
+    assert metrics['median_J'] == 0.13302794647291147
     assert metrics['n_episodes'] == 3
 
 
