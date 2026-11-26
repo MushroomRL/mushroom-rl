@@ -14,11 +14,13 @@ from mushroom_rl.approximators.parametric.networks import (
     CriticNetwork,
     AtariNetwork,
     AtariFeatureNetwork,
+    AtariNoisyFeatureNetwork,
     RecurrentNetwork,
     RecurrentActorNetwork,
     RecurrentCriticNetwork,
     CategoricalNetwork,
     DuelingNetwork,
+    NoisyLinear,
     NoisyNetwork,
     QuantileNetwork,
     RainbowNetwork,
@@ -169,6 +171,12 @@ def test_atari():
     assert out.shape == (2, 512)
     assert np.allclose(out[0, :3], expected_first3, atol=1e-5)
 
+    net = NoisyNetwork((4, 84, 84), (6,), AtariNoisyFeatureNetwork, n_features=512, sigma_coeff=.3)
+    assert [name for name, _ in net._phi._h4.named_parameters()] == ['mu_weight', 'sigma_weight', 'mu_bias',
+                                                                     'sigma_bias']
+    assert torch.allclose(net._phi._h4.sigma_weight, torch.tensor(.3 / 3136 ** .5))
+    assert net(x).shape == (2, 6)
+
 
 def test_recurrent():
     torch.manual_seed(42)
@@ -315,7 +323,7 @@ def test_noisy():
     action = torch.tensor([[1], [0], [1]])
     torch.manual_seed(7)
     out = net(_make_input(), action=action).detach().numpy()
-    expected = np.array([0.02239636, -0.6771615, -0.19845623], dtype=np.float32)
+    expected = np.array([0.4390437, -0.9408721, 0.2837267], dtype=np.float32)
     assert out.shape == (3,)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -323,14 +331,14 @@ def test_noisy():
     torch.manual_seed(7)
     assert np.array_equal(copied(_make_input(), action=action).detach().numpy(), out)
 
-    nl = NoisyNetwork.NoisyLinear(8, 4)
+    nl = NoisyLinear(8, 4)
     assert nl.mu_weight.shape == (4, 8)
     assert nl.sigma_weight.shape == (4, 8)
     assert nl.mu_bias.shape == (4,)
     assert nl.sigma_bias.shape == (4,)
     assert repr(nl) == 'NoisyLinear(in_features=8, out_features=4, bias=True)'
 
-    nl = NoisyNetwork.NoisyLinear(8, 4, bias=False)
+    nl = NoisyLinear(8, 4, bias=False)
     assert repr(nl) == 'NoisyLinear(in_features=8, out_features=4, bias=False)'
     assert [name for name, _ in nl.named_parameters()] == ['mu_weight', 'sigma_weight']
     assert nl(torch.ones(2, 8)).shape == (2, 4)
@@ -382,7 +390,7 @@ def test_rainbow():
     action = torch.tensor([[1], [0], [1]])
     torch.manual_seed(7)
     out = net(_make_input(), action=action).detach().numpy()
-    expected = np.array([0.15971707, 0.29433823, 0.26661745], dtype=np.float32)
+    expected = np.array([0.15177864, 0.33118606, 0.27721813], dtype=np.float32)
     assert out.shape == (3,)
     assert np.allclose(out, expected, atol=1e-6)
 
@@ -503,6 +511,7 @@ def _network_factories():
         'critic': lambda: CriticNetwork([(4,), (2,)], (), n_features=8),
         'atari': lambda: AtariNetwork(image, (3,), n_features=16),
         'atari_features': lambda: AtariFeatureNetwork(image, (16,)),
+        'atari_noisy_features': lambda: AtariNoisyFeatureNetwork(image, (16,)),
         'dueling': lambda: DuelingNetwork((4,), (3,), avg_advantage=True, **features),
         'categorical': lambda: CategoricalNetwork((4,), (3,), n_atoms=5, v_min=-1, v_max=1, **features),
         'quantile': lambda: QuantileNetwork((4,), (3,), n_quantiles=4, **features),

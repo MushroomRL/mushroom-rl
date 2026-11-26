@@ -17,7 +17,7 @@ from mushroom_rl.policy import EpsGreedy
 from mushroom_rl.rl_utils.parameters import LinearParameter, Parameter
 from mushroom_rl.rl_utils.replay_memory import PrioritizedReplayMemory
 from mushroom_rl.utils.torch_utils import TorchUtils
-from mushroom_rl.approximators.parametric.networks import AtariNetwork, AtariFeatureNetwork
+from mushroom_rl.approximators.parametric.networks import AtariNetwork, AtariFeatureNetwork, AtariNoisyFeatureNetwork
 from mushroom_rl.utils.experiments import get_log_dir, select_class
 
 
@@ -164,8 +164,15 @@ def build_approximator_params(alg, args, mdp):
     distributional_algorithms = [CategoricalDQN, QuantileDQN, Rainbow]
     ensemble_algorithms = [AveragedDQN, MaxminDQN]
 
+    if alg in [NoisyDQN, Rainbow]:
+        network = AtariNoisyFeatureNetwork
+    elif alg in feature_algorithms:
+        network = AtariFeatureNetwork
+    else:
+        network = AtariNetwork
+
     approximator_params = dict(
-        network=AtariFeatureNetwork if alg in feature_algorithms else AtariNetwork,
+        network=network,
         input_shape=(args.history_length,) + mdp.info.observation_space.shape,
         output_shape=(mdp.info.action_space.n,),
         n_actions=mdp.info.action_space.n,

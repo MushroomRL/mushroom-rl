@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
+from mushroom_rl.approximators.parametric.networks.noisy_linear import NoisyLinear
 from mushroom_rl.utils.torch_utils import TorchUtils
 
 
@@ -72,7 +73,7 @@ class AtariFeatureNetwork(MushroomNetwork):
 
         conv_out_size = TorchUtils.compute_flat_output_size(nn.Sequential(self._h1, self._h2, self._h3),
                                                             input_shape)
-        self._h4 = nn.Linear(conv_out_size, n_output)
+        self._h4 = self._build_hidden_layer(conv_out_size, n_output, **kwargs)
 
         self._init_weights()
 
@@ -87,3 +88,34 @@ class AtariFeatureNetwork(MushroomNetwork):
         nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('relu'))
         nn.init.xavier_uniform_(self._h4.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, **kwargs):
+        return nn.Linear(in_features, out_features)
+
+
+class AtariNoisyFeatureNetwork(AtariFeatureNetwork):
+    """
+    Convolutional feature extractor for Atari, with the same body as ``AtariFeatureNetwork`` but a factorized noisy
+    linear layer as fully connected layer.
+
+    """
+    def __init__(self, input_shape, output_shape, sigma_coeff=.5, **kwargs):
+        """
+        Constructor.
+
+        Args:
+            input_shape (tuple): shape of the input image (channels, height, width);
+            output_shape (tuple): shape of the output (the feature size);
+            sigma_coeff (float, .5): scaling coefficient for the initial noise standard deviation;
+            **kwargs: other parameters (unused).
+
+        """
+        super().__init__(input_shape, output_shape, sigma_coeff=sigma_coeff, **kwargs)
+
+    def _init_weights(self):
+        nn.init.xavier_uniform_(self._h1.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h2.weight, gain=nn.init.calculate_gain('relu'))
+        nn.init.xavier_uniform_(self._h3.weight, gain=nn.init.calculate_gain('relu'))
+
+    def _build_hidden_layer(self, in_features, out_features, sigma_coeff, **kwargs):
+        return NoisyLinear(in_features, out_features, sigma_coeff)

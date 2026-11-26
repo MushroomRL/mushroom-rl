@@ -6,6 +6,8 @@ a distribution over returns, a set of quantiles — and therefore come paired wi
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.dueling_network
 
+.. automodule:: mushroom_rl.approximators.parametric.networks.noisy_linear
+
 .. automodule:: mushroom_rl.approximators.parametric.networks.noisy_network
 
 .. automodule:: mushroom_rl.approximators.parametric.networks.categorical_network

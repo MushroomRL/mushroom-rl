@@ -1,9 +1,5 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.parameter import Parameter
-
 from mushroom_rl.approximators.parametric.networks.mushroom_network import MushroomNetwork
+from mushroom_rl.approximators.parametric.networks.noisy_linear import NoisyLinear
 
 
 class NoisyNetwork(MushroomNetwork):
@@ -12,75 +8,6 @@ class NoisyNetwork(MushroomNetwork):
     state-dependent exploration.
 
     """
-    class NoisyLinear(nn.Module):
-        """
-        Factorized noisy linear layer, adding learnable Gaussian noise to the weights and biases as described
-        in "Noisy Networks for Exploration" by Fortunato et al.
-
-        """
-        __constants__ = ['in_features', 'out_features']
-
-        def __init__(self, in_features, out_features, sigma_coeff=.5, bias=True):
-            """
-            Constructor.
-
-            Args:
-                in_features (int): size of each input sample;
-                out_features (int): size of each output sample;
-                sigma_coeff (float, .5): scaling coefficient for the initial noise standard deviation;
-                bias (bool, True): whether to add a learnable (noisy) bias term.
-
-            """
-            super().__init__()
-            self.in_features = in_features
-            self.out_features = out_features
-            self.mu_weight = Parameter(torch.Tensor(out_features, in_features))
-            self.sigma_weight = Parameter(torch.Tensor(out_features, in_features))
-            if bias:
-                self.mu_bias = Parameter(torch.Tensor(out_features))
-                self.sigma_bias = Parameter(torch.Tensor(out_features))
-            else:
-                self.register_parameter('mu_bias', None)
-                self.register_parameter('sigma_bias', None)
-            self._sigma_coeff = sigma_coeff
-
-            self.reset_parameters()
-
-        def reset_parameters(self):
-            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.mu_weight)
-            fan_in **= .5
-            bound_weight = 1 / fan_in
-            bound_sigma = self._sigma_coeff / fan_in
-
-            nn.init.uniform_(self.mu_weight, -bound_weight, bound_weight)
-            nn.init.constant_(self.sigma_weight, bound_sigma)
-            if self.mu_bias is not None:
-                nn.init.uniform_(self.mu_bias, -bound_weight, bound_weight)
-                nn.init.constant_(self.sigma_bias, bound_sigma)
-
-        def forward(self, input):
-            eps_output = torch.rand(self.mu_weight.shape[0], 1, device=self.mu_weight.device)
-            eps_input = torch.rand(1, self.mu_weight.shape[1], device=self.mu_weight.device)
-
-            eps_dot = torch.matmul(self._noise(eps_output), self._noise(eps_input))
-            weight = self.mu_weight + self.sigma_weight * eps_dot
-
-            if self.mu_bias is not None:
-                bias = self.mu_bias + self.sigma_bias * self._noise(eps_output[:, 0])
-            else:
-                bias = None
-
-            return F.linear(input, weight, bias)
-
-        @staticmethod
-        def _noise(x):
-            return torch.sign(x) * torch.sqrt(torch.abs(x))
-
-        def extra_repr(self):
-            return 'in_features={}, out_features={}, bias={}'.format(
-                self.in_features, self.out_features, self.mu_bias is not None
-            )
-
     def __init__(self, input_shape, output_shape, features_network, n_features, sigma_coeff=.5, **kwargs):
         """
         Constructor.
@@ -90,17 +17,18 @@ class NoisyNetwork(MushroomNetwork):
             output_shape (tuple): shape of the output (the number of actions);
             features_network (nn.Module): the network used to compute the features;
             n_features (int): number of features extracted by the features network;
-            sigma_coeff (float, .5): scaling coefficient for the initial noise standard deviation;
+            sigma_coeff (float, .5): scaling coefficient for the initial noise standard deviation, also forwarded to
+                the features network;
             **kwargs: parameters forwarded to the features network.
 
         """
         super().__init__()
 
         self._n_output = output_shape[0]
-        self._phi = features_network(input_shape, (n_features,),
-                                     n_features=n_features, **kwargs)
+        self._phi = features_network(input_shape, (n_features,), n_features=n_features, sigma_coeff=sigma_coeff,
+                                     **kwargs)
 
-        self._Q = self.NoisyLinear(n_features, self._n_output, sigma_coeff)
+        self._Q = NoisyLinear(n_features, self._n_output, sigma_coeff)
 
     def forward(self, state, action=None, **kwargs):
         features = self._phi(state)
