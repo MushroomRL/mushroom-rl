@@ -1,5 +1,7 @@
 import numpy as np
+import pytest
 import torch
+from helper.dummies import CountingVecEnv
 from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms.actor_critic import StochasticAC, StochasticAC_AVG
@@ -70,6 +72,14 @@ def test_stochastic_ac(tmpdir):
     assert np.allclose(w, w_test)
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
+
+    env = CountingVecEnv(n_envs=2, horizon=5)
+    mu = LinearApproximator(input_shape=(3,), output_shape=(1,))
+    std = LinearApproximator(input_shape=(3,), output_shape=(1,))
+    agent = StochasticAC(env.info, StateLogStdGaussianPolicy(mu, std), .1, .1)
+
+    with pytest.raises(AssertionError):
+        Core(agent, env).learn(n_steps=4, n_steps_per_fit=2, quiet=True)
 
 
 def test_stochastic_ac_avg(tmpdir):

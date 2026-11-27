@@ -1,8 +1,9 @@
 import numpy as np
+import pytest
 
 from helper.dummies import FakeLogger
 
-from mushroom_rl.policy.gaussian_policy import (GaussianPolicy, DiagonalGaussianPolicy,
+from mushroom_rl.policy.gaussian_policy import (AbstractDiagonalGaussianPolicy, GaussianPolicy, DiagonalGaussianPolicy,
                                                 StateStdGaussianPolicy, StateLogStdGaussianPolicy)
 from mushroom_rl.approximators.parametric import LinearApproximator
 from mushroom_rl.rl_utils.parameters import LinearParameter
@@ -242,3 +243,26 @@ def test_location():
                StateLogStdGaussianPolicy(mu, std)]:
         assert np.array_equal(pi.location(state), mu(state))
         assert np.array_equal(pi.draw_action_greedy(state), pi.location(state))
+
+    with pytest.raises(NotImplementedError):
+        AbstractDiagonalGaussianPolicy(mu)._variance(state)
+
+
+def test_batch():
+    np.random.seed(42)
+    mu = LinearApproximator(input_shape=(5,), output_shape=(2,))
+    mu.set_weights(np.random.rand(mu.weights_size))
+    std = LinearApproximator(input_shape=(5,), output_shape=(2,))
+    std.set_weights(np.random.rand(std.weights_size))
+    states = np.random.randn(4, 5)
+
+    for pi in [GaussianPolicy(mu, np.eye(2)), DiagonalGaussianPolicy(mu, np.ones(2)), StateStdGaussianPolicy(mu, std),
+               StateLogStdGaussianPolicy(mu, std)]:
+        np.random.seed(1)
+        actions = pi.draw_action(states)
+        np.random.seed(1)
+        single_actions = np.array([pi.draw_action(state) for state in states])
+
+        assert actions.shape == (4, 2)
+        assert np.allclose(actions, single_actions)
+        assert np.array_equal(pi.draw_action_greedy(states), mu(states))

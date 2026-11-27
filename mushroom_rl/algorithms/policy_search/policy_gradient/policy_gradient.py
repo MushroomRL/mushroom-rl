@@ -1,6 +1,7 @@
 import numpy as np
 
 from mushroom_rl.core import Agent
+from mushroom_rl.utils.episodes import split_episodes
 
 
 class PolicyGradient(Agent):
@@ -20,121 +21,47 @@ class PolicyGradient(Agent):
 
         """
         self.optimizer = optimizer
-        self.df = 1
-        self.J_episode = 0
 
-        self._add_save_attr(
-            optimizer='mushroom',
-            df='numpy',
-            J_episode='numpy'
-        )
+        self._add_save_attr(optimizer='mushroom')
 
         super().__init__(mdp_info, policy)
 
     def fit(self, dataset):
-        J = list()
-        self.df = 1.
-        self.J_episode = 0.
-        self._init_update()
-        for sample in dataset:
-            x, u, r, xn, _, last = self._parse(sample)
-            self._step_update(x, u, r)
-            self.J_episode += self.df * r
-            self.df *= self.mdp_info.gamma
-
-            if last:
-                self._episode_end_update()
-                J.append(self.J_episode)
-                self.J_episode = 0.
-                self.df = 1.
-                self._init_update()
-
+        J = dataset.compute_J(self.mdp_info.gamma)
         assert len(J) > 1, "More than one episode is needed to compute the gradient"
 
-        self._update_parameters(J)
+        grad = self._compute_gradient(dataset)
+        self.policy.set_weights(self.optimizer(self.policy.get_weights(), grad))
 
         if self._logger:
             self._logger.log_training(J=np.mean(J).item())
             self._logger.advance_step()
 
-    def _update_parameters(self, J):
+    def _compute_gradient(self, dataset):
         """
-        Update the parameters of the policy.
+        Compute the gradient of the expected return w.r.t. the policy weights.
 
         Args:
-             J (list): list of the cumulative discounted rewards for each
-                episode in the dataset.
-
-        """
-        grad = self._compute_gradient(J)
-
-        theta_old = self.policy.get_weights()
-
-        theta_new = self.optimizer(theta_old, grad)
-
-        self.policy.set_weights(theta_new)
-
-    def _init_update(self):
-        """
-        This function is called, when parsing the dataset, at the beginning
-        of each episode. The implementation is dependent on the algorithm (e.g.
-        REINFORCE resets some data structure).
-
-        """
-        raise NotImplementedError('PolicyGradient is an abstract class')
-
-    def _step_update(self, x, u, r):
-        """
-        This function is called, when parsing the dataset, at each episode step.
-
-        Args:
-            x (np.ndarray): the state at the current step;
-            u (np.ndarray): the action at the current step;
-            r (np.ndarray): the reward at the current step.
-
-        """
-        raise NotImplementedError('PolicyGradient is an abstract class')
-
-    def _episode_end_update(self):
-        """
-        This function is called, when parsing the dataset, at the beginning
-        of each episode. The implementation is dependent on the algorithm (e.g.
-        REINFORCE updates some data structures).
-
-        """
-        raise NotImplementedError('PolicyGradient is an abstract class')
-
-    def _compute_gradient(self, J):
-        """
-        Return the gradient computed by the algorithm.
-
-        Args:
-             J (list): list of the cumulative discounted rewards for each
-                episode in the dataset.
+            dataset (Dataset): the complete episodes the gradient is estimated from.
 
         Returns:
-            The gradient computed by the algorithm.
+            The gradient, of shape ``(n_weights,)``.
 
         """
         raise NotImplementedError('PolicyGradient is an abstract class')
 
-    def _parse(self, sample):
+    def _d_log_pi(self, dataset):
         """
-        Utility to parse the sample.
+        Compute the gradient of the log-probability of each action in the dataset w.r.t. the policy weights.
 
         Args:
-             sample (list): the current episode step.
+            dataset (Dataset): the complete episodes.
 
         Returns:
-            A tuple containing state, action, reward, next state, absorbing and
-            last flag. If provided, ``state`` is preprocessed with the features.
+            The gradients, grouped by episode and padded with zeros to the length ``T`` of the longest one, of shape
+            ``(n_episodes, T, n_weights)``.
 
         """
-        state = sample[0]
-        action = sample[1]
-        reward = sample[2]
-        next_state = sample[3]
-        absorbing = sample[4]
-        last = sample[5]
+        d_log_pi = np.array([self.policy.diff_log(x, u) for x, u in zip(dataset.state, dataset.action)])
 
-        return state, action, reward, next_state, absorbing, last
+        return split_episodes(dataset.last, d_log_pi)[1]

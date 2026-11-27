@@ -32,10 +32,6 @@ For Mushroom 2.1:
         - drop the stored next_state column, at least on CircularDataset: resolve the next state from the state
           column and keep only boundary rows (episode and segment ends) in a side buffer. Saves storage between
           fits, not peak; worth it only when boundaries are rare (negative at horizon 1)
-    * vectorization of the numpy policy gradient algorithms (REINFORCE, GPOMDP, eNAC):
-        - the parametric numpy policies (e.g. the Gaussian ones) draw a single action regardless of the batch size
-        - `PolicyGradient.fit` iterates the samples and splits episodes on the stored `last`, which on a flat
-          multi-env block runs one env's open episode into the next env's rows; it should use the parsed `last`
     * handle ExtraInfo correctly in ReplayMemory
       - currently ignored in circular-buffer phase; info is never read back during sampling
     * vectorized env rendering
@@ -47,3 +43,6 @@ For Mushroom 2.1:
         _pad_sequence to the observation
       - multi-output networks (e.g. RecurrentActorNetwork, returning action and next hidden state) are rejected by
         an assertion, since there is no single matrix packing gradients of outputs of different shapes
+    * Batched diff for approximators and diff_log for policies
+      - `diff` is single-sample (batches > 1 raise), so `diff_log` is too, and `PolicyGradient._d_log_pi` loops
+        over the steps; a batched `diff` returning `(n, P, *output_shape)` would remove that loop

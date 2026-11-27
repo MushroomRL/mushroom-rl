@@ -8,14 +8,17 @@ from helper.utils import TestUtils as tu
 from mushroom_rl.algorithms.policy_search import REINFORCE, GPOMDP, eNAC
 from mushroom_rl.algorithms.policy_search.policy_gradient import PolicyGradient
 from mushroom_rl.approximators.parametric import LinearApproximator
-from mushroom_rl.core import Core
+from mushroom_rl.core import Core, MultiprocessEnvironment
 from mushroom_rl.environments.lqr import LQR
 from mushroom_rl.policy.gaussian_policy import StateStdGaussianPolicy
 from mushroom_rl.rl_utils.optimizers import AdaptiveOptimizer
 
 
-def learn(alg, alg_params, logger=None):
-    mdp = LQR.generate(dimensions=1)
+def learn(alg, alg_params, logger=None, n_envs=1):
+    if n_envs == 1:
+        mdp = LQR.generate(dimensions=1)
+    else:
+        mdp = MultiprocessEnvironment(LQR, n_envs=n_envs, use_generator=True, dimensions=1)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
@@ -39,6 +42,9 @@ def learn(alg, alg_params, logger=None):
 
     core.learn(n_episodes=10, n_episodes_per_fit=5)
 
+    if n_envs > 1:
+        mdp.close_all()
+
     return agent
 
 
@@ -56,10 +62,8 @@ def test_REINFORCE(tmpdir):
 
 
 def test_policy_gradient():
-    for call in (lambda: PolicyGradient._init_update(None), lambda: PolicyGradient._step_update(None, 0, 0, 0),
-                 lambda: PolicyGradient._episode_end_update(None), lambda: PolicyGradient._compute_gradient(None, 0)):
-        with pytest.raises(NotImplementedError):
-            call()
+    with pytest.raises(NotImplementedError):
+        learn(PolicyGradient, dict(optimizer=AdaptiveOptimizer(eps=.01)))
 
 
 def test_GPOMDP(tmpdir):
@@ -82,3 +86,11 @@ def test_eNAC(tmpdir):
     assert np.allclose(w, policy.get_weights())
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
+
+
+def test_vectorized():
+    params = dict(optimizer=AdaptiveOptimizer(eps=.01))
+
+    assert np.allclose(learn(REINFORCE, params, n_envs=2).policy.get_weights(), [0.02137689, 2.17505669])
+    assert np.allclose(learn(GPOMDP, params, n_envs=2).policy.get_weights(), [-0.04737147, 1.83225519])
+    assert np.allclose(learn(eNAC, params, n_envs=2).policy.get_weights(), [-1.22291981e-03, 1.99933377e+00])

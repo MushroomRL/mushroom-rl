@@ -10,21 +10,29 @@ class AbstractGaussianPolicy(HasGradient, HasLocation, Policy):
     Abstract class of Gaussian policies.
 
     """
-    def __call__(self, state, action):
-        mu, sigma = self._compute_multivariate_gaussian(state)[:2]
+    def __init__(self, mu):
+        """
+        Constructor.
 
-        return multivariate_normal.pdf(action, mu, sigma)
+        Args:
+            mu (Approximator): the approximator representing the mean w.r.t. the state.
 
-    def draw_action(self, state):
-        mu, sigma = self._compute_multivariate_gaussian(state)[:2]
+        """
+        super().__init__('numpy')
 
-        return np.random.multivariate_normal(mu, sigma)
+        self._mu_approximator = mu
+        self._predict_params = dict()
+
+        self._add_save_attr(
+            _mu_approximator='mushroom',
+            _predict_params='pickle'
+        )
 
     def draw_action_greedy(self, state):
         return self.location(state)
 
     def location(self, state):
-        return self._compute_multivariate_gaussian(state)[0]
+        return self._mu_approximator.predict(state, **self._predict_params)
 
 
 class GaussianPolicy(AbstractGaussianPolicy):
@@ -49,23 +57,21 @@ class GaussianPolicy(AbstractGaussianPolicy):
                 action dimensionality.
 
         """
-        super().__init__('numpy')
+        super().__init__(mu)
 
-        self._approximator = mu
-        self._predict_params = dict()
         self._sigma = CovarianceParameter.make(sigma, backend='numpy')
 
-        self._add_save_attr(
-            _approximator='mushroom',
-            _predict_params='pickle',
-            _sigma='mushroom'
-        )
+        self._add_save_attr(_sigma='mushroom')
         self._add_logger_attr(_sigma='sigma', group='policy')
+
+    def __call__(self, state, action):
+        return multivariate_normal.pdf(action, self.location(state), self._sigma.get_value())
 
     def draw_action(self, state):
         self._sigma.update()
+        mu = self.location(state)
 
-        return super().draw_action(state)
+        return mu + np.random.standard_normal(mu.shape) @ self._sigma.get_cholesky().T
 
     def set_sigma(self, sigma):
         """
@@ -80,12 +86,12 @@ class GaussianPolicy(AbstractGaussianPolicy):
         self.set_logger(self._logger, self._log_prefix, self._log_label)
 
     def diff_log(self, state, action, policy_state=None):
-        mu = self._compute_multivariate_gaussian(state)[0]
+        mu = self.location(state)
         inv_sigma = self._sigma.get_inverse()
 
         delta = action - mu
 
-        j_mu = self._approximator.diff(state)
+        j_mu = self._mu_approximator.diff(state)
 
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
@@ -95,22 +101,47 @@ class GaussianPolicy(AbstractGaussianPolicy):
         return g
 
     def set_weights(self, weights):
-        self._approximator.set_weights(weights)
+        self._mu_approximator.set_weights(weights)
 
     def get_weights(self):
-        return self._approximator.get_weights()
+        return self._mu_approximator.get_weights()
 
     @property
     def weights_size(self):
-        return self._approximator.weights_size
-
-    def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        return mu, self._sigma.get_value()
+        return self._mu_approximator.weights_size
 
 
-class DiagonalGaussianPolicy(AbstractGaussianPolicy):
+class AbstractDiagonalGaussianPolicy(AbstractGaussianPolicy):
+    """
+    Abstract class of Gaussian policies with a diagonal covariance matrix.
+
+    """
+    def __call__(self, state, action):
+        variance = self._variance(state)
+
+        return np.exp(-.5 * np.sum(np.log(2 * np.pi * variance) + (action - self.location(state))**2 / variance,
+                                   axis=-1))
+
+    def draw_action(self, state):
+        mu = self.location(state)
+
+        return mu + np.sqrt(self._variance(state)) * np.random.standard_normal(mu.shape)
+
+    def _variance(self, state):
+        """
+        Compute the variance of each action component.
+
+        Args:
+            state: the state, or batch of states, where the variance is computed.
+
+        Returns:
+            The variance, broadcastable against the action drawn in ``state``.
+
+        """
+        raise NotImplementedError
+
+
+class DiagonalGaussianPolicy(AbstractDiagonalGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation. The Covariance matrix is constrained to be a diagonal matrix,
     where the diagonal is the squared standard deviation vector. This is a differentiable policy for continuous action
@@ -128,36 +159,31 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
                 this vector must be equal to the action dimensionality.
 
         """
-        super().__init__('numpy')
+        super().__init__(mu)
 
-        self._approximator = mu
-        self._predict_params = dict()
         self._std = std.copy()
 
-        self._add_save_attr(
-            _approximator='mushroom',
-            _predict_params='pickle',
-            _std='numpy'
-        )
+        self._add_save_attr(_std='numpy')
 
     def set_std(self, std):
         """
         Setter.
 
         Args:
-            std (np.ndarray): the new standard deviation. Must be a square
-                positive definite matrix.
+            std (np.ndarray): the new vector of standard deviations. The length of this vector must be equal to the
+                action dimensionality.
 
         """
         self._std[:] = std
 
     def diff_log(self, state, action, policy_state=None):
-        mu, _, inv_sigma = self._compute_multivariate_gaussian(state)
+        mu = self.location(state)
+        inv_sigma = np.diag(1. / self._std**2)
 
         delta = action - mu
 
         # Compute mean derivative
-        j_mu = self._approximator.diff(state)
+        j_mu = self._mu_approximator.diff(state)
 
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
@@ -170,27 +196,23 @@ class DiagonalGaussianPolicy(AbstractGaussianPolicy):
         return np.concatenate((g_mu, g_sigma), axis=0)
 
     def set_weights(self, weights):
-        self._approximator.set_weights(
-            weights[0:self._approximator.weights_size])
-        self._std[:] = weights[self._approximator.weights_size:]
+        self._mu_approximator.set_weights(
+            weights[0:self._mu_approximator.weights_size])
+        self._std[:] = weights[self._mu_approximator.weights_size:]
 
     def get_weights(self):
-        return np.concatenate((self._approximator.get_weights(), self._std),
+        return np.concatenate((self._mu_approximator.get_weights(), self._std),
                               axis=0)
 
     @property
     def weights_size(self):
-        return self._approximator.weights_size + self._std.size
+        return self._mu_approximator.weights_size + self._std.size
 
-    def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._approximator.predict(np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        sigma = self._std**2
-
-        return mu, np.diag(sigma), np.diag(1. / sigma)
+    def _variance(self, state):
+        return self._std**2
 
 
-class StateStdGaussianPolicy(AbstractGaussianPolicy):
+class StateStdGaussianPolicy(AbstractDiagonalGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation.
     The Covariance matrix is
@@ -216,25 +238,22 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
                 ensure that is always greater than zero.
 
         """
-        super().__init__('numpy')
+        super().__init__(mu)
 
         assert eps > 0
 
-        self._mu_approximator = mu
         self._std_approximator = std
-        self._predict_params = dict()
         self._eps = eps
 
         self._add_save_attr(
-            _mu_approximator='mushroom',
             _std_approximator='mushroom',
-            _predict_params='pickle',
             _eps='primitive'
         )
 
     def diff_log(self, state, action, policy_state=None):
-        mu, sigma, std = self._compute_multivariate_gaussian(state)
-        diag_sigma = np.diag(sigma)
+        mu = self.location(state)
+        std = self._std_approximator.predict(state, **self._predict_params)
+        variance = std**2 + self._eps
 
         delta = action - mu
 
@@ -244,12 +263,12 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
 
-        sigma_inv = np.diag(1 / diag_sigma)
+        sigma_inv = np.diag(1 / variance)
 
         g_mu = j_mu.dot(sigma_inv).dot(delta.T)
 
         # Compute variance derivative
-        w = (delta**2 - diag_sigma) * std / diag_sigma**2
+        w = (delta**2 - variance) * std / variance**2
         j_sigma = np.atleast_2d(self._std_approximator.diff(state).T)
         g_sigma = np.atleast_1d(w.dot(j_sigma))
 
@@ -273,19 +292,11 @@ class StateStdGaussianPolicy(AbstractGaussianPolicy):
         return self._mu_approximator.weights_size + \
                self._std_approximator.weights_size
 
-    def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._mu_approximator.predict(
-            np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        std = np.reshape(self._std_approximator.predict(
-            np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        sigma = std**2 + self._eps
-
-        return mu, np.diag(sigma), std
+    def _variance(self, state):
+        return self._std_approximator.predict(state, **self._predict_params)**2 + self._eps
 
 
-class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
+class StateLogStdGaussianPolicy(AbstractDiagonalGaussianPolicy):
     """
     Gaussian policy with learnable standard deviation.
     The Covariance matrix is
@@ -305,26 +316,19 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
             mu (Approximator): the approximator representing the mean w.r.t. the
                 state;
             log_std (Approximator): an approximator representing the logarithm of the
-                variance w.r.t. the state. The output dimensionality of the
+                standard deviation w.r.t. the state. The output dimensionality of the
                 approximator must be equal to the action dimensionality.
 
         """
-        super().__init__('numpy')
+        super().__init__(mu)
 
-        self._mu_approximator = mu
         self._log_std_approximator = log_std
-        self._predict_params = dict()
 
-        self._add_save_attr(
-            _mu_approximator='mushroom',
-            _log_std_approximator='mushroom',
-            _predict_params='pickle'
-        )
+        self._add_save_attr(_log_std_approximator='mushroom')
 
     def diff_log(self, state, action, policy_state=None):
-
-        mu, sigma = self._compute_multivariate_gaussian(state)
-        diag_sigma = np.diag(sigma)
+        mu = self.location(state)
+        variance = self._variance(state)
 
         delta = action - mu
 
@@ -334,12 +338,12 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
         if len(j_mu.shape) == 1:
             j_mu = np.expand_dims(j_mu, axis=1)
 
-        sigma_inv = np.diag(1 / diag_sigma)
+        sigma_inv = np.diag(1 / variance)
 
         g_mu = j_mu.dot(sigma_inv).dot(delta.T)
 
         # Compute variance derivative
-        w = delta**2 / diag_sigma
+        w = delta**2 / variance
         j_sigma = np.atleast_2d(self._log_std_approximator.diff(state).T)
         g_sigma = np.atleast_1d(w.dot(j_sigma)) - np.sum(j_sigma, axis=0)
 
@@ -362,13 +366,5 @@ class StateLogStdGaussianPolicy(AbstractGaussianPolicy):
     def weights_size(self):
         return self._mu_approximator.weights_size + self._log_std_approximator.weights_size
 
-    def _compute_multivariate_gaussian(self, state):
-        mu = np.reshape(self._mu_approximator.predict(
-            np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        log_std = np.reshape(self._log_std_approximator.predict(
-            np.expand_dims(state, axis=0), **self._predict_params), -1)
-
-        sigma = np.exp(log_std)**2
-
-        return mu, np.diag(sigma)
+    def _variance(self, state):
+        return np.exp(self._log_std_approximator.predict(state, **self._predict_params))**2

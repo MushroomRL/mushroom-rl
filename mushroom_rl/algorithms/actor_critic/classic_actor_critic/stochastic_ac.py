@@ -61,6 +61,9 @@ class StochasticAC(Agent):
 
         return super().episode_start(initial_state, episode_info, greedy)
 
+    def episode_start_vectorized(self, initial_states, episode_info, start_mask, greedy=False):
+        assert False, "StochasticAC does not support vectorized environments"
+
     def fit(self, dataset):
         for step in dataset:
             s, a, r, ss, absorbing, _ = step

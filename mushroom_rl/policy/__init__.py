@@ -2,8 +2,8 @@ from .policy import Policy, HasWeights, HasGradient, HasLocation, HasMeanApproxi
 from .vector_policy import VectorPolicy
 from .noise_policy import OrnsteinUhlenbeckPolicy, ClippedGaussianPolicy
 from .td_policy import TDPolicy, Boltzmann, EpsGreedy, Mellowmax
-from .gaussian_policy import GaussianPolicy, DiagonalGaussianPolicy, \
-    StateStdGaussianPolicy, StateLogStdGaussianPolicy
+from .gaussian_policy import AbstractGaussianPolicy, AbstractDiagonalGaussianPolicy, GaussianPolicy, \
+    DiagonalGaussianPolicy, StateStdGaussianPolicy, StateLogStdGaussianPolicy
 from .deterministic_policy import DeterministicPolicy
 from .torch_policy import TorchPolicy, GaussianTorchPolicy, CholeskyGaussianTorchPolicy, BoltzmannTorchPolicy, \
     SquashedGaussianTorchPolicy
@@ -15,6 +15,7 @@ __all__ = [
     'Policy', 'StatefulPolicy', 'DeterministicPolicy',
     'HasWeights', 'HasGradient', 'HasLocation', 'HasMeanApproximator', 'VectorPolicy',
     'TDPolicy', 'Boltzmann', 'EpsGreedy', 'Mellowmax',
+    'AbstractGaussianPolicy', 'AbstractDiagonalGaussianPolicy',
     'GaussianPolicy', 'DiagonalGaussianPolicy', 'StateStdGaussianPolicy', 'StateLogStdGaussianPolicy',
     'OrnsteinUhlenbeckPolicy', 'ClippedGaussianPolicy',
     'TorchPolicy', 'GaussianTorchPolicy', 'CholeskyGaussianTorchPolicy', 'BoltzmannTorchPolicy',

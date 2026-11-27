@@ -25,35 +25,16 @@ class PGPE(BlackBoxOptimization):
         self._add_save_attr(optimizer='mushroom')
 
     def _update(self, Jep, theta, context):
-        baseline_num_list = list()
-        baseline_den_list = list()
-        diff_log_dist_list = list()
+        J = Jep.reshape(-1, 1)
+        diff_log_dist = np.array([self.distribution.diff_log(theta_i, context) for theta_i in theta])
 
-        # Compute derivatives of distribution and baseline components
-        for i in range(len(Jep)):
-            J_i = Jep[i]
-            theta_i = theta[i]
+        divisor = np.sum(diff_log_dist**2, axis=0)
+        zero_divisor = divisor == 0.
+        divisor[zero_divisor] = 1.
+        baseline = np.sum(J * diff_log_dist**2, axis=0) / divisor
+        baseline[zero_divisor] = 0.
 
-            diff_log_dist = self.distribution.diff_log(theta_i, context)
-            diff_log_dist2 = diff_log_dist**2
-
-            diff_log_dist_list.append(diff_log_dist)
-            baseline_num_list.append(J_i * diff_log_dist2)
-            baseline_den_list.append(diff_log_dist2)
-
-        # Compute baseline
-        baseline = np.mean(baseline_num_list, axis=0) / np.mean(baseline_den_list, axis=0)
-        baseline[np.logical_not(np.isfinite(baseline))] = 0.
-
-        # Compute gradient
-        grad_J_list = list()
-        for i in range(len(Jep)):
-            diff_log_dist = diff_log_dist_list[i]
-            J_i = Jep[i]
-
-            grad_J_list.append(diff_log_dist * (J_i - baseline))
-
-        grad_J = np.mean(grad_J_list, axis=0)
+        grad_J = np.mean(diff_log_dist * (J - baseline), axis=0)
 
         omega_old = self.distribution.get_parameters()
         omega_new = self.optimizer(omega_old, grad_J)
