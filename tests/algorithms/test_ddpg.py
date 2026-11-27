@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import torch
@@ -8,8 +10,9 @@ from helper.dummies import FakeLogger, RecordingPreprocessor
 from helper.cases import devices, needs_cuda
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms.actor_critic import DDPG, TD3, DeepAC
-from mushroom_rl.core import Core
+from mushroom_rl.algorithms.actor_critic import DDPG, TD3, OffPolicyDeepAC
+from mushroom_rl.core import Agent, Batch, Core
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import OrnsteinUhlenbeckPolicy, GaussianTorchPolicy
 from mushroom_rl.approximators.parametric import TorchApproximator
@@ -17,7 +20,7 @@ from mushroom_rl.approximators.parametric.networks import ActorNetwork, CriticNe
 from mushroom_rl.utils import TorchUtils
 
 
-def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):
+def learn(alg, setup=None, policy=None, critic_n_models=None, asymmetric=None, **alg_params):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
@@ -29,6 +32,10 @@ def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):
     tau = .001
 
     actor_input_shape = mdp.info.observation_space.shape
+    critic_state_shape = actor_input_shape
+    if asymmetric is not None:
+        actor_input_shape = (len(asymmetric['actor_indices']),)
+        critic_state_shape = (len(asymmetric['critic_indices']),)
     actor_params = dict(network=ActorNetwork,
                         n_features=None,
                         n_layers=0,
@@ -43,7 +50,7 @@ def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):
     actor_optimizer = {'class': optim.Adam,
                        'params': {'lr': .001}}
 
-    critic_input_shape = [actor_input_shape, mdp.info.action_space.shape]
+    critic_input_shape = [critic_state_shape, mdp.info.action_space.shape]
     critic_params = dict(network=CriticNetwork,
                          optimizer={'class': optim.Adam,
                                     'params': {'lr': .001}},
@@ -55,8 +62,9 @@ def learn(alg, setup=None, policy=None, critic_n_models=None, **alg_params):
     if critic_n_models is not None:
         critic_params['n_models'] = critic_n_models
 
-    agent = alg(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
-                tau, **alg_params)
+    make = alg if asymmetric is None else partial(alg.asymmetric, **asymmetric)
+    agent = make(mdp.info, policy, actor_optimizer, critic_params, batch_size, initial_replay_size, max_replay_size,
+                 tau, **alg_params)
 
     if setup is not None:
         setup(agent)
@@ -91,9 +99,7 @@ def test_ddpg_options(device):
     assert logger.keys() == {'actor/loss', 'critic/loss'}
 
     with pytest.raises(NotImplementedError):
-        DeepAC.fit(None, None)
-    with pytest.raises(NotImplementedError):
-        DeepAC._post_load(None, None)
+        OffPolicyDeepAC.fit(None, None)
 
 
 @pytest.mark.parametrize('device', devices())
@@ -161,6 +167,36 @@ def test_td3_fit_preprocessor(device):
 
     tu.assert_recorded(w, 'test_td3_fit_preprocessor', device)
     assert preprocessor.shapes == [(200, 2)] * 4
+
+
+@pytest.mark.parametrize('device', devices())
+def test_ddpg_asymmetric(device, tmpdir):
+    asymmetric = dict(actor_indices=[1], critic_indices=[1, 0])
+    for alg in (DDPG, TD3):
+        preprocessor = RecordingPreprocessor(1.)
+        agent = learn(alg, lambda agent: agent.add_fit_preprocessor(preprocessor), asymmetric=asymmetric,
+                      device=device)
+
+        tu.assert_recorded(agent.policy.get_weights(), f'test_ddpg_asymmetric_{alg.__name__.lower()}', device)
+        assert type(agent.history_manager) is AsymmetricHistoryManager
+        assert agent.history_manager.critic_indices == [1, 0] and '_asymmetric_options' not in vars(agent)
+        assert preprocessor.shapes == [(200, 1)] * 4
+        tu.assert_save_load(agent, tmpdir / f'{alg.__name__}.msh', full_save=True)
+        loaded = Agent.load(tmpdir / f'{alg.__name__}.msh')
+        assert loaded._replay_memory._history_manager is loaded.history_manager
+
+    agent.add_fit_preprocessor(RecordingPreprocessor(2.))
+    state = torch.ones(3, 1)
+    reward = torch.zeros(3)
+    shared = agent._augment_batch(Batch(state, None, reward, state + 1, None, None))
+    separate = agent._augment_batch(Batch(state, None, reward, state + 1, None, None, critic_state=state + 2,
+                                          critic_next_state=state + 3))
+
+    assert shared.critic_state is shared.state and shared.critic_next_state is shared.next_state
+    assert torch.equal(shared.state, 2 * state) and torch.equal(shared.next_state, 2 * state + 2)
+    assert shared.reward is reward and type(shared) is Batch
+    assert torch.equal(separate.state, 2 * state) and torch.equal(separate.critic_state, state + 2)
+    assert torch.equal(separate.critic_next_state, state + 3)
 
 
 @pytest.mark.parametrize('device', devices())

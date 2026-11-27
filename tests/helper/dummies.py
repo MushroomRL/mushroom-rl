@@ -3,7 +3,7 @@ import torch
 from sklearn.ensemble import ExtraTreesRegressor
 
 from mushroom_rl.approximators import Approximator
-from mushroom_rl.core import Agent, Box, Discrete, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core import Agent, Box, Discrete, Environment, MDPInfo, VectorizedEnvironment
 from mushroom_rl.policy import Policy
 from mushroom_rl.rl_utils.preprocessors import Preprocessor
 
@@ -24,6 +24,27 @@ class DummyAgent(Agent):
 
     def fit(self, dataset):
         self.fits.append(dataset.copy())
+
+
+class CountingEnv(Environment):
+    def __init__(self, horizon):
+        mdp_info = MDPInfo(Box(0, 1e6, shape=(3,)), Box(-1e6, 1e6, shape=(1,)), 0.99, horizon)
+        self._t = -1
+        self._ep_t = 0
+        super().__init__(mdp_info)
+
+    def reset(self, state=None):
+        self._t += 1
+        self._ep_t = 0
+        return self._obs(), {}
+
+    def step(self, action):
+        self._t += 1
+        self._ep_t += 1
+        return self._obs(), 0., False, {}
+
+    def _obs(self):
+        return np.array([0., self._t, self._ep_t])
 
 
 class CountingVecEnv(VectorizedEnvironment):

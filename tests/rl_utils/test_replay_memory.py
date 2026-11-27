@@ -8,9 +8,11 @@ from mushroom_rl.core import MDPInfo, AgentInfo, Dataset
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.vectorized_dataset import VectorizedDataset
 from mushroom_rl.core.spaces import Box, Discrete
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.core.history_manager import HistoryManager
 from mushroom_rl.rl_utils.replay_memory import ReplayMemory, SequenceReplayMemory, PrioritizedReplayMemory
 from mushroom_rl.rl_utils.parameters import LinearParameter
+from mushroom_rl.utils import TorchUtils
 from mushroom_rl.utils.priority_sampler import PrioritySampler, SumTree, PrefixSumSampler
 
 
@@ -95,7 +97,7 @@ def vectorized_blocks(first_steps, second_steps, policy_state_shape=None):
 
 
 def windows(rm, anchors):
-    return rm._history_manager.parse_history(rm._dataset, anchor_idxs=np.array(anchors))[0]
+    return rm._history_manager.parse_history(rm._dataset, anchor_idxs=np.array(anchors)).state
 
 
 def test_add():
@@ -186,6 +188,11 @@ def test_initialization():
     with pytest.raises(AssertionError):
         PrioritizedReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, alpha=0.6,
                                 beta=LinearParameter(1.0, threshold_value=0.0, n=100), n_steps_return=3)
+    with pytest.raises(AssertionError):
+        ReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, store_policy_state=True)
+    with pytest.raises(AssertionError):
+        PrioritizedReplayMemory(mdp_info, agent_info, initial_size=2, max_size=50, alpha=0.6,
+                                beta=LinearParameter(1.0, threshold_value=0.0, n=100), store_policy_state=True)
 
     assert not ReplayMemory(mdp_info, agent_info, initial_size=3, max_size=50, n_steps_return=3).initialized
 
@@ -379,7 +386,9 @@ def test_policy_state():
     rm.add(dataset)
 
     np.random.seed(7)
-    s, a, r, ss, ab, last, ps, nps = rm.get(4)
+    batch = rm.get(4)
+    s, a, r, ss, ab, last = batch
+    ps = batch.policy_state
 
     expected_idxs = np.array([4, 9, 6, 3])
     ps_test = np.load('tests/rl_utils/data/test_policy_state.npy')
@@ -403,7 +412,7 @@ def test_policy_state():
 
     rm.add(ds)
     assert rm.size == 8
-    assert len(rm.get(4)) == 6
+    assert rm.get(4).policy_state is None
 
 
 def test_torch():
@@ -479,23 +488,26 @@ def test_sequence():
 
     n_samples = 2
     np.random.seed(3)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
+    batch = rm.get(n_samples)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq = batch
+    ps_seq, lengths = batch.policy_state, batch.lengths
 
     expected_idxs = np.array([10, 24])
     expected_lengths = [5, 5]
 
     assert s_seq.shape == (n_samples, truncation_length, *obs_shape)
     assert a_seq.shape == (n_samples, truncation_length, *act_shape)
-    assert r_seq.shape == (n_samples, 1)
-    assert ps_seq.shape == (n_samples, truncation_length, *policy_state_shape)
-    assert lengths == expected_lengths
+    assert r_seq.shape == (n_samples,)
+    assert ps_seq.shape == (n_samples, *policy_state_shape)
+    assert ab_seq.dtype == bool and last_seq.dtype == bool
+    assert np.array_equal(lengths, expected_lengths)
 
-    assert np.allclose(r_seq[:, 0], rm._dataset.reward[expected_idxs])
+    assert np.allclose(r_seq, rm._dataset.reward[expected_idxs])
 
     for i, (idx, length) in enumerate(zip(expected_idxs, expected_lengths)):
         begin = idx - length + 1
         assert np.allclose(s_seq[i, :length], rm._dataset.state[begin:idx + 1])
-        assert np.allclose(ps_seq[i, :length], rm._dataset.policy_state[begin:idx + 1])
+        assert np.allclose(ps_seq[i], rm._dataset.policy_state[begin])
 
 
 def test_sequence_history():
@@ -516,7 +528,7 @@ def test_sequence_history():
 
     for seed in range(20):
         np.random.seed(seed)
-        *_, lengths = rm.get(1)
+        lengths = rm.get(1).lengths
         assert lengths[0] <= episode_length
 
     obs_shape = (4,)
@@ -539,13 +551,15 @@ def test_sequence_history():
     rm.add(dataset)
 
     np.random.seed(5)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(n_samples)
+    batch = rm.get(n_samples)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq = batch
+    ps_seq, lengths = batch.policy_state, batch.lengths
 
     np.random.seed(5)
     expected_idxs = np.random.randint(0, rm.size, (n_samples,))
 
     assert s_seq.shape == (n_samples, truncation_length, history_length, *obs_shape)
-    assert ps_seq.shape == (n_samples, truncation_length, *policy_state_shape)
+    assert ps_seq.shape == (n_samples, *policy_state_shape)
 
     for k, idx in enumerate(expected_idxs):
         idx = int(idx)
@@ -576,16 +590,17 @@ def test_sequence_history():
     agent_info = make_agent_info(policy_state_shape=policy_state_shape)
     history_manager = HistoryManager.default_streams(mdp_info, agent_info, action_history_length=action_history_length)
     rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100,
-                              truncation_length=truncation_length, history_manager=history_manager, return_extra=True)
+                              truncation_length=truncation_length, history_manager=history_manager)
     rm.add(dataset)
 
     np.random.seed(7)
-    *_, lengths, extra = rm.get(n_samples)
+    batch = rm.get(n_samples)
+    lengths = batch.lengths
 
     np.random.seed(7)
     expected_idxs = np.random.randint(0, rm.size, (n_samples,))
 
-    prev_actions = extra['action_history']
+    prev_actions = batch.action_history
     assert prev_actions.shape == (n_samples, truncation_length, action_history_length, *act_shape)
 
     for k, idx in enumerate(expected_idxs):
@@ -601,6 +616,53 @@ def test_sequence_history():
                     assert np.allclose(prev_actions[k, t, j], rm._dataset.action[src])
                 else:
                     assert np.allclose(prev_actions[k, t, j], 0.0)
+
+
+def test_sequence_critic():
+    rng = np.random.RandomState(0)
+    dataset, states, *_ = make_dataset(10, rng, (4,), (2,), policy_state_shape=(3,), episode_ends=[4, 9])
+    mdp_info = make_mdp_info((4,), (2,))
+    agent_info = make_agent_info(policy_state_shape=(3,))
+    hm = AsymmetricHistoryManager.default_streams(mdp_info, agent_info, actor_indices=[0], critic_indices=[1, 2, 3])
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100, truncation_length=3,
+                              history_manager=hm)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    batch = rm.get(4)
+
+    assert batch.state.shape == (4, 3, 1) and batch.critic_state.shape == (4, 3, 3)
+    for i in range(4):
+        for t in range(3):
+            if t < batch.lengths[i]:
+                row = np.flatnonzero(states[:, 0] == batch.state[i, t, 0])[0]
+                assert np.array_equal(batch.critic_state[i, t], states[row, 1:])
+            else:
+                assert not batch.critic_state[i, t].any() and not batch.state[i, t].any()
+
+    rm = SequenceReplayMemory(mdp_info, agent_info, initial_size=5, max_size=100, truncation_length=3,
+                              history_manager=AsymmetricHistoryManager.default_streams(mdp_info, agent_info))
+    rm.add(dataset)
+    batch = rm.get(2)
+    assert batch.critic_state is batch.state and batch.critic_next_state is batch.next_state
+
+
+@pytest.mark.parametrize('backend, device', backend_devices('numpy', 'torch'))
+def test_sequence_lengths(backend, device):
+    TorchUtils.set_default_device(device or 'cpu')
+    agent_info = AgentInfo(is_episodic=False, policy_state_shape=(2,), backend=backend, device=device)
+    rm = SequenceReplayMemory(make_mdp_info((1,), (1,), backend=backend), agent_info, initial_size=1, max_size=20,
+                              truncation_length=3)
+    dataset, *_ = make_dataset(10, np.random.RandomState(0), (1,), (1,), policy_state_shape=(2,), backend=backend)
+    rm.add(dataset)
+
+    np.random.seed(0)
+    torch.manual_seed(0)
+    batch = rm.get(4)
+
+    assert_backend(batch.state, backend, device)
+    assert_backend(batch.lengths, backend, None if backend == 'numpy' else 'cpu')
+    assert batch.lengths.shape == (4,)
 
 
 def test_sequence_write_head():
@@ -629,7 +691,9 @@ def test_sequence_write_head():
     assert rm._dataset.write_head == 3          # chronological values are [3, 4, 5, 6, 7, 8], the oldest is 3
 
     np.random.seed(0)
-    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq, ps_seq, nps_seq, lengths = rm.get(200)
+    batch = rm.get(200)
+    s_seq, a_seq, r_seq, ss_seq, ab_seq, last_seq = batch
+    lengths = batch.lengths
 
     for k, length in enumerate(lengths):
         current = s_seq[k, :length, history_length - 1, 0]
@@ -719,15 +783,13 @@ def test_streams():
     history_manager = HistoryManager.default_streams(mdp_info, agent_info, history_length=3)
     history_manager.add_stream('command', length=2, shape=(1,), dtype=float)
 
-    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager,
-                      return_extra=True)
+    rm = ReplayMemory(mdp_info, agent_info, initial_size=5, max_size=50, history_manager=history_manager)
     rm.add(dataset)
 
     np.random.seed(0)
-    s, a, r, ss, ab, last, extra = rm.get(4)
+    batch = rm.get(4)
 
-    assert s.shape == (4, 3, *obs_shape)
-    assert 'command' not in extra
+    assert batch.state.shape == (4, 3, *obs_shape)
 
 
 def test_prioritized():
@@ -747,7 +809,9 @@ def test_prioritized():
     assert np.isclose(rm._sampler.total_priority, 10.0)
 
     np.random.seed(3)
-    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(4)
+    batch = rm.get(4)
+    s, a, r, ss, ab, last = batch
+    idxs, importance_sampling_weights = batch.idxs, batch.weights
 
     assert np.allclose(importance_sampling_weights, 1.0)
 
@@ -774,7 +838,7 @@ def test_prioritized():
     assert np.isclose(rm._sampler.total_priority, 10.0)
 
     np.random.seed(3)
-    *_, idxs, _ = rm.get(4)
+    idxs = rm.get(4).idxs
     rm.update(np.full(4, 5.0), idxs)
 
     expected_max = (5.0 + 0.01) ** 0.6
@@ -799,7 +863,7 @@ def test_prioritized():
     rm.add(dataset, np.ones(n))
 
     np.random.seed(3)
-    *_, idxs, _ = rm.get(4)
+    idxs = rm.get(4).idxs
 
     errors = np.array([0.5, 0.1, 0.3, 0.8])
     rm.update(errors, idxs)
@@ -861,7 +925,8 @@ def test_prioritized_history():
     assert masked[4]
 
     np.random.seed(0)
-    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(200)
+    batch = rm.get(200)
+    s, a, r, ss, ab, last = batch
 
     # each stacked observation must be a contiguous chronological window (no write-head crossing)
     assert np.allclose(s[:, 1:, 0] - s[:, :-1, 0], 1.0)
@@ -898,7 +963,9 @@ def test_prioritized_backends(impl, backend, device, monkeypatch):
 
     np.random.seed(0)
     torch.manual_seed(0)
-    s, a, r, ss, ab, last, idxs, importance_sampling_weights = rm.get(200)
+    batch = rm.get(200)
+    s, a, r, ss, ab, last = batch
+    idxs, importance_sampling_weights = batch.idxs, batch.weights
 
     assert_backend(idxs, backend, device)
     assert_backend(importance_sampling_weights, backend, device)
@@ -1094,7 +1161,9 @@ def test_links():
         grid.clear(keep_leftovers=True)
 
     np.random.seed(1)
-    s, a, r, ss, ab, last, ps, nps, lengths = rm.get(40)
+    batch = rm.get(40)
+    s, a, r, ss, ab, last = batch
+    lengths = batch.lengths
 
     sequences = {tuple(tuple(window) for window in s[k, :length, :, 0]) for k, length in enumerate(lengths)}
     assert np.array_equal(rm._dataset.state[:, 0], np.array([3., 13., 10., 11., 2., 12.]))
@@ -1128,7 +1197,9 @@ def test_joined_blocks():
     rm.add(first)
     rm.add(second)
     np.random.seed(1)
-    s, a, r, ss, ab, last, ps, nps, lengths = rm.get(40)
+    batch = rm.get(40)
+    s, a, r, ss, ab, last = batch
+    lengths = batch.lengths
 
     sequences = {tuple(s[k, :length, 0]) for k, length in enumerate(lengths)}
     assert sequences == {(0.,), (0., 1.), (0., 1., 2.), (10.,), (10., 11.), (10., 11., 12.)}

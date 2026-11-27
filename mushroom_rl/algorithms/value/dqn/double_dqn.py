@@ -15,7 +15,6 @@ class DoubleDQN(DQN):
         max_a = torch.argmax(q, 1).unsqueeze(1)
 
         double_q = self.target_approximator.predict(next_state, max_a, **self._predict_params)
-        if absorbing.any():
-            double_q *= ~absorbing
+        double_q *= ~absorbing
 
         return double_q

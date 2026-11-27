@@ -22,7 +22,6 @@ class DQN(AbstractDQN):
 
     def _next_q(self, next_state, absorbing):
         q = self.target_approximator.predict(next_state, **self._predict_params)
-        if absorbing.any():
-            q *= ~absorbing.unsqueeze(1)
+        q *= ~absorbing.unsqueeze(1)
 
         return q.max(1).values

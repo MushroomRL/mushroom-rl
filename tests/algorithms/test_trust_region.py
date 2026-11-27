@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import torch
@@ -10,16 +12,22 @@ from helper.utils import TestUtils as tu
 
 from mushroom_rl.algorithms.actor_critic import PPO, TRPO
 from mushroom_rl.core import Core
+from mushroom_rl.core.asymmetric_history_manager import AsymmetricHistoryManager
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.policy import GaussianTorchPolicy
 from mushroom_rl.approximators.parametric.networks import FeedForwardNetwork, ActorNetwork
 
 
-def learn(alg, alg_params, logger=None):
+def learn(alg, alg_params, logger=None, asymmetric=None):
     mdp = InvertedPendulum(horizon=50)
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed(1)
+
+    actor_input_shape = critic_input_shape = mdp.info.observation_space.shape
+    if asymmetric is not None:
+        actor_input_shape = (len(asymmetric['actor_indices']),)
+        critic_input_shape = (asymmetric['critic_history_length'], len(asymmetric['critic_indices']))
 
     critic_params = dict(network=FeedForwardNetwork,
                          optimizer={'class': optim.Adam,
@@ -27,19 +35,20 @@ def learn(alg, alg_params, logger=None):
                          loss=F.mse_loss,
                          n_features=None,
                          n_layers=0,
-                         input_shape=mdp.info.observation_space.shape,
+                         input_shape=critic_input_shape,
                          output_shape=())
 
     policy_params = dict(std_0=1., n_features=None, n_layers=0)
 
     policy = GaussianTorchPolicy(ActorNetwork,
-                                 mdp.info.observation_space.shape,
+                                 actor_input_shape,
                                  mdp.info.action_space.shape,
                                  **policy_params)
 
     alg_params['critic_params'] = critic_params
 
-    agent = alg(mdp.info, policy, **alg_params)
+    make = alg if asymmetric is None else partial(alg.asymmetric, **asymmetric)
+    agent = make(mdp.info, policy, **alg_params)
     if logger is not None:
         agent.set_logger(logger)
 
@@ -152,8 +161,24 @@ def test_TRPO(device, tmpdir):
     tu.assert_recorded(w, 'test_TRPO', device)
     assert logger.keys() == {'R', 'actor/entropy', 'actor/kl', 'critic/loss'}
     assert logger.messages == ['Iteration 1', 'Iteration 2']
+    assert agent.actor_parameters is None
 
     tu.assert_save_load(agent, tmpdir / 'agent.msh')
+
+
+@pytest.mark.parametrize('device', devices())
+def test_asymmetric(device, tmpdir):
+    asymmetric = dict(actor_indices=[1], critic_indices=[1, 0], critic_history_length=2)
+    cases = ((PPO, dict(actor_optimizer={'class': optim.Adam, 'params': {'lr': 3e-4}}, n_epochs_policy=4,
+                        batch_size=64, eps_ppo=.2, lam=.95)),
+             (TRPO, dict(max_kl=.001, lam=.98)))
+    for alg, params in cases:
+        agent = learn(alg, dict(params, device=device), asymmetric=asymmetric)
+
+        tu.assert_recorded(agent.policy.get_weights(), f'test_asymmetric_{alg.__name__}', device)
+        assert type(agent.history_manager) is AsymmetricHistoryManager
+        assert agent.history_manager.critic_history_length == 2
+        tu.assert_save_load(agent, tmpdir / f'{alg.__name__}.msh')
 
 
 def test_TRPO_rejected_step():

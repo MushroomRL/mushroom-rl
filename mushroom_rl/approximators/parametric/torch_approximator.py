@@ -175,7 +175,7 @@ class TorchApproximator(Approximator):
 
     def _fit_epoch(self, args, use_weights, network_kwargs):
         if self._trainer.batch_size > 0:
-            batches = minibatch_generator(self._trainer.batch_size, *args)
+            batches = minibatch_generator(self._trainer.batch_size, *args, device=self._device)
         else:
             batches = [args]
 
@@ -735,7 +735,7 @@ class TorchEnsemble(Ensemble):
     def _fit_epoch(self, args, use_weights, network_kwargs):
         n_models = len(self._models)
         if self._trainer.batch_size > 0:
-            batches = ensemble_minibatch_generator(self._trainer.batch_size, n_models, *args)
+            batches = ensemble_minibatch_generator(self._trainer.batch_size, n_models, *args, device=self._device)
         else:
             batches = [[torch.as_tensor(a, device=self._device).unsqueeze(0).expand(n_models, *a.shape)
                         for a in args]]

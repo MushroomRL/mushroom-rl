@@ -12,13 +12,13 @@ def test_tensors(device):
     lengths = torch.arange(10) * 10
 
     torch.manual_seed(1)
-    batches = list(minibatch_generator(4, x, lengths))
+    batches = list(minibatch_generator(4, x, lengths, device=device))
     torch.manual_seed(1)
-    indexes = torch.randperm(10)
+    indexes = torch.randperm(10, device=device)
 
     assert [len(x_i) for x_i, _ in batches] == [4, 4, 2]
     assert [(x_i.device.type, lengths_i.device.type) for x_i, lengths_i in batches] == [(device, 'cpu')] * 3
-    assert torch.equal(torch.cat([x_i for x_i, _ in batches]).cpu(), indexes)
+    assert torch.equal(torch.cat([x_i for x_i, _ in batches]), indexes)
     assert all(torch.equal(lengths_i, x_i.cpu() * 10) for x_i, lengths_i in batches)
 
 

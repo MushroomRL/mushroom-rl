@@ -1,5 +1,6 @@
 from mushroom_rl.core.mushroom_backend_object import MushroomBackendObject
 from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.batch import Batch
 
 from mushroom_rl.core._impl.layout import EpisodeLayout
 from mushroom_rl.core._impl.history_state import HistoryContext
@@ -36,11 +37,13 @@ class HistoryManager(MushroomBackendObject):
     lengths/offsets are wired up from the MDP and action spaces by the :meth:`default_streams` factory.
 
     """
-    def __init__(self, agent_info, streams=None, preprocessors=None):
+    def __init__(self, mdp_info, agent_info, streams=None, preprocessors=None):
         """
         Constructor.
 
         Args:
+            mdp_info (MDPInfo): information about the MDP, providing the observation and action spaces the reserved
+                streams are checked against;
             agent_info (AgentInfo): information about the agent, providing the array backend and the device on which
                 the manager keeps its buffers;
             preprocessors (list, None): preprocessors applied to every observation before it is stacked, both online
@@ -53,6 +56,9 @@ class HistoryManager(MushroomBackendObject):
                 the in-band ``state``, returned positionally) and ``action_history`` (from the last recorded action,
                 conventionally ``offset`` 1). These reserved streams, with their shapes and data types read from the
                 MDP and action spaces, are wired up by :meth:`default_streams`.
+
+        Raises:
+            AssertionError: if the entry shape or data type of a reserved stream differs from the one of its space.
 
         """
         super().__init__(agent_info.backend_name, agent_info.device)
@@ -76,7 +82,9 @@ class HistoryManager(MushroomBackendObject):
         for name, spec in (streams or dict()).items():
             self.add_stream(name, **spec)
 
-    def __call__(self, state=None, **extra):
+        self._check_reserved_streams(mdp_info)
+
+    def __call__(self, state, **extra):
         """
         Append the current entries to the buffers and return the per-timestep context split for the policy call: the
         observation input to be passed positionally as ``state`` and a dictionary of the additional conditioning
@@ -97,22 +105,25 @@ class HistoryManager(MushroomBackendObject):
             squeezed along the ``length`` axis when the stream length is 1.
 
         """
-        if state is not None:
-            state = self.preprocess(state)
+        obs = self.preprocess(state)
+        streams = self._observation_streams()
 
         windows = dict()
         for name in self._stream_specs:
-            if name == 'obs_history':
-                value = state
+            if name in streams:
+                value = self._select(obs, streams[name])
             elif name == 'action_history':
                 value = self._last_action
             else:
                 value = extra.get(name)
             windows[name] = self._stack(name, value)
         self._last_windows = dict(windows)
-        if 'obs_history' in self._stream_specs:
-            return windows.pop('obs_history'), windows
-        return state, windows
+
+        if 'obs_history' in windows:
+            state = windows['obs_history']
+        else:
+            state = self._select(obs, streams['obs_history'])
+        return state, {name: window for name, window in windows.items() if name not in streams}
 
     def add_stream(self, name, length, shape, dtype, offset=0, **options):
         """
@@ -252,7 +263,8 @@ class HistoryManager(MushroomBackendObject):
             states, last = self._backend.convert(dataset.state, dataset.last_or_boundary, device=self._device)
             state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
         else:
-            state = self.preprocess(self._backend.convert(dataset.state, device=self._device))
+            state = self._backend.convert(dataset.state, device=self._device)
+            state = self._select(self.preprocess(state), self._observation_streams()['obs_history'])
 
         return self._convert_output(to, state)
 
@@ -277,76 +289,102 @@ class HistoryManager(MushroomBackendObject):
             last = self._backend.ones(len(states), dtype=bool, device=self._device)
             state = self.build_history('obs_history', states, last)
         else:
-            state = self.preprocess(states)
+            state = self._select(self.preprocess(states), self._observation_streams()['obs_history'])
 
         return self._convert_output(to, state)
 
-    def parse_history(self, dataset, anchor_idxs=None, to=None):
+    def parse_history(self, dataset, anchor_idxs=None, to=None, get_policy_state=False):
         """
-        Parse a dataset into its arrays with the history windows applied, as :meth:`Dataset.parse`: ``state`` and
-        ``next_state`` are the stacked observation windows, and the window of every other active stream is returned
-        aside.
+        Parse a dataset into a batch with the history windows applied, as :meth:`Dataset.parse`: ``state`` and
+        ``next_state`` are the policy input of the current and of the next step, ``critic_state`` and
+        ``critic_next_state`` the critic input when it differs from the policy one, and ``action_history`` and
+        ``next_action_history`` the previous-action windows of the current and of the next step when that stream is
+        active.
 
         Args:
             dataset (Dataset): the dataset to parse;
             anchor_idxs (None): the rows to parse, buffer positions for a circular dataset; by default every row;
-            to (str, None): the backend of the returned arrays; by default the agent backend.
+            to (str, None): the backend of the returned arrays; by default the agent backend;
+            get_policy_state (bool, False): whether the batch also holds the policy state and policy next state of
+                each row.
 
         Returns:
-            The tuple ``(state, action, reward, next_state, absorbing, last, extra)``, where ``extra`` maps every other
-            active stream to its windows. A stream of length 1 collapses to the raw value.
+            The :class:`~mushroom_rl.core.batch.Batch` of the parsed rows. A stream of length 1 collapses to the raw
+            value.
+
+        Raises:
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
         if dataset.is_circular:
             dataset = dataset.to_backend(self.backend_name, device=self._device)
             if anchor_idxs is None:
                 anchor_idxs = self._backend.arange(0, len(dataset), device=self._device)
-            state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor_idxs, self._backend,
-                                                                dataset=dataset)
+            state, next_state, action_history, next_action_history, critic_state, critic_next_state = \
+                self._transition_history(dataset.state, dataset.next_state, dataset.action, dataset.last, anchor_idxs,
+                                         self._backend, dataset=dataset)
+            policy_state, next_policy_state = self._select_policy_state(dataset, anchor_idxs, anchor_idxs) \
+                if get_policy_state else (None, None)
             return self._convert_parsed(to, state, dataset.action[anchor_idxs], dataset.reward[anchor_idxs],
-                                        next_state, dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs], extra)
+                                        next_state, dataset.absorbing[anchor_idxs], dataset.last[anchor_idxs],
+                                        action_history, next_action_history, policy_state, next_policy_state,
+                                        critic_state, critic_next_state)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self.backend_name, device=self._device)
 
-        if 'obs_history' in self._stream_specs:
-            state = self.build_history('obs_history', states, last, attachment=dataset.history_state)
-            next_state = self._next_obs_history(state, next_states, self._backend)
-        else:
-            state, next_state = self.preprocess(states), self.preprocess(next_states)
+        obs, next_obs = self.preprocess(states), self.preprocess(next_states)
+        windows = list()
+        for name, selection in self._observation_streams().items():
+            window, next_window = self._select(obs, selection), self._select(next_obs, selection)
+            if name in self._stream_specs:
+                window = self._stack_history(name, window, last, attachment=dataset.history_state)
+                next_window = self._next_window(name, window, next_window, self._backend)
+            windows.append((window, next_window))
+        (state, next_state), *critic = windows
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
 
-        extra = dict()
+        action_history = next_action_history = None
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last,
-                                                         attachment=dataset.history_state)
+            action_history = self.build_history('action_history', actions, last, attachment=dataset.history_state)
+            next_action_history = self._next_window('action_history', action_history, actions, self._backend)
 
         if anchor_idxs is not None:
             state, actions, reward = state[anchor_idxs], actions[anchor_idxs], reward[anchor_idxs]
             next_state, absorbing, last = next_state[anchor_idxs], absorbing[anchor_idxs], last[anchor_idxs]
-            extra = {name: value[anchor_idxs] for name, value in extra.items()}
+            if self.uses_action:
+                action_history, next_action_history = action_history[anchor_idxs], next_action_history[anchor_idxs]
+            if critic_state is not None:
+                critic_state, critic_next_state = critic_state[anchor_idxs], critic_next_state[anchor_idxs]
 
-        return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, extra)
+        policy_state, next_policy_state = self._select_policy_state(dataset, anchor_idxs, anchor_idxs) \
+            if get_policy_state else (None, None)
+        return self._convert_parsed(to, state, actions, reward, next_state, absorbing, last, action_history,
+                                    next_action_history, policy_state, next_policy_state, critic_state,
+                                    critic_next_state)
 
-    def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None):
+    def parse_nstep_history(self, dataset, gamma=1., n_steps_return=1, anchor_idxs=None, to=None,
+                            get_policy_state=False):
         """
-        Parse a dataset into its n-step arrays: :meth:`parse_history` with the discounted n-step reward, and the next
-        state, absorbing and last flags of the n-step endpoint. Transitions whose return crosses a truncation or runs
-        past the newest stored step are dropped.
+        Parse a dataset into a batch of n-step transitions: :meth:`parse_history` with the discounted n-step reward,
+        and the next state, next critic input, next previous-action window, absorbing and last flags of the n-step
+        endpoint. Transitions whose return crosses a truncation or runs past the newest stored step are dropped.
 
         Args:
             dataset (Dataset): the dataset to parse;
             gamma (float, 1.): the discount factor;
             n_steps_return (int, 1): the number of steps of the return;
             anchor_idxs (None): the rows to parse, buffer positions for a circular dataset; by default every row;
-            to (str, None): the backend of the returned arrays; by default the agent backend.
+            to (str, None): the backend of the returned arrays; by default the agent backend;
+            get_policy_state (bool, False): whether the batch also holds the policy state of the first step and the
+                policy next state of the endpoint of each transition.
 
         Returns:
-            The tuple ``(state, action, reward, next_state, absorbing, last, extra)`` of the kept transitions, with
-            their rows under ``extra['anchor']`` and their endpoints under ``extra['endpoint']``.
+            The :class:`~mushroom_rl.core.batch.Batch` of the kept transitions.
 
         Raises:
-            NotImplementedError: if the agent backend is ``'list'``.
+            NotImplementedError: if the agent backend is ``'list'``;
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
         if self.backend_name == 'list':
@@ -358,35 +396,48 @@ class HistoryManager(MushroomBackendObject):
             reduced_reward, anchor, endpoint = self.build_nstep_return(dataset.reward, dataset.absorbing,
                                                                        dataset.last, anchor_idxs, gamma,
                                                                        n_steps_return, dataset=dataset)
-            state, next_state, extra = self._transition_history(dataset.state, dataset.next_state, dataset.action,
-                                                                dataset.last, anchor, self._backend,
-                                                                next_anchor_idxs=endpoint, dataset=dataset)
-            extra['endpoint'] = endpoint
-            extra['anchor'] = anchor
+            state, next_state, action_history, next_action_history, critic_state, critic_next_state = \
+                self._transition_history(dataset.state, dataset.next_state, dataset.action, dataset.last, anchor,
+                                         self._backend, next_anchor_idxs=endpoint, dataset=dataset)
+            policy_state, next_policy_state = self._select_policy_state(dataset, anchor, endpoint) \
+                if get_policy_state else (None, None)
             return self._convert_parsed(to, state, dataset.action[anchor], reduced_reward, next_state,
-                                        dataset.absorbing[endpoint], dataset.last[endpoint], extra)
+                                        dataset.absorbing[endpoint], dataset.last[endpoint], action_history,
+                                        next_action_history, policy_state, next_policy_state, critic_state,
+                                        critic_next_state)
 
         states, actions, reward, next_states, absorbing, last = dataset.parse(
             to=self.backend_name, device=self._device)
         reduced_reward, anchor, endpoint = self.build_nstep_return(reward, absorbing, last, anchor_idxs, gamma,
                                                                    n_steps_return)
 
-        if 'obs_history' in self._stream_specs:
-            windows = self.build_history('obs_history', states, last, attachment=dataset.history_state)
-            state = windows[anchor]
-            next_state = self._next_obs_history(windows[endpoint], next_states[endpoint], self._backend)
-        else:
-            state = self.preprocess(states[anchor])
-            next_state = self.preprocess(next_states[endpoint])
+        streams = self._observation_streams()
+        stacked = any(name in self._stream_specs for name in streams)
+        obs = self.preprocess(states) if stacked else self.preprocess(states[anchor])
+        next_obs = self.preprocess(next_states[endpoint])
+        windows = list()
+        for name, selection in streams.items():
+            next_window = self._select(next_obs, selection)
+            if name in self._stream_specs:
+                stack = self._stack_history(name, self._select(obs, selection), last, attachment=dataset.history_state)
+                windows.append((stack[anchor], self._next_window(name, stack[endpoint], next_window, self._backend)))
+            else:
+                windows.append((self._select(obs[anchor] if stacked else obs, selection), next_window))
+        (state, next_state), *critic = windows
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
 
-        extra = dict()
+        action_history = next_action_history = None
         if self.uses_action:
-            extra['action_history'] = self.build_history('action_history', actions, last,
-                                                         attachment=dataset.history_state)[anchor]
-        extra['endpoint'] = endpoint
-        extra['anchor'] = anchor
+            windows = self.build_history('action_history', actions, last, attachment=dataset.history_state)
+            action_history = windows[anchor]
+            next_action_history = self._next_window('action_history', windows[endpoint], actions[endpoint],
+                                                    self._backend)
+
+        policy_state, next_policy_state = self._select_policy_state(dataset, anchor, endpoint) if get_policy_state \
+            else (None, None)
         return self._convert_parsed(to, state, actions[anchor], reduced_reward, next_state, absorbing[endpoint],
-                                    last[endpoint], extra)
+                                    last[endpoint], action_history, next_action_history, policy_state,
+                                    next_policy_state, critic_state, critic_next_state)
 
     def build_history(self, name, buffer, last, anchor_idxs=None, backend=None, attachment=None, dataset=None):
         """
@@ -410,43 +461,17 @@ class HistoryManager(MushroomBackendObject):
 
         """
         backend = backend or self._backend
-        size = buffer.shape[0]
+        streams = self._observation_streams()
+        if anchor_idxs is not None and name in streams:
+            hops, valid = self._get_preceding_observations(buffer, last, anchor_idxs, self._window_span(name), backend,
+                                                           dataset)
+            return self._window_at(name, streams[name], hops, valid, backend)
         if anchor_idxs is not None:
             return self._build_history_at(name, buffer, last, anchor_idxs, backend, dataset)
+        if name in streams:
+            buffer = self._select(self.preprocess(buffer), streams[name])
 
-        if name == 'obs_history':
-            buffer = self.preprocess(buffer)
-
-        spec = self._stream_specs[name]
-        length, offset = spec['length'], spec['offset']
-        device = backend.get_device(buffer)
-
-        out = backend.zeros(size, length, *buffer.shape[1:], dtype=buffer.dtype, device=device)
-        active = backend.ones(size, dtype=bool, device=device)
-        for t in range(length):
-            shift = offset + t
-            if shift >= size:
-                break
-            row_mask = active[shift:].reshape((-1,) + (1,) * (len(buffer.shape) - 1))
-            out[shift:, length - 1 - t] = backend.where(row_mask, buffer[:size - shift], out[shift:, length - 1 - t])
-            boundary = backend.zeros(size, dtype=bool, device=device)
-            boundary[shift] = True
-            boundary[shift + 1:] = last[:size - shift - 1] > 0
-            active = active & ~boundary
-
-        if offset > 0:
-            mask = backend.zeros(size, dtype=bool, device=device)
-            for d in range(1, offset + 1):
-                mask[d:] = mask[d:] | (last[:size - d] > 0)
-            out[mask] = 0
-        windows = attachment.windows(name) if attachment is not None else None
-        if windows is not None and len(attachment) > 0:
-            if len(windows.shape) == len(spec['shape']) + 1:
-                windows = backend.expand_dims(windows, 1)
-            out = self._attach(out, windows, attachment.positions, last, length, offset, backend, device)
-        if length == 1:
-            out = out[:, 0]
-        return out
+        return self._stack_history(name, buffer, last, backend=backend, attachment=attachment)
 
     def build_nstep_return(self, reward, absorbing, last, anchor_idxs=None, gamma=1., n_steps_return=1, backend=None,
                            dataset=None):
@@ -569,18 +594,7 @@ class HistoryManager(MushroomBackendObject):
             The :class:`HistoryManager` instance.
 
         """
-        history_length = 1 if history_length is None else history_length
-        action_history_length = 0 if action_history_length is None else action_history_length
-
-        streams = dict()
-        if history_length > 1:
-            streams['obs_history'] = dict(length=history_length, shape=mdp_info.observation_space.shape,
-                                          dtype=mdp_info.observation_space.data_type)
-        if action_history_length > 0:
-            streams['action_history'] = dict(length=action_history_length, shape=mdp_info.action_space.shape,
-                                             dtype=mdp_info.action_space.data_type, offset=1)
-
-        return cls(agent_info, streams=streams)
+        return cls(mdp_info, agent_info, streams=cls._default_specs(mdp_info, history_length, action_history_length))
 
     @property
     def preprocessors(self):
@@ -636,14 +650,23 @@ class HistoryManager(MushroomBackendObject):
 
         return ArrayBackend.get_array_backend(to).convert(*arrays, backend=self._backend)
 
-    def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, extra):
+    def _convert_parsed(self, to, state, action, reward, next_state, absorbing, last, action_history,
+                        next_action_history, policy_state, next_policy_state, critic_state, critic_next_state):
         """
-        Convert a whole parse result, the ``extra`` windows included, as in :meth:`_convert_output`.
+        Convert a whole parse result, as in :meth:`_convert_output`, and assemble it into a batch.
 
         """
         converted = self._convert_output(to, state, action, reward, next_state, absorbing, last)
+        if action_history is not None:
+            action_history, next_action_history = self._convert_output(to, action_history, next_action_history)
+        if policy_state is not None:
+            policy_state, next_policy_state = self._convert_output(to, policy_state, next_policy_state)
+        if critic_state is not None:
+            critic_state, critic_next_state = self._convert_output(to, critic_state, critic_next_state)
 
-        return (*converted, {name: self._convert_output(to, window) for name, window in extra.items()})
+        return Batch(*converted, action_history=action_history, next_action_history=next_action_history,
+                     policy_state=policy_state, next_policy_state=next_policy_state, critic_state=critic_state,
+                     critic_next_state=critic_next_state)
 
     def _allocate_buffers(self, n_envs):
         self._n_envs = n_envs
@@ -670,52 +693,144 @@ class HistoryManager(MushroomBackendObject):
             else:
                 self._last_action[mask] = 0
 
-    def _transition_history(self, states, next_states, actions, last, anchor_idxs, backend, next_anchor_idxs=None,
-                            dataset=None):
-        endpoint_idxs = anchor_idxs if next_anchor_idxs is None else next_anchor_idxs
-
-        if 'obs_history' in self._stream_specs:
-            state = self._build_history_at('obs_history', states, last, anchor_idxs, backend, dataset)
-            if next_anchor_idxs is None:
-                endpoint_state = state
-            else:
-                endpoint_state = self._build_history_at('obs_history', states, last, next_anchor_idxs, backend,
-                                                        dataset)
-            next_state = self._next_obs_history(endpoint_state, next_states[endpoint_idxs], backend)
-        else:
-            state = self.preprocess(states[anchor_idxs])
-            next_state = self.preprocess(next_states[endpoint_idxs])
-
-        extra = dict()
-        if self.uses_action:
-            extra['action_history'] = self._build_history_at('action_history', actions, last, anchor_idxs, backend,
-                                                             dataset)
-        return state, next_state, extra
-
-    def _build_history_at(self, name, buffer, last, anchor_idxs, backend, dataset):
+    def _stack_history(self, name, buffer, last, backend=None, attachment=None):
+        backend = backend or self._backend
+        size = buffer.shape[0]
         spec = self._stream_specs[name]
         length, offset = spec['length'], spec['offset']
-        n_samples = len(anchor_idxs)
-        mask_shape = (n_samples,) + (1,) * (len(buffer.shape) - 1)
-        preprocess = name == 'obs_history'
-        dtype = self.preprocess(buffer[:1]).dtype if preprocess else buffer.dtype
         device = backend.get_device(buffer)
-        out = backend.zeros(n_samples, length, *buffer.shape[1:], dtype=dtype, device=device)
 
-        positions, valid = self._walk_back(dataset, last, anchor_idxs, offset + length - 1)
+        out = backend.zeros(size, length, *buffer.shape[1:], dtype=buffer.dtype, device=device)
+        active = backend.ones(size, dtype=bool, device=device)
         for t in range(length):
-            hop = offset + t
-            gathered = self.preprocess(buffer[positions[:, hop]]) if preprocess else buffer[positions[:, hop]]
-            out[:, length - 1 - t] = backend.where(valid[:, hop].reshape(mask_shape), gathered, out[:, length - 1 - t])
+            shift = offset + t
+            if shift >= size:
+                break
+            row_mask = active[shift:].reshape((-1,) + (1,) * (len(buffer.shape) - 1))
+            out[shift:, length - 1 - t] = backend.where(row_mask, buffer[:size - shift], out[shift:, length - 1 - t])
+            boundary = backend.zeros(size, dtype=bool, device=device)
+            boundary[shift:shift + 1] = True
+            boundary[shift + 1:] = last[:size - shift - 1] > 0
+            active = active & ~boundary
+
+        if offset > 0:
+            mask = backend.zeros(size, dtype=bool, device=device)
+            for d in range(1, offset + 1):
+                mask[d:] = mask[d:] | (last[:size - d] > 0)
+            out[mask] = 0
+        windows = attachment.windows(name) if attachment is not None else None
+        if windows is not None and len(attachment) > 0:
+            if len(windows.shape) == len(spec['shape']) + 1:
+                windows = backend.expand_dims(windows, 1)
+            out = self._attach(out, windows, attachment.positions, last, length, offset, backend, device)
         if length == 1:
             out = out[:, 0]
         return out
 
-    def _next_obs_history(self, state_history, next_states, backend):
-        next_obs = self.preprocess(next_states)
-        if self._stream_specs['obs_history']['length'] == 1:
-            return next_obs
-        return backend.concatenate([state_history[:, 1:], next_obs[:, None]], dim=1)
+    def _transition_history(self, states, next_states, actions, last, anchor_idxs, backend, next_anchor_idxs=None,
+                            dataset=None):
+        endpoint_idxs = anchor_idxs if next_anchor_idxs is None else next_anchor_idxs
+        streams = self._observation_streams()
+        reach = max((self._window_span(name) for name in streams if name in self._stream_specs), default=1)
+
+        hops, valid = self._get_preceding_observations(states, last, anchor_idxs, reach, backend, dataset)
+        endpoint_hops, endpoint_valid = hops, valid
+        if next_anchor_idxs is not None and reach > 1:
+            endpoint_hops, endpoint_valid = self._get_preceding_observations(states, last, next_anchor_idxs, reach,
+                                                                             backend, dataset)
+        next_obs = self.preprocess(next_states[endpoint_idxs])
+
+        windows = list()
+        for name, selection in streams.items():
+            next_window = self._select(next_obs, selection)
+            if name in self._stream_specs:
+                window = self._window_at(name, selection, hops, valid, backend)
+                endpoint_window = window if next_anchor_idxs is None else \
+                    self._window_at(name, selection, endpoint_hops, endpoint_valid, backend)
+                windows.append((window, self._next_window(name, endpoint_window, next_window, backend)))
+            else:
+                windows.append((self._select(hops[0], selection), next_window))
+        (state, next_state), *critic = windows
+        critic_state, critic_next_state = critic[0] if critic and critic[0][0] is not state else (None, None)
+
+        action_history = next_action_history = None
+        if self.uses_action:
+            action_history = self._build_history_at('action_history', actions, last, anchor_idxs, backend, dataset)
+            if next_anchor_idxs is None:
+                endpoint_windows = action_history
+            else:
+                endpoint_windows = self._build_history_at('action_history', actions, last, next_anchor_idxs, backend,
+                                                          dataset)
+            next_action_history = self._next_window('action_history', endpoint_windows, actions[endpoint_idxs],
+                                                    backend)
+        return state, next_state, action_history, next_action_history, critic_state, critic_next_state
+
+    def _build_history_at(self, name, buffer, last, anchor_idxs, backend, dataset):
+        spec = self._stream_specs[name]
+        length, offset = spec['length'], spec['offset']
+        positions, valid = self._walk_back(dataset, last, anchor_idxs, offset + length - 1)
+        entries = [buffer[positions[:, hop]] for hop in range(offset, offset + length)]
+        return self._stack_indexed(entries, valid[:, offset:], backend)
+
+    def _get_preceding_observations(self, states, last, anchor_idxs, reach, backend, dataset):
+        """
+        Gather and preprocess the observations of the given rows and of the ``reach - 1`` rows preceding each of them,
+        along with whether each preceding row belongs to the same episode.
+
+        """
+        if reach == 1:
+            return [self.preprocess(states[anchor_idxs])], None
+        positions, valid = self._walk_back(dataset, last, anchor_idxs, reach - 1)
+        return [self.preprocess(states[positions[:, hop]]) for hop in range(reach)], valid
+
+    def _window_at(self, name, selection, hops, valid, backend):
+        spec = self._stream_specs[name]
+        length, offset = spec['length'], spec['offset']
+        entries = [self._select(hops[hop], selection) for hop in range(offset, offset + length)]
+        return self._stack_indexed(entries, valid[:, offset:offset + length], backend)
+
+    def _next_window(self, name, window, entry, backend):
+        if self._stream_specs[name]['length'] == 1:
+            return entry
+        return backend.concatenate([window[:, 1:], entry[:, None]], dim=1)
+
+    def _window_span(self, name):
+        spec = self._stream_specs[name]
+        return spec['offset'] + spec['length']
+
+    def _check_reserved_streams(self, mdp_info):
+        for name, (shape, dtype) in self._reserved_entries(mdp_info).items():
+            if name in self._stream_specs:
+                spec = self._stream_specs[name]
+                dtype = self._backend.to_backend_dtype(dtype)
+                assert spec['shape'] == tuple(shape) and spec['dtype'] == dtype, \
+                    f"The '{name}' stream holds entries of shape {spec['shape']} and data type {spec['dtype']}, but " \
+                    f"its space gives shape {tuple(shape)} and data type {dtype}."
+
+    def _reserved_entries(self, mdp_info):
+        """
+        The shape and data type of an entry of each reserved stream, as given by the spaces of the MDP.
+
+        """
+        return dict(obs_history=(mdp_info.observation_space.shape, mdp_info.observation_space.data_type),
+                    action_history=(mdp_info.action_space.shape, mdp_info.action_space.data_type))
+
+    def _observation_streams(self):
+        """
+        The streams built from the preprocessed observation, mapping each stream name to the selection of the
+        observation entries it reads (``None`` for all of them): the policy stream first, then the critic stream when
+        there is one. A stream that is not registered is not stacked.
+
+        """
+        return {'obs_history': None}
+
+    def _select_policy_state(self, dataset, anchor_idxs, endpoint_idxs):
+        assert dataset.is_stateful, "The policy state is requested, but the dataset does not store it."
+        policy_state, next_policy_state = self._backend.convert(dataset.policy_state, dataset.policy_next_state,
+                                                                device=self._device)
+        if anchor_idxs is None:
+            return policy_state, next_policy_state
+        return policy_state[anchor_idxs], next_policy_state[endpoint_idxs]
 
     def _stack(self, name, value):
         spec = self._stream_specs[name]
@@ -747,6 +862,43 @@ class HistoryManager(MushroomBackendObject):
 
     def _post_load(self, device):
         self._last_windows = dict()
+
+    @staticmethod
+    def _select(obs, selection):
+        return obs if selection is None else obs[..., selection]
+
+    @staticmethod
+    def _stack_indexed(entries, valid, backend):
+        """
+        Stack the entries of a window, ``entries[t]`` being the one ``t`` steps behind its end and valid where
+        ``valid[:, t]`` is; the others are zero.
+
+        """
+        length = len(entries)
+        n_samples = entries[0].shape[0]
+        mask_shape = (n_samples,) + (1,) * (len(entries[0].shape) - 1)
+        out = backend.zeros(n_samples, length, *entries[0].shape[1:], dtype=entries[0].dtype,
+                            device=backend.get_device(entries[0]))
+        for t, entry in enumerate(entries):
+            out[:, length - 1 - t] = backend.where(valid[:, t].reshape(mask_shape), entry, out[:, length - 1 - t])
+        if length == 1:
+            out = out[:, 0]
+        return out
+
+    @staticmethod
+    def _default_specs(mdp_info, history_length, action_history_length):
+        history_length = 1 if history_length is None else history_length
+        action_history_length = 0 if action_history_length is None else action_history_length
+
+        streams = dict()
+        if history_length > 1:
+            streams['obs_history'] = dict(length=history_length, shape=mdp_info.observation_space.shape,
+                                          dtype=mdp_info.observation_space.data_type)
+        if action_history_length > 0:
+            streams['action_history'] = dict(length=action_history_length, shape=mdp_info.action_space.shape,
+                                             dtype=mdp_info.action_space.data_type, offset=1)
+
+        return streams
 
     @staticmethod
     def _attach(out, windows, positions, last, length, offset, backend, device):

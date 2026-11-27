@@ -118,10 +118,10 @@ Parsing a dataset
 An algorithm that trains off a whole :class:`~mushroom_rl.core.Dataset` rebuilds the history windows for the
 whole dataset at once through
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_history`, the history-aware analog of
-:meth:`~mushroom_rl.core.Dataset.parse`. It returns the same seven-tuple ``(state, action, reward, next_state,
-absorbing, last, extra)``: ``state`` and ``next_state`` carry the stacked ``obs_history`` window (or the raw
-observation, unchanged, when the stream is not active) in place of the single-step observation, and ``extra`` maps
-every other active stream (e.g. ``action_history``) to its window, exactly as returned by
+:meth:`~mushroom_rl.core.Dataset.parse`. It returns the same :class:`~mushroom_rl.core.batch.Batch`, which unpacks
+as ``state, action, reward, next_state, absorbing, last``: ``state`` and ``next_state`` carry the stacked
+``obs_history`` window (or the raw observation, unchanged, when the stream is not active) in place of the
+single-step observation, and the ``action_history`` field holds the previous-action window, exactly as returned by
 :meth:`~mushroom_rl.core.history_manager.HistoryManager.__call__` while acting. ``action``, ``reward`` and
 ``absorbing`` are the raw per-transition values, not stacked, and ``last`` is the segment-end flag of
 :meth:`~mushroom_rl.core.Dataset.parse`. As with :meth:`~mushroom_rl.core.Dataset.parse`, the
@@ -146,17 +146,16 @@ The n-step return over a dataset
 parse: the reward becomes the discounted sum of the next ``n_steps_return`` rewards and ``next_state``, ``absorbing``
 and ``last`` are taken at its bootstrap **endpoint** — the transition ``n_steps_return`` steps ahead, or the terminal
 transition when the episode ends earlier — while ``state`` and the other streams (e.g. ``action_history``) stay at
-the current step. The endpoint index of each transition, needed by an agent that wants to bootstrap off it directly,
-is returned under ``extra['endpoint']``. The return never crosses an episode boundary: it stops and bootstraps at the
-terminal transition instead of stitching in rewards from the next episode.
+the current step. The return never crosses an episode boundary: it stops and bootstraps at the terminal transition
+instead of stitching in rewards from the next episode.
 
 .. literalinclude:: code/history_manager.py
-   :lines: 64-70
+   :lines: 64-69
 
 With ``gamma`` 0.9 and ``n_steps_return`` 2, the reward of a transition becomes ``r_t + 0.9 * r_{t+1}`` and its
 endpoint is ``t + 1``. Only the transitions whose n-step return is well-defined are returned: the last transition of
-the dataset has no further step to look ahead to, so it is dropped (its surviving anchor index is returned under
-``extra['anchor']``). :class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs this same parse at the
+the dataset has no further step to look ahead to, so it is dropped.
+:class:`~mushroom_rl.rl_utils.replay_memory.ReplayMemory` performs this same parse at the
 sampled positions when it is built with ``n_steps_return`` greater than 1, so that n-step DQN-style targets and
 history stacking compose transparently.
 
@@ -207,7 +206,9 @@ the agent backend: :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse
 stored transition, and :meth:`~mushroom_rl.core.history_manager.HistoryManager.parse_initial_state` builds the
 windows of the episode starts, which have no history behind them and are therefore zero-padded. They are what an
 on-policy algorithm uses to snapshot the states before updating the statistics, and what a script should use to
-feed stored observations back to the policy or the critic, e.g. to log an entropy or a value estimate.
+feed stored observations back to the policy or the critic, e.g. to log an entropy or a value estimate. With an
+asymmetric actor-critic, the critic input of the episode starts comes from
+:meth:`~mushroom_rl.core.asymmetric_history_manager.AsymmetricHistoryManager.parse_initial_critic_state` instead.
 
 .. literalinclude:: code/history_manager.py
-   :lines: 72-80
+   :lines: 71-79

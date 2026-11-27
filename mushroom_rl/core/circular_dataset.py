@@ -169,21 +169,26 @@ class CircularDataset(Dataset):
         self._history_state = self._history_state.clear()
         self._clear_rows()
 
-    def parse(self, to=None, device=None):
+    def parse(self, to=None, device=None, get_policy_state=False):
         """
-        Return the stored episodes as a set of arrays, each episode from its oldest stored step on and the episodes
-        oldest first. The returned ``last`` flags mark the final row of every stored segment.
+        Return the stored episodes as a batch of arrays, each episode from its oldest stored step on and the
+        episodes oldest first. The returned ``last`` flags mark the final row of every stored segment.
 
         Args:
             to (str, None): the backend to be used for the returned arrays. By default, the dataset backend is used;
-            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one;
+            get_policy_state (bool, False): whether the batch also holds the policy state and policy next state
+                arrays.
 
         Returns:
-            A tuple containing the arrays that define the dataset, i.e. state, action, reward, next state, absorbing
-            and last.
+            The :class:`~mushroom_rl.core.batch.Batch` holding the state, action, reward, next state, absorbing and
+            last arrays and, when requested, the policy states.
+
+        Raises:
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
-        return self._time_ordered().parse(to, device)
+        return self._time_ordered().parse(to, device, get_policy_state)
 
     def parse_policy_state(self, to=None, device=None):
         """

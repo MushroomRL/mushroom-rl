@@ -5,8 +5,6 @@ from mushroom_rl.approximators.parametric import TorchApproximator
 from mushroom_rl.rl_utils.value_functions import compute_advantage_montecarlo
 from mushroom_rl.rl_utils.parameters import Parameter
 
-from copy import deepcopy
-
 
 class A2C(DeepAC):
     """
@@ -17,8 +15,8 @@ class A2C(DeepAC):
 
     """
 
-    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, ent_coeff, max_grad_norm=None,
-                 critic_fit_params=None, history_length=1, action_history_length=0, device=None):
+    def __init__(self, mdp_info, policy, actor_optimizer, critic_params, ent_coeff, critic_fit_params=None,
+                 history_length=1, action_history_length=0, device=None):
         """
         Constructor.
 
@@ -27,8 +25,6 @@ class A2C(DeepAC):
             actor_optimizer (dict): parameters to specify the actor optimizer algorithm;
             critic_params (dict): parameters of the critic approximator to build;
             ent_coeff ([float, Parameter], 0): coefficient for the entropy penalty;
-            max_grad_norm (float, None): maximum norm for gradient clipping. If None, no clipping will be performed,
-                unless specified otherwise in actor_optimizer;
             critic_fit_params (dict, None): parameters of the fitting algorithm of the critic approximator;
             history_length (int, 1): number of consecutive observations stacked as policy input;
             action_history_length (int, 0): number of previous actions fed to the actor and critic;
@@ -43,11 +39,6 @@ class A2C(DeepAC):
             critic_params.setdefault('device', device)
         self._V = TorchApproximator(**critic_params)
 
-        if 'clipping' not in actor_optimizer and max_grad_norm is not None:
-            actor_optimizer = deepcopy(actor_optimizer)
-            clipping_params = dict(max_norm=max_grad_norm, norm_type=2)
-            actor_optimizer['clipping'] = dict(method=torch.nn.utils.clip_grad_norm_, params=clipping_params)
-
         super().__init__(mdp_info, policy, actor_optimizer, policy.parameters(), history_length=history_length,
                          action_history_length=action_history_length, device=device)
 
@@ -61,18 +52,16 @@ class A2C(DeepAC):
     def fit(self, dataset):
         self._history_manager.update_preprocessors(dataset)
 
-        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        prev_action = extra.get('action_history')
+        batch = self._history_manager.parse_history(dataset)
 
-        v, adv = compute_advantage_montecarlo(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
-                                              action_history=prev_action, action=action)
-        self._V.fit(state, v, action_history=prev_action, **self._critic_fit_params)
+        v, adv = compute_advantage_montecarlo(self._V, batch, self.mdp_info.gamma)
+        self._V.fit(batch.critic_state, v, action_history=batch.action_history, **self._critic_fit_params)
 
-        loss = self._loss(state, action, adv, prev_action)
+        loss = self._loss(batch.state, batch.action, adv, batch.action_history)
         self._optimize_actor_parameters(loss)
 
         if self._logger:
-            entropy = self.policy.entropy(state, action_history=prev_action)
+            entropy = self.policy.entropy(batch.state, action_history=batch.action_history)
             self._logger.log_training('actor', loss=loss.item(), entropy=entropy.item())
             self._logger.advance_step()
 
@@ -81,6 +70,3 @@ class A2C(DeepAC):
         entropy_loss = -self.policy.entropy(state, action_history=action_history)
 
         return gradient_loss + self._entropy_coeff() * entropy_loss
-
-    def _post_load(self, device):
-        self.overwrite_actor_parameters(self.policy.parameters())

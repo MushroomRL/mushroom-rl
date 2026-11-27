@@ -7,27 +7,25 @@ from mushroom_rl.rl_utils.value_functions import compute_gae
 
 class RudinPPO(PPO):
     """
-    Extended PPO algorithm Introducing gradient clipping and adaptive learning rate based on KL divergence.
+    Extended PPO algorithm, with a learning rate adapted to the KL divergence.
     "Learning to walk in minutes using massively parallel deep reinforcement learning"
     Rudin N. et al. 2022.
 
     """
 
     def __init__(self, mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo, lam,
-                 ent_coeff=0.0, critic_fit_params=None, clip_grad_norm=1., schedule='adaptive', desired_kl=0.01,
-                 history_length=1, action_history_length=0, device=None):
+                 ent_coeff=0.0, critic_fit_params=None, schedule='adaptive', desired_kl=0.01, history_length=1,
+                 action_history_length=0, device=None):
         super().__init__(mdp_info, policy, actor_optimizer, critic_params, n_epochs_policy, batch_size, eps_ppo,
                          lam, ent_coeff, critic_fit_params, history_length=history_length,
                          action_history_length=action_history_length, device=device)
 
-        self._clip_grad_norm = clip_grad_norm
         self._schedule = schedule
         self._desired_kl = desired_kl
         self._actor_learning_rate = actor_optimizer['params']['lr']
         self._critic_learning_rate = critic_params['optimizer']['params']['lr']
 
         self._add_save_attr(
-            _clip_grad_norm='primitive',
             _schedule='primitive',
             _desired_kl='primitive',
             _actor_learning_rate='primitive',
@@ -37,27 +35,23 @@ class RudinPPO(PPO):
     def fit(self, dataset):
         self._log_iteration_start()
 
-        state_old = self._history_manager.parse_state(dataset)
-        self._history_manager.update_preprocessors(dataset)
+        batch, state_old = self._parse_dataset(dataset)
 
-        state, action, reward, next_state, absorbing, last, extra = self._history_manager.parse_history(dataset)
-        prev_action = extra.get('action_history')
-
-        v_target, adv = compute_gae(self._V, state, next_state, reward, absorbing, last, self.mdp_info.gamma,
-                                    self._lambda(), action_history=prev_action, action=action)
+        v_target, adv = compute_gae(self._V, batch, self.mdp_info.gamma, self._lambda())
         adv = (adv - torch.mean(adv)) / (torch.std(adv) + 1e-8)
 
         adv = adv.detach()
         v_target = v_target.detach()
 
         with torch.no_grad():
-            old_pol_dist = self.policy.distribution(state_old, action_history=prev_action)
+            old_pol_dist = self.policy.distribution(state_old, action_history=batch.action_history)
 
-        old_log_p = old_pol_dist.log_prob(action).detach()
+        old_log_p = old_pol_dist.log_prob(batch.action).detach()
 
-        self._V.fit(state, v_target, action_history=prev_action, **self._critic_fit_params)
+        self._V.fit(batch.critic_state, v_target, action_history=batch.action_history, **self._critic_fit_params)
 
-        kl, entropy = self._update_policy(state, action, adv, old_log_p, old_pol_dist, prev_action)
+        kl, entropy = self._update_policy(batch.state, batch.action, adv, old_log_p, old_pol_dist,
+                                          batch.action_history)
 
         self._log_info(dataset, kl, entropy)
 
@@ -67,7 +61,7 @@ class RudinPPO(PPO):
         kls = list()
         entropies = list()
         for epoch in range(self._n_epochs_policy()):
-            for batch in minibatch_generator(self._batch_size(), *tensors):
+            for batch in minibatch_generator(self._batch_size(), *tensors, device=self._info.device):
                 obs_i, act_i, adv_i, old_log_p_i, old_dist_i, *rest = batch
                 action_history_i = rest[0] if rest else None
 
@@ -77,24 +71,17 @@ class RudinPPO(PPO):
                     kl = torch.mean(torch.distributions.kl.kl_divergence(old_dist_i, dist))
                     self._adapt_learning_rate(kl)
 
-                self._optimizer.zero_grad()
                 prob_ratio = torch.exp(dist.log_prob(act_i) - old_log_p_i)
                 clipped_ratio = torch.clamp(prob_ratio, 1 - self._eps_ppo(), 1 + self._eps_ppo.get_value())
                 entropy = self.policy.entropy(obs_i, action_history=action_history_i)
                 loss = -torch.mean(torch.min(prob_ratio * adv_i, clipped_ratio * adv_i))
                 loss -= self._ent_coeff() * entropy
-                loss.backward()
-                self._clip_gradient()
-                self._optimizer.step()
+                self._optimize_actor_parameters(loss)
 
                 kls.append(kl)
                 entropies.append(entropy.detach())
 
         return torch.stack(kls).mean(), torch.stack(entropies).mean()
-
-    def _clip_gradient(self):
-        if self._clip_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self._clip_grad_norm)
 
     def _adapt_learning_rate(self, kl):
         if self._schedule == 'adaptive' and self._desired_kl:

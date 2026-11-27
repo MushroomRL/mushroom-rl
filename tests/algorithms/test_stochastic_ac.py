@@ -4,7 +4,7 @@ import torch
 from helper.dummies import CountingVecEnv
 from helper.utils import TestUtils as tu
 
-from mushroom_rl.algorithms.actor_critic import StochasticAC, StochasticAC_AVG
+from mushroom_rl.algorithms.actor_critic import ClassicAC, StochasticAC, StochasticAC_AVG
 from mushroom_rl.core import Core
 from mushroom_rl.environments import InvertedPendulum
 from mushroom_rl.features import Features
@@ -80,6 +80,9 @@ def test_stochastic_ac(tmpdir):
 
     with pytest.raises(AssertionError):
         Core(agent, env).learn(n_steps=4, n_steps_per_fit=2, quiet=True)
+
+    with pytest.raises(NotImplementedError):
+        ClassicAC._update(None, None, None, None, None, None)
 
 
 def test_stochastic_ac_avg(tmpdir):

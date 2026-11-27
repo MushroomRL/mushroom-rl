@@ -1,10 +1,9 @@
 """
 This script trains the Unitree Go2 to walk with RudinPPO: the full reward set, the biased velocity command
-sampling, an asymmetric actor-critic, an eight-step observation history, and a curriculum that tightens the
-task as training goes on.
+sampling, an asymmetric actor-critic, and a curriculum that tightens the task as training goes on.
 
-The policy does not observe the base linear velocity, the trunk height, the actuation delay and the joint
-calibration offsets; the critic observes all of them.
+The policy reads the last eight observations, without the base linear velocity, the trunk height, the actuation
+delay and the joint calibration offsets; the critic reads the current observation, with all of them.
 
 """
 import argparse
@@ -35,31 +34,6 @@ logging.getLogger("isaacsim.asset.transformer.rules.utils").setLevel(logging.WAR
 from mushroom_rl.environments.isaacsim_envs import Go2Isaac
 from mushroom_rl.environments.isaacsim_envs.quadruped.commands import EllipticVelocityCommands
 from mushroom_rl.environments.isaacsim_envs.quadruped.randomizer import QuadrupedRandomizationParams
-
-
-class PolicyNetwork(ActorNetwork):
-    """
-    An actor network reading only the given entries of the observation.
-
-    """
-    def __init__(self, input_shape, output_shape, observed_indices, **kwargs):
-        """
-        Constructor.
-
-        Args:
-            input_shape (tuple): Shape of the network input, whose last axis is the full observation and whose
-                leading axes, if any, are the stacked history.
-            output_shape (tuple): Shape of the output (e.g. the action).
-            observed_indices (torch.tensor): The entries of the observation the policy is allowed to see.
-            **kwargs: Other parameters of :class:`ActorNetwork`.
-
-        """
-        super().__init__(tuple(input_shape[:-1]) + (len(observed_indices),), output_shape, **kwargs)
-
-        self.register_buffer('_observed_indices', observed_indices)
-
-    def forward(self, state, **kwargs):
-        return super().forward(state[..., self._observed_indices], **kwargs)
 
 
 class Curriculum:
@@ -135,7 +109,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def observed_indices(mdp, *privileged):
+def actor_indices(mdp, *privileged):
     """
     Returns the entries of the observation the policy is allowed to see, that is every one that is not
     privileged.
@@ -143,17 +117,16 @@ def observed_indices(mdp, *privileged):
     """
     hidden = set(mdp.observation_indices(*privileged).tolist())
 
-    return torch.tensor([index for index in range(mdp.info.observation_space.shape[0]) if index not in hidden],
-                        device=TorchUtils.get_device())
+    return [index for index in range(mdp.info.observation_space.shape[0]) if index not in hidden]
 
 
 def initial_value(agent, dataset):
     """
-    Returns the mean value the critic assigns to the initial states of the dataset, stacked and normalized
-    the way the critic reads them.
+    Returns the mean value the critic assigns to the initial states of the dataset, normalized the way the
+    critic reads them.
 
     """
-    return agent._V(agent.history_manager.parse_initial_state(dataset)).mean().item()
+    return agent._V(agent.history_manager.parse_initial_critic_state(dataset)).mean().item()
 
 
 def episode_metrics(dataset):
@@ -226,18 +199,18 @@ def experiment(alg, n_epochs, n_steps, n_steps_per_fit, n_episodes_test, eval_fr
                                **alg_params, **policy_params)
 
     # Policy
-    network_input_shape = (alg_params['history_length'],) + mdp.info.observation_space.shape
+    observed = actor_indices(mdp, *privileged_observations)
 
-    policy = GaussianTorchPolicy(PolicyNetwork,
-                                 network_input_shape,
+    policy = GaussianTorchPolicy(ActorNetwork,
+                                 (alg_params['history_length'], len(observed)),
                                  mdp.info.action_space.shape,
-                                 observed_indices=observed_indices(mdp, *privileged_observations),
                                  **policy_params)
 
     # Agent
-    critic_params = dict(critic_params, input_shape=network_input_shape, output_shape=())
+    critic_params = dict(critic_params, input_shape=mdp.info.observation_space.shape, output_shape=())
 
-    agent = alg(mdp.info, policy, critic_params=critic_params, **alg_params)
+    agent = alg.asymmetric(mdp.info, policy, critic_params=critic_params, actor_indices=observed,
+                           critic_history_length=1, **alg_params)
     agent.add_agent_preprocessor(StandardizationPreprocessor(mdp.info, backend='torch'))
 
     # Algorithm
@@ -307,14 +280,15 @@ if __name__ == '__main__':
     batch_size = n_steps_per_fit // n_minibatches
 
     ppo_params = dict(actor_optimizer={'class': optim.Adam,
-                                       'params': {'lr': 1e-3, 'fused': True}},
+                                       'params': {'lr': 1e-3, 'fused': True},
+                                       'clipping': {'method': torch.nn.utils.clip_grad_norm_,
+                                                    'params': {'max_norm': 1.}}},
                       n_epochs_policy=5,
                       batch_size=batch_size,
                       eps_ppo=.2,
                       lam=.95,
                       ent_coeff=0.01,
                       critic_fit_params=dict(n_epochs=5),
-                      clip_grad_norm=1.,
                       schedule='adaptive',
                       desired_kl=0.01,
                       history_length=8)

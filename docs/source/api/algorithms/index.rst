@@ -17,7 +17,8 @@ supports: ``discrete`` and ``continuous`` when the algorithm constrains it, ``po
 agnostic and it is the policy passed to the constructor that decides. The **Fit** column says what ``Agent.fit``
 consumes, i.e. whether the algorithm can be fitted on a partial episode (``steps``) or requires complete episodes
 (``episodes``). The **Reference** column reports the paper named in the class docstring; it is empty for the
-algorithms whose docstring names none.
+algorithms whose docstring names none. Each family also lists the base classes its algorithms extend, with what each
+of them provides to a new algorithm built on it.
 
 .. toctree::
    :maxdepth: 1
@@ -60,6 +61,16 @@ algorithms whose docstring names none.
    "Maxmin DQN", ":class:`~mushroom_rl.algorithms.value.dqn.MaxminDQN`", "discrete", "steps", "*Maxmin Q-learning: Controlling the Estimation Bias of Q-learning*. Lan Q. et al. 2020."
    "Rainbow", ":class:`~mushroom_rl.algorithms.value.dqn.Rainbow`", "discrete", "steps", "*Rainbow: Combining Improvements in Deep Reinforcement Learning*. Hessel M. et al. 2018."
 
+The value-based algorithms extend the following base classes.
+
+.. csv-table::
+   :header: "Base class", "Provides"
+   :widths: 30, 70
+
+   ":class:`~mushroom_rl.algorithms.value.td.TD`", "The Q-function shared with the policy and a ``fit`` on one transition at a time; subclasses define the update in ``_update``."
+   ":class:`~mushroom_rl.algorithms.value.batch_td.BatchTD`", "The Q-function approximator, built from its class and parameters and shared with the policy, and its fit parameters."
+   ":class:`~mushroom_rl.algorithms.value.dqn.AbstractDQN`", "The replay memory, the online and target approximators, the periodic target update and the ``fit`` loop; subclasses define the target value in ``_next_q``."
+
 .. rubric:: Actor-critic
 
 .. csv-table::
@@ -78,6 +89,17 @@ algorithms whose docstring names none.
    "PPO with BPTT", ":class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.PPO_BPTT`", "policy", "steps", "*Proximal Policy Optimization Algorithms*. Schulman J. et al. 2017."
    "Rudin PPO", ":class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.RudinPPO`", "policy", "steps", "*Learning to walk in minutes using massively parallel deep reinforcement learning*. Rudin N. et al. 2022."
 
+The actor-critic algorithms extend the following base classes.
+
+.. csv-table::
+   :header: "Base class", "Provides"
+   :widths: 30, 70
+
+   ":class:`~mushroom_rl.algorithms.actor_critic.classic_actor_critic.ClassicAC`", "The value function features, the linear state-value critic and a ``fit`` on one transition at a time; subclasses define the update of actor and critic in ``_update``."
+   ":class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.DeepAC`", "The optional optimizer of the actor parameters, with gradient clipping."
+   ":class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.OnPolicyDeepAC`", "The parsing of the dataset at every fit and the logging of the return, KL divergence and entropy of every iteration."
+   ":class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.OffPolicyDeepAC`", "The initialization and the soft update of the target networks."
+
 .. rubric:: Policy search
 
 .. csv-table::
@@ -94,7 +116,11 @@ algorithms whose docstring names none.
    "MORE", ":class:`~mushroom_rl.algorithms.policy_search.black_box_optimization.MORE`", "policy", "episodes", "*Model-Based Relative Entropy Stochastic Search*. Abdolmaleki A. et al. 2015."
    "ePPO", ":class:`~mushroom_rl.algorithms.policy_search.black_box_optimization.ePPO`", "policy", "episodes", "*Proximal Policy Optimization Algorithms*. Schulman J. et al. 2017."
 
-The abstract bases :class:`~mushroom_rl.algorithms.value.dqn.AbstractDQN`,
-:class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.DeepAC` and
-:class:`~mushroom_rl.algorithms.actor_critic.deep_actor_critic.OnPolicyDeepAC` are not listed above: they are
-extension points rather than algorithms, and are documented on their own pages.
+The policy-search algorithms extend the following base classes.
+
+.. csv-table::
+   :header: "Base class", "Provides"
+   :widths: 30, 70
+
+   ":class:`~mushroom_rl.algorithms.policy_search.policy_gradient.PolicyGradient`", "The ``fit`` over complete episodes and the update of the policy parameters with the given optimizer; subclasses define the gradient estimate in ``_init_update``, ``_step_update``, ``_episode_end_update`` and ``_compute_gradient``."
+   ":class:`~mushroom_rl.algorithms.policy_search.black_box_optimization.BlackBoxOptimization`", "The policy parameters drawn from the distribution at every episode start, its mean in greedy evaluation, the optional context, and a ``fit`` on the episode returns; subclasses define the distribution update in ``_update``."

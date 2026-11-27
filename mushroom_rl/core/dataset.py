@@ -7,6 +7,7 @@ import torch
 
 from mushroom_rl.core.mushroom_object import MushroomObject
 from mushroom_rl.core.array_backend import ArrayBackend
+from mushroom_rl.core.batch import Batch
 from mushroom_rl.core.dataset_info import DatasetInfo
 from mushroom_rl.core.extra_info import ExtraInfo
 
@@ -241,24 +242,32 @@ class Dataset(MushroomObject):
         assert len(self) == 1
         return self[0]
 
-    def parse(self, to=None, device=None):
+    def parse(self, to=None, device=None, get_policy_state=False):
         """
-        Return the dataset as a set of arrays. The returned ``last`` flags mark the final row of every stored
+        Return the dataset as a batch of arrays. The returned ``last`` flags mark the final row of every stored
         segment: every episode end, every row whose successor is not stored right after it, and the final row.
 
         Args:
             to (str, None):  the backend to be used for the returned arrays. By default, the dataset backend is used;
-            device (str, None): device the returned arrays are placed on, or ``None`` for the default one.
+            device (str, None): device the returned arrays are placed on, or ``None`` for the default one;
+            get_policy_state (bool, False): whether the batch also holds the policy state and policy next state
+                arrays.
 
         Returns:
-            A tuple containing the arrays that define the dataset, i.e. state, action, reward, next state, absorbing
-            and last.
+            The :class:`~mushroom_rl.core.batch.Batch` holding the state, action, reward, next state, absorbing and
+            last arrays and, when requested, the policy states.
+
+        Raises:
+            AssertionError: if the policy state is requested from a dataset that does not store it.
 
         """
         if to is None:
             to = self._dataset_info.env_backend_name
-        return self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing,
-                             self.last_or_boundary, to=to, device=device)
+        arrays = self._convert(self.state, self.action, self.reward, self.next_state, self.absorbing,
+                               self.last_or_boundary, to=to, device=device)
+        policy_state, next_policy_state = self._parse_policy_state(to, device) if get_policy_state else (None, None)
+
+        return Batch(*arrays, policy_state=policy_state, next_policy_state=next_policy_state)
 
     def parse_policy_state(self, to=None, device=None):
         """
@@ -768,6 +777,11 @@ class Dataset(MushroomObject):
         self._data.append(*step[:len(self._Field)])
         if self._agent_data is not None:
             self._agent_data.append(*step[len(self._Field):])
+
+    def _parse_policy_state(self, to, device):
+        assert self.is_stateful, "The policy state is requested, but the dataset does not store it."
+        return self._convert(self.policy_state, self.policy_next_state, to=to,
+                             backend=self._dataset_info.agent_backend, device=device)
 
     def _convert(self, *arrays, to='numpy', backend=None, device=None):
         backend = backend if backend is not None else self._dataset_info.env_backend

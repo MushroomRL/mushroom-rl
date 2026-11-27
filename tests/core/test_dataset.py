@@ -324,6 +324,15 @@ def test_policy_backend_split():
     assert isinstance(ps_np, np.ndarray)
     assert np.array_equal(ps_np, policy_states)
 
+    batch = dataset.parse(get_policy_state=True)
+    assert isinstance(batch.policy_state, np.ndarray)
+    assert np.array_equal(batch.policy_state, policy_states)
+    assert np.array_equal(batch.next_policy_state, policy_next_states)
+    assert dataset.parse().policy_state is None
+    with pytest.raises(AssertionError):
+        Dataset.from_array(states, actions, rewards, next_states, absorbings, lasts, gamma=0.9).parse(
+            get_policy_state=True)
+
     assert dataset.capacity == n
 
     appended = dataset.copy()

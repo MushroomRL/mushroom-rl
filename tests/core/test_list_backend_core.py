@@ -301,7 +301,8 @@ def test_unsupported():
 
 
 def test_reset_last_action():
-    history_manager = HistoryManager(AgentInfo(is_episodic=False, policy_state_shape=None, backend='list'))
+    mdp_info = MDPInfo(Box(-1., 1., shape=(1,)), Box(-1., 1., shape=(1,)), 0.99, 10)
+    history_manager = HistoryManager(mdp_info, AgentInfo(is_episodic=False, policy_state_shape=None, backend='list'))
     action = [{'move': 0}, {'move': 1}, {'move': 2}]
 
     history_manager.reset_vectorized(np.array([True, True, True]))

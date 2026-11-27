@@ -1,3 +1,4 @@
+from mushroom_rl.core.batch import PrioritizedBatch
 from mushroom_rl.rl_utils.parameters import Parameter
 from mushroom_rl.utils.priority_sampler import PrioritySampler
 
@@ -11,7 +12,7 @@ class PrioritizedReplayMemory(ReplayMemory):
 
     """
     def __init__(self, mdp_info, agent_info, initial_size, max_size, alpha, beta, epsilon=.01, history_manager=None,
-                 n_steps_return=1, store_policy_state=False, return_extra=False):
+                 n_steps_return=1, store_policy_state=False):
         """
         Constructor.
 
@@ -26,9 +27,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             history_manager (HistoryManager, None): the manager used by the agent to assemble the stacked observation,
                 reused offline so that the stacked observation matches the one built online;
             n_steps_return (int, 1): number of steps used for the n-step return;
-            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory;
-            return_extra (bool, False): whether :meth:`get` also returns the ``extra_data`` dictionary of the history
-                windows not delivered in-band in the state.
+            store_policy_state (bool, False): whether the policy internal state is stored in the replay memory and
+                returned by :meth:`get`.
 
         """
         self._alpha = alpha
@@ -36,7 +36,7 @@ class PrioritizedReplayMemory(ReplayMemory):
         self._epsilon = epsilon
 
         super().__init__(mdp_info, agent_info, initial_size, max_size, history_manager, n_steps_return,
-                         store_policy_state, return_extra)
+                         store_policy_state)
 
         self._add_save_attr(
             _alpha='primitive',
@@ -76,9 +76,8 @@ class PrioritizedReplayMemory(ReplayMemory):
             n_samples (int): the number of samples to return.
 
         Returns:
-            The requested number of samples, followed by the buffer positions and importance-sampling weights of the
-            drawn transitions. When ``return_extra`` is set, the ``extra_data`` dictionary assembled by the history
-            manager is inserted just before this trailing pair.
+            The :class:`~mushroom_rl.core.batch.PrioritizedBatch` of the sampled transitions, holding their buffer
+            positions and importance sampling weights.
 
         """
         total_priority = self._sampler.total_priority
@@ -87,10 +86,9 @@ class PrioritizedReplayMemory(ReplayMemory):
         importance_sampling_weights = (self.size * priorities / total_priority) ** -self._beta()
         importance_sampling_weights /= importance_sampling_weights.max()
 
-        out = self._assemble_batch(idxs)
-        out += [idxs, importance_sampling_weights]
+        batch = self._assemble_batch(idxs)
 
-        return tuple(out)
+        return PrioritizedBatch.from_batch(batch, idxs=idxs, weights=importance_sampling_weights)
 
     def reset(self):
         super().reset()
