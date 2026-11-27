@@ -5,7 +5,7 @@ from pathlib import Path
 
 from helper.dummies import DummyAgent, FrameRecorder, ZeroPolicy
 
-from mushroom_rl.core import Agent, Core, Environment, Logger, MDPInfo, VectorizedEnvironment
+from mushroom_rl.core import Core, Environment, Logger, MDPInfo, VectorizedEnvironment
 from mushroom_rl.core.spaces import Box, Discrete
 from mushroom_rl.environments import Atari
 
