@@ -266,3 +266,4 @@ def test_batch():
         assert actions.shape == (4, 2)
         assert np.allclose(actions, single_actions)
         assert np.array_equal(pi.draw_action_greedy(states), mu(states))
+        assert np.allclose(pi(states, actions), [pi(state, action) for state, action in zip(states, actions)])

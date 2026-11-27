@@ -2,7 +2,6 @@ import numpy as np
 
 from mushroom_rl.policy.policy import Policy, HasGradient, HasLocation
 from mushroom_rl.rl_utils.parameters import CovarianceParameter
-from scipy.stats import multivariate_normal
 
 
 class AbstractGaussianPolicy(HasGradient, HasLocation, Policy):
@@ -65,7 +64,12 @@ class GaussianPolicy(AbstractGaussianPolicy):
         self._add_logger_attr(_sigma='sigma', group='policy')
 
     def __call__(self, state, action):
-        return multivariate_normal.pdf(action, self.location(state), self._sigma.get_value())
+        delta = action - self.location(state)
+        cholesky = self._sigma.get_cholesky()
+        whitened = np.linalg.solve(cholesky, delta.T)
+
+        return np.exp(-.5 * (cholesky.shape[0] * np.log(2 * np.pi) + 2 * np.sum(np.log(np.abs(np.diag(cholesky))))
+                             + np.sum(whitened**2, axis=0)))
 
     def draw_action(self, state):
         self._sigma.update()
